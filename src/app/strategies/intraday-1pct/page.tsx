@@ -143,7 +143,7 @@ export default function Intraday1PctPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">💯 Estrategia 1%</h1>
-          <p className="text-gray-500 text-sm">Spot momentum con filtros estrictos</p>
+          <p className="text-gray-500 text-sm">Estrategia intraday trend-following. Busca +1% rápidos en altcoins con momentum limpio. Filtros estrictos: market cap {">"}$300M, volumen 24h {">"}$50M, ratio vol/mcap {">"}0.15, ADX {">"}20, RSI 40-55. TP fijo +1%, SL -0.5% (R:R 2:1). Mueve a breakeven en +0.6%. Límites diarios: -1.5% pérdida, +3% target.</p>
         </div>
         <div className={clsx(
           'px-3 py-1.5 rounded-lg font-medium text-sm',

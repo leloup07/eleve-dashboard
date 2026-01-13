@@ -107,7 +107,7 @@ export default function IntradayPage() {
             VWAP Reversion
           </h1>
           <p className="text-gray-500 mt-1">
-            Intraday 15m • Mean-reversion tras fake breaks del rango asiático
+            Estrategia intraday mean-reversion. Opera fake breaks del rango asiático (00:00-08:00 UTC) que revierten al VWAP. Busca sobre-extensiones de más de 1 ATR respecto al VWAP en BTC y ETH. SL a 1.2x ATR, TP a 1.5x ATR. Límites diarios: -1% pérdida máxima, +1.5% target. Sin trailing, filosofía cobrar y fuera.
           </p>
         </div>
         <div className="text-right text-sm text-gray-500">
