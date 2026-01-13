@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { useTradingStore } from '@/stores/tradingStore'
+import type { Trade as StoreTrade } from '@/types'
 
 interface Trade {
   id: string
@@ -248,13 +250,39 @@ const STRATEGIES = [
 ]
 
 export default function JournalPage() {
+  const storeTrades = useTradingStore(state => state.trades)
   const [selectedStrategy, setSelectedStrategy] = useState('all')
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null)
   const [viewMode, setViewMode] = useState<'list' | 'stats'>('list')
-
+  
+  // Convertir trades del store al formato journal
+  const convertedTrades: Trade[] = storeTrades.map(t => ({
+    id: t.id,
+    date: t.closeDate,
+    strategy: t.strategy,
+    asset: t.ticker,
+    direction: 'LONG' as const,
+    entryPrice: t.entry,
+    exitPrice: t.exit,
+    size: t.size,
+    pnl: t.pnl,
+    pnlPercent: t.pnlPercent,
+    rMultiple: t.rMultiple,
+    status: t.result === 'TP' ? 'WIN' : t.result === 'SL' ? 'LOSS' : 'BREAKEVEN',
+    entryReason: t.entryReason,
+    exitReason: t.exitReason,
+    whatWentWell: t.strategyExplanation || 'Seguí el plan de trading',
+    whatCouldBeBetter: t.lessons?.[0] || 'Revisar gestión de riesgo',
+    learnings: t.lessons?.join('\n') || 'Documentar aprendizajes',
+    emotions: t.result === 'TP' ? 'Disciplinado' : 'Analizar emociones'
+  }))
+  
+  // Usar trades reales si hay, demos si no
+  const allTrades = convertedTrades.length > 0 ? convertedTrades : DEMO_TRADES
+  
   const filteredTrades = selectedStrategy === 'all' 
-    ? DEMO_TRADES 
-    : DEMO_TRADES.filter(t => t.strategy.toLowerCase().replace(' ', '_') === selectedStrategy)
+    ? allTrades 
+    : allTrades.filter(t => t.strategy.toLowerCase().replace(' ', '_') === selectedStrategy)
 
   const stats = {
     totalTrades: filteredTrades.length,
