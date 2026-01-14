@@ -28,22 +28,21 @@ function getDaysOpen(dateStr: string) {
   return `${diffDays}d ${diffHours}h`
 }
 
-// Determinar si es crypto o stock para formateo de unidades
+// Determinar si es crypto o stock
 function isCrypto(ticker: string): boolean {
   const cryptoTickers = ['BTC', 'ETH', 'SOL', 'XRP', 'AVAX', 'LINK', 'DOT', 'ADA', 'MATIC', 'ATOM']
   return cryptoTickers.some(c => ticker.toUpperCase().includes(c))
 }
 
-// Formatear unidades según tipo de activo
+// Formatear unidades: stocks SIN decimales, crypto CON decimales
 function formatUnits(size: number, ticker: string): string {
   if (isCrypto(ticker)) {
-    // Crypto: mostrar decimales
-    if (size >= 1) return formatNumber(size, 4)
-    if (size >= 0.01) return formatNumber(size, 6)
-    return formatNumber(size, 8)
+    // Crypto: mostrar decimales según tamaño
+    if (size >= 1) return size.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 4 })
+    return size.toLocaleString('es-ES', { minimumFractionDigits: 4, maximumFractionDigits: 8 })
   } else {
-    // Stocks: sin decimales
-    return Math.floor(size).toString()
+    // Stocks: SIN decimales, número entero redondeado
+    return Math.round(size).toLocaleString('es-ES')
   }
 }
 
@@ -59,26 +58,25 @@ export function PositionRow({ position, expanded, onToggle }: PositionRowProps) 
   const openDateTime = formatDateTime(position.openDate)
   const daysOpen = getDaysOpen(position.openDate)
   
-  // Calcular R-Multiple actual
-  const riskPerShare = position.entry - position.sl
+  // Calcular R-Multiple actual (R = riesgo inicial por acción)
+  const initialRisk = position.entry - position.sl // Esto es el riesgo por unidad al entrar
   const currentPrice = position.currentPrice || position.entry
   const currentGain = currentPrice - position.entry
-  const rMultiple = riskPerShare > 0 ? currentGain / riskPerShare : 0
+  const rMultiple = initialRisk > 0 ? currentGain / initialRisk : 0
   
   // ATR con fallback seguro
   const atr = position.entryIndicators?.atr || 0
-  const atrMultiplier = atr > 0 ? (position.entry - position.sl) / atr : 0
+  const atrMultiplier = atr > 0 ? initialRisk / atr : 0
   
-  // Unidades: original y actual (si TP1 tomado, queda 50%)
-  const originalSize = position.size
-  const currentSize = position.partialTpTaken ? position.size : position.size
-  const soldSize = position.partialTpTaken ? originalSize : 0 // Si TP1, se vendió la mitad del tamaño original
+  // Calcular unidades:
+  // - Si TP1 tomado: position.size es lo que QUEDA (50%), original era el doble
+  // - Si no TP1: position.size es el total
+  const originalUnits = position.partialTpTaken ? position.size * 2 : position.size
+  const soldUnits = position.partialTpTaken ? position.size : 0
+  const remainingUnits = position.size
   
-  // Para mostrar correctamente: necesitamos el tamaño original antes del TP1
-  // Asumimos que size actual es el restante, así que original = size * 2 si TP1 tomado
-  const displayOriginalSize = position.partialTpTaken ? position.size * 2 : position.size
-  const displaySoldSize = position.partialTpTaken ? position.size : 0
-  const displayRemainingSize = position.size
+  // Precio TP1 = Entry + 2R (donde R = Entry - SL original)
+  const tp1Price = position.entry + (initialRisk * 2)
   
   return (
     <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm min-w-0">
@@ -113,7 +111,7 @@ export function PositionRow({ position, expanded, onToggle }: PositionRowProps) 
           <div className="text-right">
             <span className="text-xs text-gray-500">Invertido</span>
             <p className="font-medium">{formatCurrency(position.investedAmount, 0)}</p>
-            <span className="text-xs text-gray-400">{formatUnits(position.size, position.ticker)} uds</span>
+            <span className="text-xs text-gray-400">{formatUnits(remainingUnits, position.ticker)} uds</span>
           </div>
           <div className="text-right hidden md:block">
             <span className="text-xs text-gray-500">Entry</span>
@@ -164,37 +162,24 @@ export function PositionRow({ position, expanded, onToggle }: PositionRowProps) 
             </div>
           </div>
           
-          {/* Unidades - NUEVO */}
-          <div className="bg-blue-50 rounded-lg p-4 mb-4 border border-blue-200">
-            <h5 className="font-semibold text-blue-900 mb-3">📦 Unidades</h5>
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div className="bg-white rounded-lg p-3">
+          {/* Resumen de Unidades */}
+          <div className="bg-blue-50 rounded-lg p-3 mb-4 border border-blue-200">
+            <h5 className="font-semibold text-blue-900 mb-2 text-sm">📦 Unidades</h5>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="bg-white rounded p-2">
                 <span className="text-xs text-gray-500 block">Compradas</span>
-                <p className="text-xl font-bold text-gray-900">{formatUnits(displayOriginalSize, position.ticker)}</p>
+                <span className="font-bold">{formatUnits(originalUnits, position.ticker)}</span>
               </div>
-              {position.partialTpTaken ? (
-                <>
-                  <div className="bg-green-50 rounded-lg p-3 border border-green-200">
-                    <span className="text-xs text-green-600 block">Vendidas (TP1)</span>
-                    <p className="text-xl font-bold text-green-600">{formatUnits(displaySoldSize, position.ticker)}</p>
-                  </div>
-                  <div className="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
-                    <span className="text-xs text-yellow-600 block">Restantes</span>
-                    <p className="text-xl font-bold text-yellow-600">{formatUnits(displayRemainingSize, position.ticker)}</p>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <span className="text-xs text-gray-500 block">Vendidas</span>
-                    <p className="text-xl font-bold text-gray-400">0</p>
-                  </div>
-                  <div className="bg-white rounded-lg p-3">
-                    <span className="text-xs text-gray-500 block">En cartera</span>
-                    <p className="text-xl font-bold text-gray-900">{formatUnits(displayRemainingSize, position.ticker)}</p>
-                  </div>
-                </>
-              )}
+              <div className={clsx('rounded p-2', position.partialTpTaken ? 'bg-green-100' : 'bg-white')}>
+                <span className="text-xs text-gray-500 block">Vendidas</span>
+                <span className={clsx('font-bold', position.partialTpTaken ? 'text-green-600' : 'text-gray-400')}>
+                  {formatUnits(soldUnits, position.ticker)}
+                </span>
+              </div>
+              <div className="bg-yellow-50 rounded p-2">
+                <span className="text-xs text-gray-500 block">En cartera</span>
+                <span className="font-bold text-yellow-700">{formatUnits(remainingUnits, position.ticker)}</span>
+              </div>
             </div>
           </div>
           
@@ -212,11 +197,11 @@ export function PositionRow({ position, expanded, onToggle }: PositionRowProps) 
               <span className="text-xs text-red-600 block mb-1">Stop Loss</span>
               <p className="text-lg font-bold text-red-600">{formatCurrency(position.sl, 2)}</p>
               {position.partialTpTaken && position.sl >= position.entry && (
-                <span className="text-xs text-green-600">✓ BE</span>
+                <span className="text-xs text-green-600">✓ En BE o mejor</span>
               )}
             </div>
             <div className="bg-green-50 rounded-lg p-3 border border-green-200 text-center">
-              <span className="text-xs text-green-600 block mb-1">Take Profit</span>
+              <span className="text-xs text-green-600 block mb-1">Take Profit Final</span>
               <p className="text-lg font-bold text-green-600">{formatCurrency(position.tp, 2)}</p>
             </div>
           </div>
@@ -313,57 +298,86 @@ export function PositionRow({ position, expanded, onToggle }: PositionRowProps) 
             </h4>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Stop Loss */}
               <div className="bg-white rounded-lg p-4">
                 <h5 className="font-semibold text-red-600 mb-2 text-sm">🛑 Stop Loss</h5>
                 <p className="text-2xl font-bold text-red-600">{formatCurrency(position.sl, 2)}</p>
                 <p className="text-xs text-gray-500 mt-1">
-                  {atr > 0 ? `${atrMultiplier.toFixed(1)}x ATR bajo entrada` : 'ATR no disponible'}
+                  {atr > 0 ? `${atrMultiplier.toFixed(1)}x ATR` : 'ATR no disponible'}
                 </p>
                 <p className="text-xs text-gray-500">
-                  Riesgo máximo: {formatCurrency(Math.abs(position.entry - position.sl) * position.size, 0)}
+                  Riesgo actual: {formatCurrency(Math.abs(currentPrice - position.sl) * remainingUnits, 0)}
                 </p>
-              </div>
-              
-              <div className="bg-white rounded-lg p-4">
-                <h5 className="font-semibold text-yellow-600 mb-2 text-sm">🎯 Take Profit 1 (50%)</h5>
-                <p className="text-2xl font-bold text-yellow-600">
-                  {formatCurrency(position.entry + (position.tp - position.entry) * 0.6, 2)}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">~2R sobre entrada</p>
-                {position.partialTpTaken ? (
-                  <>
-                    <p className="text-xs text-green-600 font-medium mt-1">✅ ALCANZADO</p>
-                    <p className="text-xs text-green-600">Vendidas: {formatUnits(displaySoldSize, position.ticker)} uds</p>
-                    <p className="text-xs text-blue-600 mt-1">📈 SL subido a BE</p>
-                  </>
-                ) : (
-                  <p className="text-xs text-gray-500">Cerrar 50% de posición</p>
+                {position.partialTpTaken && (
+                  <p className="text-xs text-green-600 mt-1">✓ SL subido tras TP1</p>
                 )}
               </div>
               
+              {/* Take Profit 1 */}
+              <div className="bg-white rounded-lg p-4">
+                <h5 className="font-semibold text-yellow-600 mb-2 text-sm">🎯 Take Profit 1 (50%)</h5>
+                <p className="text-2xl font-bold text-yellow-600">{formatCurrency(tp1Price, 2)}</p>
+                <p className="text-xs text-gray-500 mt-1">Precio objetivo = Entry + 2R</p>
+                {position.partialTpTaken ? (
+                  <>
+                    <p className="text-xs text-green-600 font-medium mt-1">✅ ALCANZADO</p>
+                    <p className="text-xs text-green-600">
+                      Vendidas {formatUnits(soldUnits, position.ticker)} uds a ~{formatCurrency(tp1Price, 2)}
+                    </p>
+                    <p className="text-xs text-blue-600 mt-1">📈 SL subido a BE</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-xs text-gray-500">
+                      Al alcanzar: vender {formatUnits(originalUnits / 2, position.ticker)} uds
+                    </p>
+                    <p className="text-xs text-gray-500">Luego subir SL a breakeven</p>
+                  </>
+                )}
+              </div>
+              
+              {/* Trailing Stop */}
               <div className="bg-white rounded-lg p-4">
                 <h5 className="font-semibold text-green-600 mb-2 text-sm">
-                  {position.partialTpTaken ? '📈 Trailing Stop Activo' : '🎯 Tras TP1: Trailing'}
+                  📈 Trailing Stop {position.partialTpTaken ? '(Activo)' : '(Tras TP1)'}
                 </h5>
                 {position.partialTpTaken ? (
                   <>
                     <p className="text-2xl font-bold text-green-600">{formatCurrency(position.sl, 2)}</p>
-                    <p className="text-xs text-gray-500 mt-1">SL actual (2x ATR desde max)</p>
-                    <p className="text-xs text-yellow-600">Restantes: {formatUnits(displayRemainingSize, position.ticker)} uds</p>
-                    <p className="text-xs text-green-600 font-medium">🎯 Sin TP2 fijo - dejando correr</p>
+                    <p className="text-xs text-gray-500 mt-1">SL actual = Max Price - 2x ATR</p>
+                    <p className="text-xs text-yellow-600">
+                      Protegiendo {formatUnits(remainingUnits, position.ticker)} uds restantes
+                    </p>
+                    <p className="text-xs text-green-600 font-medium mt-1">
+                      🎯 Sin TP fijo - dejando correr ganancias
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Max alcanzado: {formatCurrency(position.maxPrice || currentPrice, 2)}
+                    </p>
                   </>
                 ) : (
                   <>
-                    <p className="text-2xl font-bold text-green-600">∞</p>
-                    <p className="text-xs text-gray-500 mt-1">Sin límite fijo</p>
-                    <p className="text-xs text-gray-500">Trailing 2x ATR desde máximo</p>
+                    <p className="text-2xl font-bold text-green-600">Pendiente</p>
+                    <p className="text-xs text-gray-500 mt-1">Se activa tras TP1</p>
+                    <p className="text-xs text-gray-500">
+                      Seguirá al precio: SL = Max - 2x ATR
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Aplicará a {formatUnits(originalUnits / 2, position.ticker)} uds restantes
+                    </p>
                   </>
                 )}
               </div>
             </div>
             
             <div className="mt-4 p-3 bg-white rounded-lg text-sm">
-              <strong>📐 Estrategia v4:</strong> TP1 a 2R (50%) → SL según régimen ADX (RANGE: TP1 / TRANSITION-TREND: BE) → Trailing siempre activo
+              <strong>📐 Estrategia Swing v4.3:</strong>
+              <ol className="list-decimal list-inside mt-2 text-gray-600 space-y-1">
+                <li>Entrada: comprar {formatUnits(originalUnits, position.ticker)} uds a {formatCurrency(position.entry, 2)}</li>
+                <li>TP1 ({formatCurrency(tp1Price, 2)}): vender 50% ({formatUnits(originalUnits / 2, position.ticker)} uds), subir SL a BE</li>
+                <li>Trailing: SL sigue al precio (Max - 2x ATR), sin límite de ganancias</li>
+                <li>Salida: cuando el trailing stop se ejecuta o el mercado cierra la posición</li>
+              </ol>
             </div>
           </div>
           
@@ -408,11 +422,11 @@ export function PositionRow({ position, expanded, onToggle }: PositionRowProps) 
               <div className="bg-white rounded-lg p-4">
                 <div className="flex items-center gap-2 text-green-700 font-medium">
                   <span className="text-xl">✅</span>
-                  <span>TP1 alcanzado - {formatUnits(displaySoldSize, position.ticker)} uds vendidas con ganancias</span>
+                  <span>TP1 alcanzado - {formatUnits(soldUnits, position.ticker)} uds vendidas con ganancia</span>
                 </div>
                 <p className="text-sm text-gray-600 mt-2">
-                  El trailing stop está activo para las {formatUnits(displayRemainingSize, position.ticker)} unidades restantes.
-                  El Stop Loss se ha movido a breakeven ({formatCurrency(position.entry, 2)}).
+                  El trailing stop protege las {formatUnits(remainingUnits, position.ticker)} unidades restantes.
+                  El SL actual ({formatCurrency(position.sl, 2)}) sube automáticamente según el precio máximo alcanzado.
                 </p>
               </div>
             )}
