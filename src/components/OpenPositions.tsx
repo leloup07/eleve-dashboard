@@ -249,7 +249,7 @@ export function PositionRow({ position, expanded, onToggle }: PositionRowProps) 
                 <h5 className="font-semibold text-red-600 mb-2 text-sm">🛑 Stop Loss</h5>
                 <p className="text-2xl font-bold text-red-600">{formatCurrency(position.sl, 2)}</p>
                 <p className="text-xs text-gray-500 mt-1">
-                  {((position.entry - position.sl) / position.entryIndicators.atr).toFixed(1)}x ATR bajo entrada
+                  {position.entryIndicators?.atr > 0 ? ((position.entry - position.sl) / position.entryIndicators.atr).toFixed(1) : "N/A"}x ATR bajo entrada
                 </p>
                 <p className="text-xs text-gray-500">
                   Riesgo máximo: {formatCurrency(Math.abs(position.entry - position.sl) * position.size, 0)}
