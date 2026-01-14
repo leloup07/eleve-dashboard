@@ -63,7 +63,7 @@ export function useRealTradingData(autoRefreshMs = 30000) {
           partialTpTaken: p.partial_tp_taken || false,
           entryReason: p.reason || '',
           entryGrade: p.grade || 'B',
-          entryIndicators: { rsi: 50, macd: 0, adx: 25, ema20: 0, ema50: 0, atr: 0, volume: 100 }
+          entryIndicators: { rsi: 50, macd: 0, adx: 25, ema20: 0, ema50: 0, atr: (p.entry - (p.original_sl || p.sl)) / 2, volume: 100 }
         }))
         
         // Transformar trades
