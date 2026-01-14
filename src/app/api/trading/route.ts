@@ -9,6 +9,104 @@ const getRedisClient = () => {
   return new Redis(redisUrl)
 }
 
+// Función para procesar posiciones con todos los campos calculados
+function processPosition(p: any, category: string) {
+  const entry = p.entry || 0
+  const size = p.size || 0
+  const sl = p.sl || 0
+  const tp = p.tp || 0
+  const maxPrice = p.max_price || entry
+  const currentPrice = maxPrice // Usamos max_price como proxy de precio actual
+  
+  // Calcular invested_amount
+  const investedAmount = entry * size
+  
+  // Calcular riesgo original (R) - el SL original antes de moverlo
+  const originalSl = p.original_sl || sl
+  const riskPerUnit = entry - originalSl
+  
+  // Calcular PnL no realizado
+  const unrealizedPnl = (currentPrice - entry) * size
+  const unrealizedPnlPercent = entry > 0 ? ((currentPrice - entry) / entry) * 100 : 0
+  
+  // Calcular R-Multiple actual
+  const rMultiple = riskPerUnit > 0 ? (currentPrice - entry) / riskPerUnit : 0
+  
+  return {
+    ...p,
+    category,
+    strategy: category,
+    invested_amount: investedAmount,
+    current_price: currentPrice,
+    unrealized_pnl: unrealizedPnl,
+    unrealized_pnl_percent: unrealizedPnlPercent,
+    r_multiple: rMultiple,
+    original_sl: originalSl,
+    risk_per_unit: riskPerUnit,
+    // Campos para el Journal
+    open_date: p.timestamp || p.open_date || new Date().toISOString(),
+    reason: p.reason || '',
+    grade: p.grade || 'B',
+    rsi: p.rsi || null,
+    adx: p.adx || null,
+    volume: p.volume || null,
+    ema20: p.ema20 || null,
+    ema50: p.ema50 || null,
+    atr: p.atr || (riskPerUnit / 2) // Estimamos ATR como riesgo/2
+  }
+}
+
+// Función para procesar trades con todos los campos calculados
+function processTrade(t: any) {
+  const entry = t.entry || 0
+  const exit = t.exit || t.exit_price || 0
+  const size = t.size || 0
+  const sl = t.original_sl || t.sl || 0
+  const tp = t.tp || 0
+  const pnl = t.pnl || 0
+  
+  // Calcular invested_amount
+  const investedAmount = entry * size
+  
+  // Calcular riesgo original (R)
+  const riskPerUnit = entry - sl
+  const totalRisk = riskPerUnit * size
+  
+  // Calcular R-Multiple
+  const rMultiple = totalRisk > 0 ? pnl / totalRisk : 0
+  
+  // Calcular días de holding
+  const entryDate = new Date(t.timestamp || t.entry_time || Date.now())
+  const exitDate = new Date(t.exit_time || Date.now())
+  const holdingMs = exitDate.getTime() - entryDate.getTime()
+  const holdingDays = Math.max(1, Math.ceil(holdingMs / (1000 * 60 * 60 * 24)))
+  
+  // Determinar estrategia/categoría
+  const strategy = t.category || t.strategy || 'unknown'
+  
+  return {
+    ...t,
+    strategy,
+    invested_amount: investedAmount,
+    exit: exit,
+    original_sl: sl,
+    risk_per_unit: riskPerUnit,
+    total_risk: totalRisk,
+    r_multiple: rMultiple,
+    holding_days: holdingDays,
+    close_date: t.exit_time || new Date().toISOString(),
+    // Campos para el Journal
+    reason: t.reason || '',
+    grade: t.grade || 'B',
+    rsi: t.rsi || null,
+    adx: t.adx || null,
+    volume: t.volume || null,
+    ema20: t.ema20 || null,
+    ema50: t.ema50 || null,
+    atr: t.atr || (riskPerUnit / 2)
+  }
+}
+
 export async function GET() {
   let redis: Redis | null = null
   
@@ -16,8 +114,6 @@ export async function GET() {
     redis = getRedisClient()
     
     // === POSICIONES ===
-    // El worker guarda en: eleve:positions:{category}
-    // Categorías: crypto, large_caps, small_caps
     let allPositions: any[] = []
     
     const categories = ['crypto', 'large_caps', 'small_caps']
@@ -28,25 +124,26 @@ export async function GET() {
         try {
           const positions = JSON.parse(raw)
           if (Array.isArray(positions)) {
-            allPositions = [...allPositions, ...positions.map(p => ({ ...p, category: cat, invested_amount: (p.entry || 0) * (p.size || 0), strategy: cat }))]
+            const processedPositions = positions.map(p => processPosition(p, cat))
+            allPositions = [...allPositions, ...processedPositions]
           }
         } catch {}
       }
     }
     
     // === TRADES ===
-    // El worker guarda en: eleve:trades como JSON array
     let trades: any[] = []
     const tradesRaw = await redis.get('eleve:trades')
     if (tradesRaw) {
       try {
-        trades = JSON.parse(tradesRaw)
-        if (!Array.isArray(trades)) trades = []
+        const rawTrades = JSON.parse(tradesRaw)
+        if (Array.isArray(rawTrades)) {
+          trades = rawTrades.map(t => processTrade(t))
+        }
       } catch {}
     }
     
     // === REGÍMENES ===
-    // El worker guarda: {"regime": "BULL", "updated": "..."}
     let cryptoRegime = 'UNKNOWN'
     let stocksRegime = 'UNKNOWN'
     
@@ -86,7 +183,6 @@ export async function GET() {
     let intradayDaily: any = null
     let intradayWorker: any = null
     
-    // Intraday positions
     const intradayPosRaw = await redis.get('eleve:intraday:positions')
     if (intradayPosRaw) {
       try {
@@ -95,7 +191,6 @@ export async function GET() {
       } catch {}
     }
     
-    // Intraday trades
     const intradayTradesRaw = await redis.get('eleve:intraday:trades')
     if (intradayTradesRaw) {
       try {
@@ -104,7 +199,6 @@ export async function GET() {
       } catch {}
     }
     
-    // Intraday daily stats (today)
     const today = new Date().toISOString().split('T')[0]
     const intradayDailyRaw = await redis.get(`eleve:intraday:daily:${today}`)
     if (intradayDailyRaw) {
@@ -113,7 +207,6 @@ export async function GET() {
       } catch {}
     }
     
-    // Intraday worker status
     const intradayWorkerRaw = await redis.get('eleve:intraday:worker')
     if (intradayWorkerRaw) {
       try {
@@ -128,7 +221,6 @@ export async function GET() {
     let intraday1PctWorker: any = null
     let intraday1PctSelected: any = null
     
-    // 1% positions
     const i1PctPosRaw = await redis.get('eleve:intraday1pct:positions')
     if (i1PctPosRaw) {
       try {
@@ -137,7 +229,6 @@ export async function GET() {
       } catch {}
     }
     
-    // 1% trades
     const i1PctTradesRaw = await redis.get('eleve:intraday1pct:trades')
     if (i1PctTradesRaw) {
       try {
@@ -146,7 +237,6 @@ export async function GET() {
       } catch {}
     }
     
-    // 1% daily stats
     const i1PctDailyRaw = await redis.get(`eleve:intraday1pct:daily:${today}`)
     if (i1PctDailyRaw) {
       try {
@@ -154,7 +244,6 @@ export async function GET() {
       } catch {}
     }
     
-    // 1% worker status
     const i1PctWorkerRaw = await redis.get('eleve:intraday1pct:worker')
     if (i1PctWorkerRaw) {
       try {
@@ -162,7 +251,6 @@ export async function GET() {
       } catch {}
     }
     
-    // 1% selected assets for today
     const i1PctSelectedRaw = await redis.get(`eleve:intraday1pct:selected:${today}`)
     if (i1PctSelectedRaw) {
       try {
@@ -170,7 +258,6 @@ export async function GET() {
       } catch {}
     }
     
-    // 1% analysis for today
     let intraday1PctAnalysis: any = null
     const i1PctAnalysisRaw = await redis.get(`eleve:intraday1pct:analysis:${today}`)
     if (i1PctAnalysisRaw) {
@@ -197,12 +284,10 @@ export async function GET() {
           totalPnl: parseFloat(totalPnlRaw || '0'),
           winningTrades: parseInt(winningTradesRaw || '0')
         },
-        // Intraday VWAP data
         intradayPositions,
         intradayTrades,
         intradayDaily,
         intradayWorker,
-        // Intraday 1% data
         intraday1PctPositions,
         intraday1PctTrades,
         intraday1PctDaily,
