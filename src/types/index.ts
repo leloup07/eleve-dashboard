@@ -1,9 +1,62 @@
-// Tipos para las estrategias de trading
+// ELEVE v4.3 - Tipos actualizados con IRG y sincronización
 
 export type StrategyStatus = 'ACTIVE' | 'OBSOLETE' | 'PENDING' | 'TESTING'
 export type TradingMode = 'live' | 'paper'
 export type MarketRegime = 'BULL' | 'BEAR' | 'RANGE' | 'UNKNOWN'
 export type TradeResult = 'TP' | 'TP1' | 'TP2' | 'SL' | 'BE' | 'TRAIL'
+export type StrategyHorizon = 'SWING' | 'INTRADAY'
+export type GatekeeperType = 'BTC_REGIME' | 'IRG' | 'NONE'
+
+// =====================================================
+// INTRADAY RISK GUARD (IRG) - NUEVO v4.3
+// =====================================================
+
+export interface IRGConfig {
+  enabled: boolean
+  
+  // Evaluación
+  evaluationIntervalMinutes: number  // 15
+  
+  // Condición A: Volatilidad BTC
+  btcAtrPeriod: number              // 14
+  btcAtrTimeframe: string           // "15m"
+  btcAtrLookbackDays: number        // 30
+  btcAtrMinPercentile: number       // 40
+  
+  // Condición B: Breadth
+  breadthVolumeSMAPeriod: number    // 20
+  breadthMinAtrPriceRatio: number   // 0.0012 (0.12%)
+  breadthMinPercentage: number      // 30
+  
+  // Universo de activos para breadth
+  intradayUniverse: string[]
+}
+
+export interface IRGState {
+  enabled: boolean
+  lastEvaluation: string | null
+  
+  // Condición A
+  btcAtrCurrent: number
+  btcAtrPercentile: number
+  conditionAMet: boolean
+  conditionAReason: string
+  
+  // Condición B
+  breadthActiveCount: number
+  breadthTotalCount: number
+  breadthPercentage: number
+  conditionBMet: boolean
+  conditionBReason: string
+  
+  // Resultado
+  intradayAllowed: boolean
+  blockReason: string
+}
+
+// =====================================================
+// ESTRATEGIAS
+// =====================================================
 
 export interface StrategyConfig {
   name: string
@@ -18,6 +71,11 @@ export interface StrategyConfig {
   enabled: boolean
   assets: string[]
   assetDescription: string
+  
+  // v4.3: Horizonte y gatekeeper
+  horizon: StrategyHorizon
+  gatekeeper: GatekeeperType
+  
   timeframes: {
     context: string
     trend: string
@@ -43,7 +101,15 @@ export interface StrategyConfig {
     annualReturn: string
     maxDrawdown: string
   }
+  
+  // Metadatos de sincronización
+  lastUpdated?: string
+  updatedFrom?: 'dashboard' | 'backend' | 'manual'
 }
+
+// =====================================================
+// POSICIONES Y TRADES
+// =====================================================
 
 export interface Position {
   id: string
@@ -53,7 +119,7 @@ export interface Position {
   sl: number
   tp: number
   size: number
-  investedAmount: number // NUEVO: Importe invertido
+  investedAmount: number
   mode: TradingMode
   openDate: string
   currentPrice?: number
@@ -61,7 +127,6 @@ export interface Position {
   unrealizedPnLPercent?: number
   maxPrice?: number
   partialTpTaken?: boolean
-  // Contexto de entrada
   entryReason: string
   entryGrade: string
   entryIndicators: {
@@ -73,6 +138,9 @@ export interface Position {
     atr: number
     volume: number
   }
+  // v4.3: Qué gatekeeper permitió la entrada
+  gatekeeperUsed?: GatekeeperType
+  gatekeeperReason?: string
 }
 
 export interface Trade {
@@ -84,7 +152,7 @@ export interface Trade {
   sl: number
   tp: number
   size: number
-  investedAmount: number // NUEVO: Importe invertido
+  investedAmount: number
   pnl: number
   pnlPercent: number
   result: TradeResult
@@ -93,7 +161,6 @@ export interface Trade {
   closeDate: string
   holdingDays: number
   rMultiple: number
-  // Contexto detallado de entrada
   entryReason: string
   entryGrade: string
   entryIndicators: {
@@ -105,19 +172,22 @@ export interface Trade {
     atr: number
     volume: number
   }
-  // Contexto detallado de salida
   exitReason: string
   exitIndicators: {
     rsi: number
     macd: number
     price: number
   }
-  // Análisis y lecciones
   strategyExplanation: string
   lessons: string[]
-  // Régimen de salida (v4)
   regime?: 'RANGE' | 'TRANSITION' | 'TREND' | null
+  // v4.3
+  gatekeeperUsed?: GatekeeperType
 }
+
+// =====================================================
+// DASHBOARD STATS
+// =====================================================
 
 export interface DashboardStats {
   totalCapital: number
@@ -130,6 +200,8 @@ export interface DashboardStats {
   openPositions: number
   btcRegime: MarketRegime
   spyRegime: MarketRegime
+  // v4.3: Estado IRG
+  irgState?: IRGState
 }
 
 export interface StrategyPerformance {
@@ -145,34 +217,40 @@ export interface StrategyPerformance {
   unrealizedPnL: number
 }
 
+// =====================================================
+// CONFIGURACIÓN INTRADAY
+// =====================================================
+
 export interface IntradayConfig {
   enabled: boolean
   mode: 'paper' | 'live'
   capital: number
-  riskPerTrade: number      // 0.003 = 0.3%
+  riskPerTrade: number
   maxPositions: number
-  maxDailyLoss: number      // 0.01 = 1%
-  maxDailyProfit: number    // 0.015 = 1.5%
+  maxDailyLoss: number
+  maxDailyProfit: number
   assets: string[]
   slAtrMult: number
   tpAtrMult: number
-  asiaStartHour: number     // UTC
-  asiaEndHour: number       // UTC
-  tradingEndHour: number    // UTC
-  scanInterval: number      // seconds
+  asiaStartHour: number
+  asiaEndHour: number
+  tradingEndHour: number
+  scanInterval: number
+  // v4.3: Usa IRG en lugar de BTC regime
+  useIRG: boolean
 }
 
 export interface Intraday1PctConfig {
   enabled: boolean
   mode: 'paper' | 'live'
   capital: number
-  riskPerTrade: number      // 0.005 = 0.5%
+  riskPerTrade: number
   maxPositions: number
   maxDailyLoss: number
   maxDailyProfit: number
-  tpPercent: number         // 0.01 = 1%
-  slPercent: number         // 0.005 = 0.5%
-  bePercent: number         // 0.006 = 0.6% -> move to BE
+  tpPercent: number
+  slPercent: number
+  bePercent: number
   minMarketCap: number
   minVolume24h: number
   minVolMcRatio: number
@@ -181,4 +259,28 @@ export interface Intraday1PctConfig {
   rsiMin: number
   rsiMax: number
   scanInterval: number
+  // v4.3: Usa IRG en lugar de BTC regime
+  useIRG: boolean
+}
+
+// =====================================================
+// SINCRONIZACIÓN
+// =====================================================
+
+export interface SyncStatus {
+  lastSync: string | null
+  syncError: string | null
+  isSyncing: boolean
+  pendingChanges: number
+}
+
+export interface ConfigUpdatePayload {
+  type: 'strategy' | 'intraday' | 'irg' | 'full'
+  key?: string
+  config?: Partial<StrategyConfig | IntradayConfig | Intraday1PctConfig | IRGConfig>
+  fullConfig?: {
+    strategies?: Record<string, StrategyConfig>
+    intraday?: IntradayConfig
+    irg?: IRGConfig
+  }
 }
