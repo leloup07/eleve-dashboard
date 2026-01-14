@@ -28,7 +28,7 @@ export async function GET() {
         try {
           const positions = JSON.parse(raw)
           if (Array.isArray(positions)) {
-            allPositions = [...allPositions, ...positions.map(p => ({ ...p, category: cat }))]
+            allPositions = [...allPositions, ...positions.map(p => ({ ...p, category: cat, invested_amount: (p.entry || 0) * (p.size || 0), strategy: cat }))]
           }
         } catch {}
       }
