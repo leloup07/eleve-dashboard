@@ -6,7 +6,6 @@ import { formatCurrency, formatPercent, formatNumber, getValueColorClass } from 
 import { clsx } from 'clsx'
 import type { Position } from '@/types'
 
-// Función para formatear fecha/hora
 function formatDateTime(dateStr: string) {
   const date = new Date(dateStr)
   return {
@@ -17,7 +16,6 @@ function formatDateTime(dateStr: string) {
   }
 }
 
-// Calcular días desde apertura
 function getDaysOpen(dateStr: string) {
   const openDate = new Date(dateStr)
   const now = new Date()
@@ -28,20 +26,16 @@ function getDaysOpen(dateStr: string) {
   return `${diffDays}d ${diffHours}h`
 }
 
-// Determinar si es crypto o stock
 function isCrypto(ticker: string): boolean {
   const cryptoTickers = ['BTC', 'ETH', 'SOL', 'XRP', 'AVAX', 'LINK', 'DOT', 'ADA', 'MATIC', 'ATOM']
   return cryptoTickers.some(c => ticker.toUpperCase().includes(c))
 }
 
-// Formatear unidades: stocks SIN decimales, crypto CON decimales
 function formatUnits(size: number, ticker: string): string {
   if (isCrypto(ticker)) {
-    // Crypto: mostrar decimales según tamaño
     if (size >= 1) return size.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 4 })
     return size.toLocaleString('es-ES', { minimumFractionDigits: 4, maximumFractionDigits: 8 })
   } else {
-    // Stocks: SIN decimales, número entero redondeado
     return Math.round(size).toLocaleString('es-ES')
   }
 }
@@ -58,29 +52,28 @@ export function PositionRow({ position, expanded, onToggle }: PositionRowProps) 
   const openDateTime = formatDateTime(position.openDate)
   const daysOpen = getDaysOpen(position.openDate)
   
-  // Calcular R-Multiple actual (R = riesgo inicial por acción)
-  const initialRisk = position.entry - position.sl // Esto es el riesgo por unidad al entrar
   const currentPrice = position.currentPrice || position.entry
-  const currentGain = currentPrice - position.entry
-  const rMultiple = initialRisk > 0 ? currentGain / initialRisk : 0
   
-  // ATR con fallback seguro
+  // ATR para calcular riesgo original (2x ATR fue el SL original)
   const atr = position.entryIndicators?.atr || 0
-  const atrMultiplier = atr > 0 ? initialRisk / atr : 0
   
-  // Calcular unidades:
-  // - Si TP1 tomado: position.size es lo que QUEDA (50%), original era el doble
-  // - Si no TP1: position.size es el total
+  // Riesgo original = 2x ATR (así se puso el SL al entrar)
+  const originalRisk = atr > 0 ? atr * 2 : (position.entry * 0.03) // fallback 3%
+  
+  // R-Multiple basado en riesgo original
+  const currentGain = currentPrice - position.entry
+  const rMultiple = originalRisk > 0 ? currentGain / originalRisk : 0
+  
+  // TP1 = Entry + 2R (donde R = riesgo original)
+  const tp1Price = position.entry + (originalRisk * 2)
+  
+  // Unidades
   const originalUnits = position.partialTpTaken ? position.size * 2 : position.size
   const soldUnits = position.partialTpTaken ? position.size : 0
   const remainingUnits = position.size
   
-  // Precio TP1 = Entry + 2R (donde R = Entry - SL original)
-  const tp1Price = position.entry + (initialRisk * 2)
-  
   return (
     <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm min-w-0">
-      {/* Fila principal */}
       <div 
         className="flex flex-wrap items-center justify-between p-3 md:p-4 hover:bg-gray-50 cursor-pointer transition-colors gap-2"
         onClick={onToggle}
@@ -139,10 +132,8 @@ export function PositionRow({ position, expanded, onToggle }: PositionRowProps) 
         </div>
       </div>
       
-      {/* Detalles expandidos */}
       {expanded && (
         <div className="bg-gray-50 p-4 border-t border-gray-200 overflow-x-auto">
-          {/* Fecha/Hora de apertura */}
           <div className="bg-white rounded-lg p-3 mb-4 border flex flex-wrap items-center justify-between gap-2">
             <div>
               <span className="text-xs text-gray-500 block">📅 Fecha</span>
@@ -162,7 +153,6 @@ export function PositionRow({ position, expanded, onToggle }: PositionRowProps) 
             </div>
           </div>
           
-          {/* Resumen de Unidades */}
           <div className="bg-blue-50 rounded-lg p-3 mb-4 border border-blue-200">
             <h5 className="font-semibold text-blue-900 mb-2 text-sm">📦 Unidades</h5>
             <div className="grid grid-cols-3 gap-2 text-center">
@@ -183,7 +173,6 @@ export function PositionRow({ position, expanded, onToggle }: PositionRowProps) 
             </div>
           </div>
           
-          {/* Precios */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
             <div className="bg-white rounded-lg p-3 border text-center">
               <span className="text-xs text-gray-500 block mb-1">Entry</span>
@@ -206,14 +195,12 @@ export function PositionRow({ position, expanded, onToggle }: PositionRowProps) 
             </div>
           </div>
           
-          {/* SECCIÓN 1: ¿Por qué entró el bot? */}
           <div className="bg-blue-50 rounded-xl p-4 mb-4 border border-blue-200">
             <h4 className="font-bold text-blue-900 mb-3 flex items-center gap-2">
               🤖 ¿Por qué entró el bot?
             </h4>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-              {/* Condiciones cumplidas */}
               <div className="bg-white rounded-lg p-3">
                 <h5 className="font-semibold text-gray-700 mb-2 text-sm">✅ Condiciones:</h5>
                 <ul className="space-y-1 text-xs">
@@ -236,7 +223,6 @@ export function PositionRow({ position, expanded, onToggle }: PositionRowProps) 
                 </ul>
               </div>
               
-              {/* Indicadores al momento de entrada */}
               <div className="bg-white rounded-lg p-3">
                 <h5 className="font-semibold text-gray-700 mb-2 text-sm">📊 Indicadores:</h5>
                 <div className="grid grid-cols-3 gap-2">
@@ -291,19 +277,17 @@ export function PositionRow({ position, expanded, onToggle }: PositionRowProps) 
             </div>
           </div>
           
-          {/* SECCIÓN 2: Gestión del Riesgo */}
           <div className="bg-purple-50 rounded-xl p-5 mb-5 border border-purple-200">
             <h4 className="font-bold text-purple-900 mb-4 text-lg flex items-center gap-2">
               ⚙️ Gestión del Riesgo
             </h4>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Stop Loss */}
               <div className="bg-white rounded-lg p-4">
                 <h5 className="font-semibold text-red-600 mb-2 text-sm">🛑 Stop Loss</h5>
                 <p className="text-2xl font-bold text-red-600">{formatCurrency(position.sl, 2)}</p>
                 <p className="text-xs text-gray-500 mt-1">
-                  {atr > 0 ? `${atrMultiplier.toFixed(1)}x ATR` : 'ATR no disponible'}
+                  {atr > 0 ? `Riesgo original: 2x ATR = ${formatCurrency(originalRisk, 2)}` : 'ATR no disponible'}
                 </p>
                 <p className="text-xs text-gray-500">
                   Riesgo actual: {formatCurrency(Math.abs(currentPrice - position.sl) * remainingUnits, 0)}
@@ -313,7 +297,6 @@ export function PositionRow({ position, expanded, onToggle }: PositionRowProps) 
                 )}
               </div>
               
-              {/* Take Profit 1 */}
               <div className="bg-white rounded-lg p-4">
                 <h5 className="font-semibold text-yellow-600 mb-2 text-sm">🎯 Take Profit 1 (50%)</h5>
                 <p className="text-2xl font-bold text-yellow-600">{formatCurrency(tp1Price, 2)}</p>
@@ -336,7 +319,6 @@ export function PositionRow({ position, expanded, onToggle }: PositionRowProps) 
                 )}
               </div>
               
-              {/* Trailing Stop */}
               <div className="bg-white rounded-lg p-4">
                 <h5 className="font-semibold text-green-600 mb-2 text-sm">
                   📈 Trailing Stop {position.partialTpTaken ? '(Activo)' : '(Tras TP1)'}
@@ -381,7 +363,6 @@ export function PositionRow({ position, expanded, onToggle }: PositionRowProps) 
             </div>
           </div>
           
-          {/* SECCIÓN 3: Estado actual */}
           <div className={clsx(
             'rounded-xl p-5 border',
             unrealizedPnL >= 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
@@ -480,7 +461,6 @@ export function OpenPositions() {
     )
   }
   
-  // Calcular totales
   const totalInvested = positions.reduce((sum, p) => sum + p.investedAmount, 0)
   const totalPnL = positions.reduce((sum, p) => sum + (p.unrealizedPnL || 0), 0)
   

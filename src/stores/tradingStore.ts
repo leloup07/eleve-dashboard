@@ -20,10 +20,6 @@ import type {
   ConfigUpdatePayload
 } from '@/types'
 
-// =====================================================
-// CONFIGURACIÓN INICIAL IRG (v4.3)
-// =====================================================
-
 const INITIAL_IRG_CONFIG: IRGConfig = {
   enabled: true,
   evaluationIntervalMinutes: 15,
@@ -52,10 +48,6 @@ const INITIAL_IRG_STATE: IRGState = {
   intradayAllowed: false,
   blockReason: 'No evaluado'
 }
-
-// =====================================================
-// CONFIGURACIÓN INICIAL INTRADAY
-// =====================================================
 
 const INITIAL_INTRADAY_CONFIG: IntradayConfig = {
   enabled: true,
@@ -97,17 +89,13 @@ const INITIAL_INTRADAY_1PCT_CONFIG: Intraday1PctConfig = {
   useIRG: true
 }
 
-// =====================================================
-// ESTRATEGIAS CON DESCRIPCIONES COMPLETAS
-// =====================================================
-
 const INITIAL_STRATEGIES: StrategyConfig[] = [
   {
     key: 'crypto_core',
     name: 'Crypto Core',
     version: 'v4.3',
     status: 'ACTIVE',
-    description: 'Estrategia swing conservadora para BTC y ETH. Captura tendencias largas en los activos más líquidos del mercado crypto usando análisis multi-timeframe: contexto semanal (1W) define régimen macro, diario (1D) confirma tendencia, y 4H determina entrada. Opera pullbacks a EMA20 en tendencia alcista confirmada. RSI 40-70 para evitar extremos. Stop loss a 2x ATR, take profit escalonado: 50% en 2.5x ATR, resto con trailing. Prioriza seguridad sobre frecuencia.',
+    description: 'Estrategia swing conservadora para BTC y ETH. Captura tendencias largas en los activos más líquidos del mercado crypto usando análisis multi-timeframe: contexto semanal (1W) define régimen macro, diario (1D) confirma tendencia, y 4H determina entrada. Opera pullbacks a EMA20 en tendencia alcista confirmada. RSI 40-70 para evitar extremos. Stop loss a 2x ATR, take profit escalonado: 50% en TP1 (2R), resto con trailing. Prioriza seguridad sobre frecuencia. Usa BTC regime como gatekeeper macro.',
     capital: 15000,
     riskPerTrade: 0.01,
     maxPositions: 2,
@@ -141,7 +129,7 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
     name: 'Crypto Aggressive',
     version: 'v4.3',
     status: 'ACTIVE',
-    description: 'Estrategia swing oportunista para altcoins de alta liquidez (SOL, AVAX, LINK, XRP). Caza rotaciones y movimientos intermedios con mayor frecuencia que Core. Contexto lo marca BTC en diario; si BTC alcista, altcoins siguen con beta amplificado. Análisis en 4H con EMAs rápidas (12/26), entrada en 1H en pullback a EMA12. Stops amplios (2.5x ATR) por volatilidad de altcoins. TP agresivo a 5x ATR. Incluye filtro de correlación para evitar exposición concentrada.',
+    description: 'Estrategia swing oportunista para altcoins de alta liquidez (SOL, AVAX, LINK, XRP). Caza rotaciones y movimientos intermedios con mayor frecuencia que Core. Contexto lo marca BTC en diario; si BTC alcista, altcoins siguen con beta amplificado. Análisis en 4H con EMAs rápidas (12/26), entrada en 1H en pullback a EMA12. Stops amplios (2.5x ATR) por volatilidad de altcoins. TP1 a 2R con 50% de posición, resto con trailing agresivo. Incluye filtro de correlación para evitar exposición concentrada. Usa BTC regime como gatekeeper.',
     capital: 15000,
     riskPerTrade: 0.01,
     maxPositions: 3,
@@ -175,7 +163,7 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
     name: 'Large Caps',
     version: 'v4.3',
     status: 'ACTIVE',
-    description: 'Estrategia swing para acciones blue chip del S&P 500 (top 50 por market cap >100B). Filtro macro: SPY debe estar en tendencia alcista semanal. Análisis individual en diario buscando estructura HH-HL con precio sobre EMA20. Entrada en 4H cuando precio retrocede a zona de valor con RSI 40-65. Stops más ajustados (1.8x ATR) por menor volatilidad que crypto. TP a 3.5x ATR. Solo opera en horario de mercado (9:30-16:00 ET). Respeta gaps de apertura.',
+    description: 'Estrategia swing para acciones blue chip del S&P 500 (top 50 por market cap >100B). Filtro macro: SPY debe estar en tendencia alcista semanal. Análisis individual en diario buscando estructura HH-HL con precio sobre EMA20. Entrada en 4H cuando precio retrocede a zona de valor con RSI 40-65. Stops más ajustados (1.8x ATR) por menor volatilidad que crypto. TP1 a 2R con 50%, resto con trailing. Solo opera en horario de mercado (9:30-16:00 ET). Respeta gaps de apertura. Usa SPY regime como gatekeeper.',
     capital: 15000,
     riskPerTrade: 0.01,
     maxPositions: 4,
@@ -209,7 +197,7 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
     name: 'Small Caps',
     version: 'v4.3',
     status: 'ACTIVE',
-    description: 'Estrategia swing momentum para small caps del Russell 2000 (market cap 1B-10B). Busca impulsos parabólicos con filtros exigentes: ADX >25, RSI 40-65, pullback corto (0.5x ATR). Filtro macro: IWM en tendencia alcista. Stops a 2x ATR, TP agresivo a 5x ATR. Gestión diferencial por régimen: en TREND mantiene 100% con trailing amplio (2.5x ATR) para capturar movimientos de +8R a +12R. Mayor riesgo, mayor potencial de retorno.',
+    description: 'Estrategia swing momentum para small caps del Russell 2000 (market cap 1B-10B). Busca impulsos parabólicos con filtros exigentes: ADX >25, RSI 40-65, pullback corto (0.5x ATR). Filtro macro: IWM en tendencia alcista. Stops a 2x ATR, TP1 a 2R con 50% de posición. Gestión diferencial por régimen: en TREND mantiene 100% restante con trailing amplio (2.5x ATR) para capturar movimientos de +8R a +12R. Mayor riesgo, mayor potencial de retorno. Usa market regime como gatekeeper.',
     capital: 10000,
     riskPerTrade: 0.015,
     maxPositions: 4,
@@ -243,7 +231,7 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
     name: 'VWAP Reversion',
     version: 'v4.3',
     status: 'ACTIVE',
-    description: 'Estrategia intraday mean-reversion. Opera fake breaks del rango asiático (00:00-08:00 UTC) que revierten al VWAP. Busca sobre-extensiones de más de 1 ATR respecto al VWAP en BTC y ETH. SL a 1.2x ATR, TP a 1.5x ATR. Límites diarios: -1% pérdida máxima, +1.5% target. Sin trailing, filosofía cobrar y fuera. No opera fines de semana. Usa IRG como gatekeeper en lugar de régimen BTC.',
+    description: 'Estrategia intraday mean-reversion para BTC y ETH. Opera fake breaks del rango asiático (00:00-08:00 UTC) que revierten al VWAP. Busca sobre-extensiones de más de 1 ATR respecto al VWAP. Entrada en reversión confirmada con divergencia RSI. Stop loss a 1.2x ATR, take profit a 1.5x ATR (R:R 1.25:1). Límites diarios estrictos: -1% pérdida máxima, +1.5% target. Filosofía "cobrar y fuera", sin trailing. No opera fines de semana ni festivos. Usa IRG (Intraday Risk Guard) como gatekeeper en lugar de régimen BTC.',
     capital: 10000,
     riskPerTrade: 0.003,
     maxPositions: 2,
@@ -277,7 +265,7 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
     name: '1% Spot',
     version: 'v4.3',
     status: 'ACTIVE',
-    description: 'Estrategia intraday trend-following. Busca +1% rápidos en altcoins con momentum limpio. Filtros estrictos: market cap >$300M, volumen 24h >$50M, ratio vol/mcap >0.15, ADX >20, RSI 40-55. TP fijo +1%, SL -0.5% (R:R 2:1). Mueve a breakeven en +0.6%. Límites diarios: -1.5% pérdida, +3% target. No opera fines de semana. Usa IRG como gatekeeper en lugar de régimen BTC.',
+    description: 'Estrategia intraday trend-following para altcoins con momentum limpio. Busca movimientos rápidos de +1% en activos que cumplen filtros estrictos: market cap >$300M, volumen 24h >$50M, ratio vol/mcap >0.15 (liquidez relativa), ADX >20 (tendencia), RSI 40-55 (no sobrecomprado). Take profit fijo +1%, stop loss -0.5% (R:R 2:1). Mueve SL a breakeven en +0.6%. Límites diarios: -1.5% pérdida, +3% target. No opera fines de semana. Usa IRG (Intraday Risk Guard) como gatekeeper en lugar de régimen BTC.',
     capital: 10000,
     riskPerTrade: 0.005,
     maxPositions: 5,
@@ -308,10 +296,6 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
   }
 ]
 
-// =====================================================
-// FUNCIÓN DE SINCRONIZACIÓN
-// =====================================================
-
 async function syncConfigToBackend(payload: ConfigUpdatePayload): Promise<{ success: boolean; error?: string }> {
   try {
     const response = await fetch('/api/config', {
@@ -335,12 +319,7 @@ async function syncConfigToBackend(payload: ConfigUpdatePayload): Promise<{ succ
   }
 }
 
-// =====================================================
-// TRADING STORE
-// =====================================================
-
 interface TradingStore {
-  // Estado
   strategies: StrategyConfig[]
   intradayConfig: IntradayConfig
   intraday1PctConfig: Intraday1PctConfig
@@ -353,11 +332,8 @@ interface TradingStore {
   botActive: boolean
   redisConnected: boolean
   lastUpdate: string
-  
-  // Sincronización
   syncStatus: SyncStatus
   
-  // Getters computados
   getDashboardStats: () => DashboardStats
   getStrategyPerformance: (strategyKey: string) => StrategyPerformance
   getPositionsByStrategy: (strategyKey: string) => Position[]
@@ -366,13 +342,11 @@ interface TradingStore {
   getSwingStrategies: () => StrategyConfig[]
   getIntradayStrategies: () => StrategyConfig[]
   
-  // Acciones CON SINCRONIZACIÓN
   updateStrategy: (key: string, updates: Partial<StrategyConfig>) => Promise<void>
   updateIntradayConfig: (updates: Partial<IntradayConfig>) => Promise<void>
   updateIntraday1PctConfig: (updates: Partial<Intraday1PctConfig>) => Promise<void>
   updateIRGConfig: (updates: Partial<IRGConfig>) => Promise<void>
   
-  // Acciones sin sincronización (datos en tiempo real)
   addPosition: (position: Position) => void
   removePosition: (id: string) => void
   addTrade: (trade: Trade) => void
@@ -388,7 +362,6 @@ interface TradingStore {
 export const useTradingStore = create<TradingStore>()(
   persist(
     (set, get) => ({
-      // Estado inicial
       strategies: INITIAL_STRATEGIES,
       intradayConfig: INITIAL_INTRADAY_CONFIG,
       intraday1PctConfig: INITIAL_INTRADAY_1PCT_CONFIG,
@@ -401,8 +374,6 @@ export const useTradingStore = create<TradingStore>()(
       botActive: true,
       redisConnected: false,
       lastUpdate: new Date().toISOString(),
-      
-      // Sincronización
       syncStatus: {
         lastSync: null,
         syncError: null,
@@ -410,13 +381,8 @@ export const useTradingStore = create<TradingStore>()(
         pendingChanges: 0
       },
       
-      // =====================================================
-      // GETTERS COMPUTADOS
-      // =====================================================
-      
       getDashboardStats: () => {
         const state = get()
-        
         const initialCapital = state.strategies.reduce((sum, s) => sum + s.capital, 0)
         const cryptoInitial = state.strategies
           .filter(s => s.key.includes('crypto') || s.key.includes('vwap') || s.key.includes('one_percent'))
@@ -511,10 +477,6 @@ export const useTradingStore = create<TradingStore>()(
         return get().strategies.filter(s => s.horizon === 'INTRADAY')
       },
       
-      // =====================================================
-      // ACCIONES CON SINCRONIZACIÓN AUTOMÁTICA
-      // =====================================================
-      
       updateStrategy: async (key, updates) => {
         set(state => ({
           strategies: state.strategies.map(s => 
@@ -524,11 +486,7 @@ export const useTradingStore = create<TradingStore>()(
           syncStatus: { ...state.syncStatus, isSyncing: true }
         }))
         
-        const result = await syncConfigToBackend({
-          type: 'strategy',
-          key,
-          config: updates
-        })
+        const result = await syncConfigToBackend({ type: 'strategy', key, config: updates })
         
         set(state => ({
           syncStatus: {
@@ -547,10 +505,7 @@ export const useTradingStore = create<TradingStore>()(
           syncStatus: { ...state.syncStatus, isSyncing: true }
         }))
         
-        const result = await syncConfigToBackend({
-          type: 'intraday',
-          config: { ...get().intradayConfig, ...updates }
-        })
+        const result = await syncConfigToBackend({ type: 'intraday', config: { ...get().intradayConfig, ...updates } })
         
         set(state => ({
           syncStatus: {
@@ -569,10 +524,7 @@ export const useTradingStore = create<TradingStore>()(
           syncStatus: { ...state.syncStatus, isSyncing: true }
         }))
         
-        const result = await syncConfigToBackend({
-          type: 'intraday',
-          config: { ...get().intraday1PctConfig, ...updates }
-        })
+        const result = await syncConfigToBackend({ type: 'intraday', config: { ...get().intraday1PctConfig, ...updates } })
         
         set(state => ({
           syncStatus: {
@@ -591,10 +543,7 @@ export const useTradingStore = create<TradingStore>()(
           syncStatus: { ...state.syncStatus, isSyncing: true }
         }))
         
-        const result = await syncConfigToBackend({
-          type: 'irg',
-          config: { ...get().irgConfig, ...updates }
-        })
+        const result = await syncConfigToBackend({ type: 'irg', config: { ...get().irgConfig, ...updates } })
         
         set(state => ({
           syncStatus: {
@@ -605,10 +554,6 @@ export const useTradingStore = create<TradingStore>()(
           }
         }))
       },
-      
-      // =====================================================
-      // ACCIONES SIN SINCRONIZACIÓN (datos en tiempo real)
-      // =====================================================
       
       addPosition: (position) => set(state => ({
         positions: [...state.positions, position],
