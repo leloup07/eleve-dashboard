@@ -28,6 +28,25 @@ function getDaysOpen(dateStr: string) {
   return `${diffDays}d ${diffHours}h`
 }
 
+// Determinar si es crypto o stock para formateo de unidades
+function isCrypto(ticker: string): boolean {
+  const cryptoTickers = ['BTC', 'ETH', 'SOL', 'XRP', 'AVAX', 'LINK', 'DOT', 'ADA', 'MATIC', 'ATOM']
+  return cryptoTickers.some(c => ticker.toUpperCase().includes(c))
+}
+
+// Formatear unidades según tipo de activo
+function formatUnits(size: number, ticker: string): string {
+  if (isCrypto(ticker)) {
+    // Crypto: mostrar decimales
+    if (size >= 1) return formatNumber(size, 4)
+    if (size >= 0.01) return formatNumber(size, 6)
+    return formatNumber(size, 8)
+  } else {
+    // Stocks: sin decimales
+    return Math.floor(size).toString()
+  }
+}
+
 interface PositionRowProps {
   position: Position
   expanded?: boolean
@@ -45,6 +64,21 @@ export function PositionRow({ position, expanded, onToggle }: PositionRowProps) 
   const currentPrice = position.currentPrice || position.entry
   const currentGain = currentPrice - position.entry
   const rMultiple = riskPerShare > 0 ? currentGain / riskPerShare : 0
+  
+  // ATR con fallback seguro
+  const atr = position.entryIndicators?.atr || 0
+  const atrMultiplier = atr > 0 ? (position.entry - position.sl) / atr : 0
+  
+  // Unidades: original y actual (si TP1 tomado, queda 50%)
+  const originalSize = position.size
+  const currentSize = position.partialTpTaken ? position.size : position.size
+  const soldSize = position.partialTpTaken ? originalSize : 0 // Si TP1, se vendió la mitad del tamaño original
+  
+  // Para mostrar correctamente: necesitamos el tamaño original antes del TP1
+  // Asumimos que size actual es el restante, así que original = size * 2 si TP1 tomado
+  const displayOriginalSize = position.partialTpTaken ? position.size * 2 : position.size
+  const displaySoldSize = position.partialTpTaken ? position.size : 0
+  const displayRemainingSize = position.size
   
   return (
     <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm min-w-0">
@@ -79,7 +113,7 @@ export function PositionRow({ position, expanded, onToggle }: PositionRowProps) 
           <div className="text-right">
             <span className="text-xs text-gray-500">Invertido</span>
             <p className="font-medium">{formatCurrency(position.investedAmount, 0)}</p>
-            <span className="text-xs text-gray-400">{position.size} uds</span>
+            <span className="text-xs text-gray-400">{formatUnits(position.size, position.ticker)} uds</span>
           </div>
           <div className="text-right hidden md:block">
             <span className="text-xs text-gray-500">Entry</span>
@@ -130,6 +164,40 @@ export function PositionRow({ position, expanded, onToggle }: PositionRowProps) 
             </div>
           </div>
           
+          {/* Unidades - NUEVO */}
+          <div className="bg-blue-50 rounded-lg p-4 mb-4 border border-blue-200">
+            <h5 className="font-semibold text-blue-900 mb-3">📦 Unidades</h5>
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div className="bg-white rounded-lg p-3">
+                <span className="text-xs text-gray-500 block">Compradas</span>
+                <p className="text-xl font-bold text-gray-900">{formatUnits(displayOriginalSize, position.ticker)}</p>
+              </div>
+              {position.partialTpTaken ? (
+                <>
+                  <div className="bg-green-50 rounded-lg p-3 border border-green-200">
+                    <span className="text-xs text-green-600 block">Vendidas (TP1)</span>
+                    <p className="text-xl font-bold text-green-600">{formatUnits(displaySoldSize, position.ticker)}</p>
+                  </div>
+                  <div className="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
+                    <span className="text-xs text-yellow-600 block">Restantes</span>
+                    <p className="text-xl font-bold text-yellow-600">{formatUnits(displayRemainingSize, position.ticker)}</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <span className="text-xs text-gray-500 block">Vendidas</span>
+                    <p className="text-xl font-bold text-gray-400">0</p>
+                  </div>
+                  <div className="bg-white rounded-lg p-3">
+                    <span className="text-xs text-gray-500 block">En cartera</span>
+                    <p className="text-xl font-bold text-gray-900">{formatUnits(displayRemainingSize, position.ticker)}</p>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+          
           {/* Precios */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
             <div className="bg-white rounded-lg p-3 border text-center">
@@ -143,7 +211,7 @@ export function PositionRow({ position, expanded, onToggle }: PositionRowProps) 
             <div className="bg-red-50 rounded-lg p-3 border border-red-200 text-center">
               <span className="text-xs text-red-600 block mb-1">Stop Loss</span>
               <p className="text-lg font-bold text-red-600">{formatCurrency(position.sl, 2)}</p>
-              {position.partialTpTaken && position.sl === position.entry && (
+              {position.partialTpTaken && position.sl >= position.entry && (
                 <span className="text-xs text-green-600">✓ BE</span>
               )}
             </div>
@@ -170,15 +238,15 @@ export function PositionRow({ position, expanded, onToggle }: PositionRowProps) 
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-green-500">✓</span>
-                    <span>ADX = {position.entryIndicators.adx} {'>'} 25</span>
+                    <span>ADX = {position.entryIndicators?.adx ?? 'N/A'} {'>'} 25</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-green-500">✓</span>
-                    <span>RSI = {position.entryIndicators.rsi}</span>
+                    <span>RSI = {position.entryIndicators?.rsi ?? 'N/A'}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-green-500">✓</span>
-                    <span>Vol: {position.entryIndicators.volume}%</span>
+                    <span>Vol: {position.entryIndicators?.volume ?? 'N/A'}%</span>
                   </li>
                 </ul>
               </div>
@@ -190,32 +258,32 @@ export function PositionRow({ position, expanded, onToggle }: PositionRowProps) 
                   <div className="text-center p-1.5 bg-gray-50 rounded">
                     <span className="text-xs text-gray-500 block">RSI</span>
                     <span className={clsx('font-bold text-sm', 
-                      position.entryIndicators.rsi >= 40 && position.entryIndicators.rsi <= 65 ? 'text-green-600' : 'text-yellow-600'
-                    )}>{position.entryIndicators.rsi}</span>
+                      (position.entryIndicators?.rsi ?? 0) >= 40 && (position.entryIndicators?.rsi ?? 0) <= 65 ? 'text-green-600' : 'text-yellow-600'
+                    )}>{position.entryIndicators?.rsi ?? 'N/A'}</span>
                   </div>
                   <div className="text-center p-1.5 bg-gray-50 rounded">
                     <span className="text-xs text-gray-500 block">ADX</span>
                     <span className={clsx('font-bold text-sm',
-                      position.entryIndicators.adx > 25 ? 'text-green-600' : 'text-yellow-600'
-                    )}>{position.entryIndicators.adx}</span>
+                      (position.entryIndicators?.adx ?? 0) > 25 ? 'text-green-600' : 'text-yellow-600'
+                    )}>{position.entryIndicators?.adx ?? 'N/A'}</span>
                   </div>
                   <div className="text-center p-2 bg-gray-50 rounded">
                     <span className="text-xs text-gray-500 block">Vol%</span>
                     <span className={clsx('font-bold',
-                      position.entryIndicators.volume > 100 ? 'text-green-600' : 'text-yellow-600'
-                    )}>{position.entryIndicators.volume}%</span>
+                      (position.entryIndicators?.volume ?? 0) > 100 ? 'text-green-600' : 'text-yellow-600'
+                    )}>{position.entryIndicators?.volume ?? 'N/A'}%</span>
                   </div>
                   <div className="text-center p-2 bg-gray-50 rounded">
                     <span className="text-xs text-gray-500 block">EMA20</span>
-                    <span className="font-bold text-gray-700">{formatCurrency(position.entryIndicators.ema20, 0)}</span>
+                    <span className="font-bold text-gray-700">{formatCurrency(position.entryIndicators?.ema20 ?? 0, 0)}</span>
                   </div>
                   <div className="text-center p-2 bg-gray-50 rounded">
                     <span className="text-xs text-gray-500 block">EMA50</span>
-                    <span className="font-bold text-gray-700">{formatCurrency(position.entryIndicators.ema50, 0)}</span>
+                    <span className="font-bold text-gray-700">{formatCurrency(position.entryIndicators?.ema50 ?? 0, 0)}</span>
                   </div>
                   <div className="text-center p-2 bg-gray-50 rounded">
                     <span className="text-xs text-gray-500 block">ATR</span>
-                    <span className="font-bold text-gray-700">{formatNumber(position.entryIndicators.atr, 2)}</span>
+                    <span className="font-bold text-gray-700">{atr > 0 ? formatNumber(atr, 2) : 'N/A'}</span>
                   </div>
                 </div>
               </div>
@@ -228,11 +296,11 @@ export function PositionRow({ position, expanded, onToggle }: PositionRowProps) 
                 <span className="text-sm text-gray-500">Calidad del setup:</span>
                 <span className={clsx(
                   'px-3 py-1 rounded-full text-sm font-bold',
-                  position.entryGrade.startsWith('A') ? 'bg-green-100 text-green-700' :
-                  position.entryGrade.startsWith('B') ? 'bg-yellow-100 text-yellow-700' :
+                  position.entryGrade?.startsWith('A') ? 'bg-green-100 text-green-700' :
+                  position.entryGrade?.startsWith('B') ? 'bg-yellow-100 text-yellow-700' :
                   'bg-red-100 text-red-700'
                 )}>
-                  Grade {position.entryGrade}
+                  Grade {position.entryGrade || 'N/A'}
                 </span>
               </div>
             </div>
@@ -249,7 +317,7 @@ export function PositionRow({ position, expanded, onToggle }: PositionRowProps) 
                 <h5 className="font-semibold text-red-600 mb-2 text-sm">🛑 Stop Loss</h5>
                 <p className="text-2xl font-bold text-red-600">{formatCurrency(position.sl, 2)}</p>
                 <p className="text-xs text-gray-500 mt-1">
-                  {position.entryIndicators?.atr > 0 ? ((position.entry - position.sl) / position.entryIndicators.atr).toFixed(1) : "N/A"}x ATR bajo entrada
+                  {atr > 0 ? `${atrMultiplier.toFixed(1)}x ATR bajo entrada` : 'ATR no disponible'}
                 </p>
                 <p className="text-xs text-gray-500">
                   Riesgo máximo: {formatCurrency(Math.abs(position.entry - position.sl) * position.size, 0)}
@@ -265,7 +333,8 @@ export function PositionRow({ position, expanded, onToggle }: PositionRowProps) 
                 {position.partialTpTaken ? (
                   <>
                     <p className="text-xs text-green-600 font-medium mt-1">✅ ALCANZADO</p>
-                    <p className="text-xs text-blue-600 mt-1">📈 SL subido a TP1</p>
+                    <p className="text-xs text-green-600">Vendidas: {formatUnits(displaySoldSize, position.ticker)} uds</p>
+                    <p className="text-xs text-blue-600 mt-1">📈 SL subido a BE</p>
                   </>
                 ) : (
                   <p className="text-xs text-gray-500">Cerrar 50% de posición</p>
@@ -280,6 +349,7 @@ export function PositionRow({ position, expanded, onToggle }: PositionRowProps) 
                   <>
                     <p className="text-2xl font-bold text-green-600">{formatCurrency(position.sl, 2)}</p>
                     <p className="text-xs text-gray-500 mt-1">SL actual (2x ATR desde max)</p>
+                    <p className="text-xs text-yellow-600">Restantes: {formatUnits(displayRemainingSize, position.ticker)} uds</p>
                     <p className="text-xs text-green-600 font-medium">🎯 Sin TP2 fijo - dejando correr</p>
                   </>
                 ) : (
@@ -324,7 +394,7 @@ export function PositionRow({ position, expanded, onToggle }: PositionRowProps) 
               </div>
               <div className="bg-white rounded-lg p-3 text-center">
                 <span className="text-xs text-gray-500 block">Max Price</span>
-                <span className="font-bold text-xl">{formatCurrency(position.maxPrice, 2)}</span>
+                <span className="font-bold text-xl">{formatCurrency(position.maxPrice || currentPrice, 2)}</span>
               </div>
               <div className="bg-white rounded-lg p-3 text-center">
                 <span className="text-xs text-gray-500 block">% desde máximo</span>
@@ -338,10 +408,10 @@ export function PositionRow({ position, expanded, onToggle }: PositionRowProps) 
               <div className="bg-white rounded-lg p-4">
                 <div className="flex items-center gap-2 text-green-700 font-medium">
                   <span className="text-xl">✅</span>
-                  <span>TP1 alcanzado - 50% de posición cerrada con ganancias</span>
+                  <span>TP1 alcanzado - {formatUnits(displaySoldSize, position.ticker)} uds vendidas con ganancias</span>
                 </div>
                 <p className="text-sm text-gray-600 mt-2">
-                  El trailing stop está activo para proteger el 50% restante mientras busca TP2.
+                  El trailing stop está activo para las {formatUnits(displayRemainingSize, position.ticker)} unidades restantes.
                   El Stop Loss se ha movido a breakeven ({formatCurrency(position.entry, 2)}).
                 </p>
               </div>
@@ -389,7 +459,7 @@ export function OpenPositions() {
         <div className="text-center py-8 text-gray-500">
           <span className="text-5xl mb-4 block">📭</span>
           <p className="text-lg">{blocked 
-            ? 'No hay posiciones. Trading bloqueado (régimen BEAR/RANGE)'
+            ? 'No hay posiciones. Trading bloqueado por régimen.'
             : 'No hay posiciones abiertas. Esperando setup.'}</p>
         </div>
       </div>
