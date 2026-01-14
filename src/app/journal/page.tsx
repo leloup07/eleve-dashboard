@@ -54,7 +54,7 @@ interface ClosedTrade {
 type SortField = 'date' | 'ticker' | 'pnl' | 'r_multiple' | 'strategy'
 type SortOrder = 'asc' | 'desc'
 type ResultFilter = 'all' | 'winners' | 'losers' | 'breakeven'
-type StrategyFilter = 'all' | 'crypto' | 'large_caps' | 'small_caps'
+type StrategyFilter = 'all' | 'crypto' | 'large_caps' | 'small_caps' | 'vwap_reversion' | 'intraday_1pct'
 
 // Helper para detectar si es stock
 const isStock = (ticker: string) => {
@@ -217,8 +217,16 @@ export default function JournalPage() {
         const data = await response.json()
         
         if (data.success !== false) {
-          setPositions(data.data?.positions || [])
-          setTrades(data.data?.trades || [])
+          setPositions([
+            ...(data.data?.positions || []),
+            ...(data.data?.intradayPositions || []).map((p: any) => ({ ...p, strategy: 'vwap_reversion' })),
+            ...(data.data?.intraday1PctPositions || []).map((p: any) => ({ ...p, strategy: 'intraday_1pct' }))
+          ])
+          setTrades([
+            ...(data.data?.trades || []),
+            ...(data.data?.intradayTrades || []).map((t: any) => ({ ...t, strategy: 'vwap_reversion' })),
+            ...(data.data?.intraday1PctTrades || []).map((t: any) => ({ ...t, strategy: 'intraday_1pct' }))
+          ])
           setError(null)
         } else {
           setError(data.error || 'Error cargando datos')
@@ -480,6 +488,8 @@ export default function JournalPage() {
                   <option value="crypto">Crypto</option>
                   <option value="large_caps">Large Caps</option>
                   <option value="small_caps">Small Caps</option>
+                  <option value="vwap_reversion">VWAP Reversion</option>
+                  <option value="intraday_1pct">1% Spot</option>
                 </select>
               </div>
               
