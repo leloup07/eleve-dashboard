@@ -1011,6 +1011,11 @@ export default function IndicatorsPage() {
             }
           }}
         />
+        {!CRYPTO_PAIRS.includes(selectedTicker) && !LARGE_CAPS.includes(selectedTicker) && !SMALL_CAPS.includes(selectedTicker) && (
+          <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-sm font-medium">
+            📊 {selectedTicker}
+          </span>
+        )}
       </div>
       
       {loading ? (
