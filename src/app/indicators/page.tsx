@@ -977,7 +977,7 @@ export default function IndicatorsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">📊 Análisis Técnico</h1>
+          <h1 className="text-2xl font-bold text-gray-900">📊 Análisis Técnico - <span className="text-blue-600">{selectedTicker}</span></h1>
           <p className="text-gray-500 text-sm">Indicadores detallados con interpretaciones educativas</p>
         </div>
         
