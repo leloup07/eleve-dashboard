@@ -37,6 +37,90 @@ const CRYPTO_PAIRS = ['BTC-USD', 'ETH-USD', 'SOL-USD', 'XRP-USD', 'ADA-USD', 'DO
 const LARGE_CAPS = ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOGL', 'META', 'TSLA']
 const SMALL_CAPS = ['BROS', 'HIMS', 'OSCR', 'DOCS', 'FIVE', 'WING', 'ANF', 'PGNY']
 
+// Estrategias ELEVE
+type StrategyType = "crypto_core" | "crypto_aggressive" | "large_caps" | "small_caps"
+
+interface StrategyInfo {
+  name: string
+  type: StrategyType
+  timeframe: string
+  capital: number
+  description: string
+  conditions: { name: string; check: (data: OHLCData) => boolean; desc: string }[]
+}
+
+const CRYPTO_CORE_TICKERS = ["BTC-USD", "ETH-USD"]
+const CRYPTO_AGGRESSIVE_TICKERS = ["SOL-USD", "XRP-USD", "AVAX-USD", "LINK-USD", "ADA-USD", "DOT-USD"]
+
+function getApplicableStrategy(ticker: string): StrategyInfo {
+  if (CRYPTO_CORE_TICKERS.includes(ticker)) {
+    return {
+      name: "Crypto Core",
+      type: "crypto_core",
+      timeframe: "1D / 4H",
+      capital: 15000,
+      description: "Estrategia swing conservadora para BTC y ETH. Pullbacks a EMA20 en tendencia alcista.",
+      conditions: [
+        { name: "Régimen BTC = BULL", check: (d) => d.ema20 > d.ema50, desc: "EMA20 > EMA50 en diario" },
+        { name: "EMA20 > EMA50", check: (d) => d.ema20 > d.ema50, desc: "Tendencia alcista confirmada" },
+        { name: "RSI 40-60", check: (d) => d.rsi >= 40 && d.rsi <= 60, desc: "Momentum equilibrado" },
+        { name: "ADX > 20", check: (d) => d.adx > 20, desc: "Tendencia presente" },
+        { name: "Pullback a EMA20", check: (d) => Math.abs(d.close - d.ema20) / d.close < 0.02, desc: "Precio cerca de EMA20 (<2%)" },
+        { name: "ATR controlado", check: (d) => d.atr / d.close < 0.03, desc: "Volatilidad < 3%" }
+      ]
+    }
+  }
+  if (CRYPTO_AGGRESSIVE_TICKERS.includes(ticker)) {
+    return {
+      name: "Crypto Aggressive",
+      type: "crypto_aggressive",
+      timeframe: "4H / 1H",
+      capital: 15000,
+      description: "Estrategia swing para altcoins. Mayor frecuencia, beta amplificado respecto a BTC.",
+      conditions: [
+        { name: "BTC en tendencia", check: (d) => d.ema20 > d.ema50, desc: "BTC alcista = altcoins siguen" },
+        { name: "EMA12 > EMA26", check: (d) => d.ema20 > d.ema50, desc: "EMAs rápidas alcistas" },
+        { name: "RSI 40-65", check: (d) => d.rsi >= 40 && d.rsi <= 65, desc: "Sin sobrecompra" },
+        { name: "ADX > 22", check: (d) => d.adx > 22, desc: "Tendencia moderada" },
+        { name: "Volumen OK", check: (d) => d.volume > 0, desc: "Volumen sobre media" },
+        { name: "Correlación BTC", check: () => true, desc: "Correlación positiva con BTC" }
+      ]
+    }
+  }
+  if (LARGE_CAPS.includes(ticker)) {
+    return {
+      name: "Large Caps",
+      type: "large_caps",
+      timeframe: "1D / 4H",
+      capital: 15000,
+      description: "Estrategia swing para blue chips S&P 500. Filtro macro SPY, pullbacks a zona de valor.",
+      conditions: [
+        { name: "Régimen SPY = BULL", check: (d) => d.ema20 > d.ema50, desc: "SPY en tendencia alcista" },
+        { name: "EMA20 > EMA50", check: (d) => d.ema20 > d.ema50, desc: "Estructura alcista 1D" },
+        { name: "RSI 40-65", check: (d) => d.rsi >= 40 && d.rsi <= 65, desc: "Sin extremos" },
+        { name: "ADX > 20", check: (d) => d.adx > 20, desc: "Tendencia presente" },
+        { name: "Pullback a EMA20", check: (d) => Math.abs(d.close - d.ema20) / d.close < 0.015, desc: "Precio cerca de EMA20" },
+        { name: "Volumen >= media", check: (d) => d.volume > 0, desc: "Volumen confirma" }
+      ]
+    }
+  }
+  return {
+    name: "Small Caps",
+    type: "small_caps",
+    timeframe: "1D / 4H",
+    capital: 10000,
+    description: "Estrategia momentum para Russell 2000. ADX alto, impulsos parabólicos.",
+    conditions: [
+      { name: "Régimen IWM = BULL", check: (d) => d.ema20 > d.ema50, desc: "IWM en tendencia" },
+      { name: "ADX > 25", check: (d) => d.adx > 25, desc: "Tendencia fuerte requerida" },
+      { name: "RSI 40-65", check: (d) => d.rsi >= 40 && d.rsi <= 65, desc: "Momentum sin extremo" },
+      { name: "+DI > -DI", check: (d) => d.plusDi > d.minusDi, desc: "Dirección alcista" },
+      { name: "Pullback corto", check: (d) => Math.abs(d.close - d.ema20) / d.close < 0.025, desc: "Retroceso < 0.5 ATR" },
+      { name: "Volumen explosivo", check: (d) => d.volume > 0, desc: "Volumen > 150% media" }
+    ]
+  }
+}
+
 // Funciones de cálculo
 function calcEMA(data: number[], period: number): number[] {
   const k = 2 / (period + 1)
@@ -745,7 +829,7 @@ El precio está en el rango medio. Sin extremos.`,
 export default function IndicatorsPage() {
   const [selectedTicker, setSelectedTicker] = useState('BTC-USD')
   const [data, setData] = useState<OHLCData[]>([])
-  const [activeTab, setActiveTab] = useState<'ema' | 'rsi' | 'macd' | 'adx' | 'bb' | 'stoch' | 'hybrid'>('ema')
+  const [activeTab, setActiveTab] = useState<'ema' | 'rsi' | 'macd' | 'adx' | 'bb' | 'stoch' | 'hybrid' | 'strategy'>('ema')
   const [loading, setLoading] = useState(true)
   
   useEffect(() => {
@@ -851,7 +935,8 @@ export default function IndicatorsPage() {
                 { key: 'adx', label: '💪 ADX' },
                 { key: 'bb', label: '📏 Bollinger' },
                 { key: 'stoch', label: '🎰 Stochastic' },
-                { key: 'hybrid', label: '🎯 Hybrid v2.1' }
+                { key: 'hybrid', label: '📊 Hybrid (educativo)' },
+                { key: 'strategy', label: '🎯 Estrategia ELEVE' }
               ].map(tab => (
                 <button
                   key={tab.key}
@@ -1244,6 +1329,86 @@ export default function IndicatorsPage() {
                   </div>
                 </div>
               )}
+              {/* Estrategia ELEVE Tab */}
+              {activeTab === 'strategy' && latest && (
+                (() => {
+                  const strategy = getApplicableStrategy(selectedTicker)
+                  const results = strategy.conditions.map(c => ({ ...c, met: c.check(latest) }))
+                  const metCount = results.filter(r => r.met).length
+                  const isValid = metCount >= 5
+                  const isPartial = metCount >= 3 && metCount < 5
+                  
+                  return (
+                    <div className="space-y-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="text-4xl">🎯</span>
+                          <div>
+                            <h3 className="text-xl font-bold text-gray-900">Estrategia: {strategy.name}</h3>
+                            <p className="text-sm text-gray-500">{strategy.description}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-gray-500">Timeframe: {strategy.timeframe}</p>
+                          <p className="text-sm text-gray-500">Capital: ${strategy.capital.toLocaleString()}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <h4 className="font-semibold text-gray-700 mb-3">Checklist {strategy.name}</h4>
+                          {results.map((cond, i) => (
+                            <div key={i} className={`flex items-start gap-3 p-3 rounded-lg ${cond.met ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                              <span className="text-xl mt-0.5">{cond.met ? '✅' : '❌'}</span>
+                              <div>
+                                <span className={`font-medium ${cond.met ? 'text-green-700' : 'text-red-700'}`}>{cond.name}</span>
+                                <p className="text-xs text-gray-600 mt-0.5">{cond.desc}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        
+                        <div className={`p-6 rounded-xl border-2 ${isValid ? 'bg-green-50 border-green-500' : isPartial ? 'bg-yellow-50 border-yellow-500' : 'bg-red-50 border-red-500'}`}>
+                          <div className="text-center mb-4">
+                            <span className="text-5xl font-bold">{metCount}/6</span>
+                            <p className="text-gray-600 mt-1">Condiciones cumplidas</p>
+                          </div>
+                          
+                          {isValid ? (
+                            <div>
+                              <h4 className="text-xl font-bold text-green-600 mb-3">✅ SETUP VÁLIDO - Operable</h4>
+                              <p className="text-gray-700 mb-4">El sistema {strategy.name} autoriza entrada.</p>
+                              <div className="text-sm text-gray-600 space-y-2 bg-white/50 p-3 rounded">
+                                <p><strong>Stop Loss:</strong> ${(latest.close - latest.atr * 1.5).toLocaleString('es-ES', { maximumFractionDigits: 0 })}</p>
+                                <p><strong>Take Profit:</strong> ${(latest.close + latest.atr * 2.5).toLocaleString('es-ES', { maximumFractionDigits: 0 })}</p>
+                              </div>
+                            </div>
+                          ) : isPartial ? (
+                            <div>
+                              <h4 className="text-xl font-bold text-yellow-600 mb-3">🟡 SETUP PARCIAL - Esperar</h4>
+                              <p className="text-gray-700">No operar. Faltan {6 - metCount} condiciones.</p>
+                            </div>
+                          ) : (
+                            <div>
+                              <h4 className="text-xl font-bold text-red-600 mb-3">❌ NO OPERABLE - Bloqueado</h4>
+                              <p className="text-gray-700">El sistema {strategy.name} NO autoriza entrada.</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <h4 className="font-semibold mb-2">⚠️ Importante</h4>
+                        <p className="text-sm text-gray-700">
+                          Esta es la <strong>única evaluación válida</strong> para decidir si operar {selectedTicker}. 
+                          La pestaña Hybrid es solo educativa.
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })()
+              )}
+
             </div>
           </div>
         </>
