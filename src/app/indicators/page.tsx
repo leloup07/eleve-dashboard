@@ -121,6 +121,87 @@ function getApplicableStrategy(ticker: string): StrategyInfo {
   }
 }
 
+function getStrategyByType(type: string): StrategyInfo {
+  const strategies: Record<string, StrategyInfo> = {
+    crypto_core: {
+      name: "Crypto Core",
+      type: "crypto_core",
+      timeframe: "1D / 4H",
+      capital: 15000,
+      description: "Estrategia swing conservadora para BTC y ETH. Pullbacks a EMA20 en tendencia alcista.",
+      conditions: [
+        { name: "Régimen BTC = BULL", check: (d) => d.ema20 > d.ema50, desc: "EMA20 > EMA50 en diario" },
+        { name: "EMA20 > EMA50", check: (d) => d.ema20 > d.ema50, desc: "Tendencia alcista confirmada" },
+        { name: "RSI 40-60", check: (d) => d.rsi >= 40 && d.rsi <= 60, desc: "Momentum equilibrado" },
+        { name: "ADX > 20", check: (d) => d.adx > 20, desc: "Tendencia presente" },
+        { name: "Pullback a EMA20", check: (d) => Math.abs(d.close - d.ema20) / d.close < 0.02, desc: "Precio cerca de EMA20 (<2%)" },
+        { name: "ATR controlado", check: (d) => d.atr / d.close < 0.03, desc: "Volatilidad < 3%" }
+      ]
+    },
+    crypto_aggressive: {
+      name: "Crypto Aggressive",
+      type: "crypto_aggressive",
+      timeframe: "4H / 1H",
+      capital: 15000,
+      description: "Estrategia swing para altcoins. Mayor frecuencia, beta amplificado respecto a BTC.",
+      conditions: [
+        { name: "BTC en tendencia", check: (d) => d.ema20 > d.ema50, desc: "BTC alcista = altcoins siguen" },
+        { name: "EMA12 > EMA26", check: (d) => d.ema20 > d.ema50, desc: "EMAs rápidas alcistas" },
+        { name: "RSI 40-65", check: (d) => d.rsi >= 40 && d.rsi <= 65, desc: "Sin sobrecompra" },
+        { name: "ADX > 22", check: (d) => d.adx > 22, desc: "Tendencia moderada" },
+        { name: "Volumen OK", check: (d) => d.volume > 0, desc: "Volumen sobre media" },
+        { name: "Correlación BTC", check: () => true, desc: "Correlación positiva con BTC" }
+      ]
+    },
+    large_caps: {
+      name: "Large Caps",
+      type: "large_caps",
+      timeframe: "1D / 4H",
+      capital: 15000,
+      description: "Estrategia swing para blue chips S&P 500. Filtro macro SPY, pullbacks a zona de valor.",
+      conditions: [
+        { name: "Régimen SPY = BULL", check: (d) => d.ema20 > d.ema50, desc: "SPY en tendencia alcista" },
+        { name: "EMA20 > EMA50", check: (d) => d.ema20 > d.ema50, desc: "Estructura alcista 1D" },
+        { name: "RSI 40-65", check: (d) => d.rsi >= 40 && d.rsi <= 65, desc: "Sin extremos" },
+        { name: "ADX > 20", check: (d) => d.adx > 20, desc: "Tendencia presente" },
+        { name: "Pullback a EMA20", check: (d) => Math.abs(d.close - d.ema20) / d.close < 0.015, desc: "Precio cerca de EMA20" },
+        { name: "Volumen >= media", check: (d) => d.volume > 0, desc: "Volumen confirma" }
+      ]
+    },
+    small_caps: {
+      name: "Small Caps",
+      type: "small_caps",
+      timeframe: "1D / 4H",
+      capital: 10000,
+      description: "Estrategia momentum para Russell 2000. ADX alto, impulsos parabólicos.",
+      conditions: [
+        { name: "Régimen IWM = BULL", check: (d) => d.ema20 > d.ema50, desc: "IWM en tendencia" },
+        { name: "ADX > 25", check: (d) => d.adx > 25, desc: "Tendencia fuerte requerida" },
+        { name: "RSI 40-65", check: (d) => d.rsi >= 40 && d.rsi <= 65, desc: "Momentum sin extremo" },
+        { name: "+DI > -DI", check: (d) => d.plusDi > d.minusDi, desc: "Dirección alcista" },
+        { name: "Pullback corto", check: (d) => Math.abs(d.close - d.ema20) / d.close < 0.025, desc: "Retroceso < 0.5 ATR" },
+        { name: "Volumen explosivo", check: (d) => d.volume > 0, desc: "Volumen > 150% media" }
+      ]
+    },
+    intraday_1pct: {
+      name: "Intraday 1% Spot",
+      type: "small_caps" as StrategyType,
+      timeframe: "1H / 15min",
+      capital: 10000,
+      description: "Intraday trend-following. Busca +1% rápidos en altcoins con momentum limpio.",
+      conditions: [
+        { name: "Market Cap > $300M", check: () => true, desc: "Liquidez mínima" },
+        { name: "Vol 24h > $50M", check: (d) => d.volume > 0, desc: "Volumen suficiente" },
+        { name: "ADX > 20", check: (d) => d.adx > 20, desc: "Tendencia presente" },
+        { name: "RSI 40-55", check: (d) => d.rsi >= 40 && d.rsi <= 55, desc: "Sin sobrecompra, momentum limpio" },
+        { name: "+DI > -DI", check: (d) => d.plusDi > d.minusDi, desc: "Dirección alcista" },
+        { name: "Vol/MCap > 0.15", check: () => true, desc: "Ratio liquidez OK" }
+      ]
+    }
+  }
+  return strategies[type] || strategies.crypto_core
+}
+
 // Funciones de cálculo
 function calcEMA(data: number[], period: number): number[] {
   const k = 2 / (period + 1)
@@ -828,6 +909,7 @@ El precio está en el rango medio. Sin extremos.`,
 
 export default function IndicatorsPage() {
   const [selectedTicker, setSelectedTicker] = useState('BTC-USD')
+  const [manualStrategy, setManualStrategy] = useState<string | null>(null)
   const [data, setData] = useState<OHLCData[]>([])
   const [activeTab, setActiveTab] = useState<'ema' | 'rsi' | 'macd' | 'adx' | 'bb' | 'stoch' | 'hybrid' | 'strategy'>('ema')
   const [loading, setLoading] = useState(true)
@@ -895,6 +977,21 @@ export default function IndicatorsPage() {
             {SMALL_CAPS.map(t => <option key={t} value={t}>{t}</option>)}
           </optgroup>
         </select>
+        <span className="text-gray-400">o</span>
+        <input
+          type="text"
+          placeholder="Ticker manual (ej: FET-USD)"
+          className="px-3 py-2 border rounded-lg text-sm w-40"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              const input = e.target as HTMLInputElement
+              if (input.value) {
+                setSelectedTicker(input.value.toUpperCase())
+                input.value = ''
+              }
+            }
+          }}
+        />
       </div>
       
       {loading ? (
@@ -1342,7 +1439,7 @@ export default function IndicatorsPage() {
               {/* Estrategia ELEVE Tab */}
               {activeTab === 'strategy' && latest && (
                 (() => {
-                  const strategy = getApplicableStrategy(selectedTicker)
+                  const strategy = manualStrategy ? getStrategyByType(manualStrategy) : getApplicableStrategy(selectedTicker)
                   const results = strategy.conditions.map(c => ({ ...c, met: c.check(latest) }))
                   const metCount = results.filter(r => r.met).length
                   const isValid = metCount >= 5
