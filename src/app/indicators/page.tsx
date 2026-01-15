@@ -52,7 +52,7 @@ interface StrategyInfo {
 const CRYPTO_CORE_TICKERS = ["BTC-USD", "ETH-USD"]
 const CRYPTO_AGGRESSIVE_TICKERS = ["SOL-USD", "XRP-USD", "AVAX-USD", "LINK-USD", "ADA-USD", "DOT-USD"]
 
-function getApplicableStrategy(ticker: string): StrategyInfo {
+function getApplicableStrategy(ticker: string, btcRegime: string = 'UNKNOWN', spyRegime: string = 'UNKNOWN'): StrategyInfo {
   if (CRYPTO_CORE_TICKERS.includes(ticker)) {
     return {
       name: "Crypto Core",
@@ -61,7 +61,7 @@ function getApplicableStrategy(ticker: string): StrategyInfo {
       capital: 15000,
       description: "Estrategia swing conservadora para BTC y ETH. Pullbacks a EMA20 en tendencia alcista.",
       conditions: [
-        { name: "Régimen BTC = BULL", check: (d) => d.ema20 > d.ema50, desc: "EMA20 > EMA50 en diario" },
+        { name: "Régimen BTC = BULL", check: () => btcRegime === "BULL", desc: "Régimen global de BTC" },
         { name: "EMA20 > EMA50", check: (d) => d.ema20 > d.ema50, desc: "Tendencia alcista confirmada" },
         { name: "RSI 40-60", check: (d) => d.rsi >= 40 && d.rsi <= 60, desc: "Momentum equilibrado" },
         { name: "ADX > 20", check: (d) => d.adx > 20, desc: "Tendencia presente" },
@@ -78,7 +78,7 @@ function getApplicableStrategy(ticker: string): StrategyInfo {
       capital: 15000,
       description: "Estrategia swing para altcoins. Mayor frecuencia, beta amplificado respecto a BTC.",
       conditions: [
-        { name: "BTC en tendencia", check: (d) => d.ema20 > d.ema50, desc: "BTC alcista = altcoins siguen" },
+        { name: "BTC en tendencia", check: () => btcRegime === "BULL", desc: "Régimen global de BTC" },
         { name: "EMA12 > EMA26", check: (d) => d.ema20 > d.ema50, desc: "EMAs rápidas alcistas" },
         { name: "RSI 40-65", check: (d) => d.rsi >= 40 && d.rsi <= 65, desc: "Sin sobrecompra" },
         { name: "ADX > 22", check: (d) => d.adx > 22, desc: "Tendencia moderada" },
@@ -95,7 +95,7 @@ function getApplicableStrategy(ticker: string): StrategyInfo {
       capital: 15000,
       description: "Estrategia swing para blue chips S&P 500. Filtro macro SPY, pullbacks a zona de valor.",
       conditions: [
-        { name: "Régimen SPY = BULL", check: (d) => d.ema20 > d.ema50, desc: "SPY en tendencia alcista" },
+        { name: "Régimen SPY = BULL", check: () => spyRegime === "BULL", desc: "Régimen global de SPY" },
         { name: "EMA20 > EMA50", check: (d) => d.ema20 > d.ema50, desc: "Estructura alcista 1D" },
         { name: "RSI 40-65", check: (d) => d.rsi >= 40 && d.rsi <= 65, desc: "Sin extremos" },
         { name: "ADX > 20", check: (d) => d.adx > 20, desc: "Tendencia presente" },
@@ -111,7 +111,7 @@ function getApplicableStrategy(ticker: string): StrategyInfo {
     capital: 10000,
     description: "Estrategia momentum para Russell 2000. ADX alto, impulsos parabólicos.",
     conditions: [
-      { name: "Régimen IWM = BULL", check: (d) => d.ema20 > d.ema50, desc: "IWM en tendencia" },
+      { name: "Régimen IWM = BULL", check: () => spyRegime === "BULL", desc: "Régimen global de IWM/SPY" },
       { name: "ADX > 25", check: (d) => d.adx > 25, desc: "Tendencia fuerte requerida" },
       { name: "RSI 40-65", check: (d) => d.rsi >= 40 && d.rsi <= 65, desc: "Momentum sin extremo" },
       { name: "+DI > -DI", check: (d) => d.plusDi > d.minusDi, desc: "Dirección alcista" },
@@ -121,7 +121,7 @@ function getApplicableStrategy(ticker: string): StrategyInfo {
   }
 }
 
-function getStrategyByType(type: string): StrategyInfo {
+function getStrategyByType(type: string, btcRegime: string = 'UNKNOWN', spyRegime: string = 'UNKNOWN'): StrategyInfo {
   const strategies: Record<string, StrategyInfo> = {
     crypto_core: {
       name: "Crypto Core",
@@ -130,7 +130,7 @@ function getStrategyByType(type: string): StrategyInfo {
       capital: 15000,
       description: "Estrategia swing conservadora para BTC y ETH. Pullbacks a EMA20 en tendencia alcista.",
       conditions: [
-        { name: "Régimen BTC = BULL", check: (d) => d.ema20 > d.ema50, desc: "EMA20 > EMA50 en diario" },
+        { name: "Régimen BTC = BULL", check: () => btcRegime === "BULL", desc: "Régimen global de BTC" },
         { name: "EMA20 > EMA50", check: (d) => d.ema20 > d.ema50, desc: "Tendencia alcista confirmada" },
         { name: "RSI 40-60", check: (d) => d.rsi >= 40 && d.rsi <= 60, desc: "Momentum equilibrado" },
         { name: "ADX > 20", check: (d) => d.adx > 20, desc: "Tendencia presente" },
@@ -145,7 +145,7 @@ function getStrategyByType(type: string): StrategyInfo {
       capital: 15000,
       description: "Estrategia swing para altcoins. Mayor frecuencia, beta amplificado respecto a BTC.",
       conditions: [
-        { name: "BTC en tendencia", check: (d) => d.ema20 > d.ema50, desc: "BTC alcista = altcoins siguen" },
+        { name: "BTC en tendencia", check: () => btcRegime === "BULL", desc: "Régimen global de BTC" },
         { name: "EMA12 > EMA26", check: (d) => d.ema20 > d.ema50, desc: "EMAs rápidas alcistas" },
         { name: "RSI 40-65", check: (d) => d.rsi >= 40 && d.rsi <= 65, desc: "Sin sobrecompra" },
         { name: "ADX > 22", check: (d) => d.adx > 22, desc: "Tendencia moderada" },
@@ -160,7 +160,7 @@ function getStrategyByType(type: string): StrategyInfo {
       capital: 15000,
       description: "Estrategia swing para blue chips S&P 500. Filtro macro SPY, pullbacks a zona de valor.",
       conditions: [
-        { name: "Régimen SPY = BULL", check: (d) => d.ema20 > d.ema50, desc: "SPY en tendencia alcista" },
+        { name: "Régimen SPY = BULL", check: () => spyRegime === "BULL", desc: "Régimen global de SPY" },
         { name: "EMA20 > EMA50", check: (d) => d.ema20 > d.ema50, desc: "Estructura alcista 1D" },
         { name: "RSI 40-65", check: (d) => d.rsi >= 40 && d.rsi <= 65, desc: "Sin extremos" },
         { name: "ADX > 20", check: (d) => d.adx > 20, desc: "Tendencia presente" },
@@ -175,7 +175,7 @@ function getStrategyByType(type: string): StrategyInfo {
       capital: 10000,
       description: "Estrategia momentum para Russell 2000. ADX alto, impulsos parabólicos.",
       conditions: [
-        { name: "Régimen IWM = BULL", check: (d) => d.ema20 > d.ema50, desc: "IWM en tendencia" },
+        { name: "Régimen IWM = BULL", check: () => spyRegime === "BULL", desc: "Régimen global de IWM/SPY" },
         { name: "ADX > 25", check: (d) => d.adx > 25, desc: "Tendencia fuerte requerida" },
         { name: "RSI 40-65", check: (d) => d.rsi >= 40 && d.rsi <= 65, desc: "Momentum sin extremo" },
         { name: "+DI > -DI", check: (d) => d.plusDi > d.minusDi, desc: "Dirección alcista" },
@@ -910,10 +910,29 @@ El precio está en el rango medio. Sin extremos.`,
 export default function IndicatorsPage() {
   const [selectedTicker, setSelectedTicker] = useState('BTC-USD')
   const [manualStrategy, setManualStrategy] = useState<string | null>(null)
+  const [btcRegime, setBtcRegime] = useState<string>('UNKNOWN')
+  const [spyRegime, setSpyRegime] = useState<string>('UNKNOWN')
   const [data, setData] = useState<OHLCData[]>([])
   const [activeTab, setActiveTab] = useState<'ema' | 'rsi' | 'macd' | 'adx' | 'bb' | 'stoch' | 'hybrid' | 'strategy'>('ema')
   const [loading, setLoading] = useState(true)
   
+  // Obtener régimen global de BTC y SPY
+  useEffect(() => {
+    const fetchRegimes = async () => {
+      try {
+        const response = await fetch('/api/trading')
+        const json = await response.json()
+        if (json.success && json.data) {
+          setBtcRegime(json.data.btcRegime || 'UNKNOWN')
+          setSpyRegime(json.data.spyRegime || 'UNKNOWN')
+        }
+      } catch (error) {
+        console.error('Error fetching regimes:', error)
+      }
+    }
+    fetchRegimes()
+  }, [])
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true)
@@ -1439,7 +1458,7 @@ export default function IndicatorsPage() {
               {/* Estrategia ELEVE Tab */}
               {activeTab === 'strategy' && latest && (
                 (() => {
-                  const strategy = manualStrategy ? getStrategyByType(manualStrategy) : getApplicableStrategy(selectedTicker)
+                  const strategy = manualStrategy ? getStrategyByType(manualStrategy, btcRegime, spyRegime) : getApplicableStrategy(selectedTicker, btcRegime, spyRegime)
                   const results = strategy.conditions.map(c => ({ ...c, met: c.check(latest) }))
                   const metCount = results.filter(r => r.met).length
                   const isValid = metCount >= 5
