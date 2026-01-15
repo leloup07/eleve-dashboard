@@ -916,6 +916,7 @@ export default function IndicatorsPage() {
   const [activeTab, setActiveTab] = useState<'ema' | 'rsi' | 'macd' | 'adx' | 'bb' | 'stoch' | 'hybrid' | 'strategy'>('ema')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [emaConfig, setEmaConfig] = useState<{fast: number, mid: number, slow: number}>({fast: 20, mid: 50, slow: 200})
   
   // Obtener régimen global de BTC y SPY
   useEffect(() => {
@@ -945,6 +946,7 @@ export default function IndicatorsPage() {
         const json = await response.json()
         if (json.success && json.data && json.data.length > 0) {
           setData(json.data)
+          if (json.emaConfig) setEmaConfig(json.emaConfig)
         } else {
           setError(json.error || 'No se pudieron obtener datos')
         }
@@ -1113,7 +1115,7 @@ export default function IndicatorsPage() {
                     <span className="text-4xl">{emaContext.emoji}</span>
                     <div>
                       <h3 className="text-xl font-bold text-gray-900">{emaContext.regime}</h3>
-                      <p className="text-sm text-gray-500">Medias Móviles Exponenciales (20, 50, 200)</p>
+                      <p className="text-sm text-gray-500">Medias Móviles Exponenciales ({emaConfig.fast}, {emaConfig.mid}, {emaConfig.slow})</p>
                     </div>
                   </div>
                   
