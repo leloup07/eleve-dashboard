@@ -6,13 +6,69 @@ import { formatCurrency, formatPercent, formatNumber, getValueColorClass, getVal
 import { clsx } from 'clsx'
 import type { Trade } from '@/types'
 
+// ============================================
+// NORMALIZACIÓN DE TRADES - FIX para Inversión $0 y % NaN
+// ============================================
+function normalizeTrade(trade: Trade): Trade {
+  // Calcular investedAmount si es 0, undefined o NaN
+  const investedAmount = (trade.investedAmount && trade.investedAmount > 0) 
+    ? trade.investedAmount 
+    : (trade.size || 0) * (trade.entry || 0)
+  
+  // Calcular pnlPercent basado en el investedAmount real
+  const pnlPercent = investedAmount > 0 
+    ? (trade.pnl / investedAmount) * 100 
+    : 0
+  
+  // Normalizar indicadores para evitar N/A en la UI
+  const normalizeIndicator = (value: number | undefined | null): number => {
+    if (value === undefined || value === null || isNaN(value)) return 0
+    return value
+  }
+  
+  return {
+    ...trade,
+    investedAmount,
+    pnlPercent,
+    // Asegurar que entry y exit tengan valores
+    entry: trade.entry || 0,
+    exit: trade.exit || trade.entry || 0, // Si no hay exit, usar entry (BE)
+    // Normalizar indicadores de entrada
+    entryIndicators: {
+      rsi: normalizeIndicator(trade.entryIndicators?.rsi),
+      macd: normalizeIndicator(trade.entryIndicators?.macd),
+      adx: normalizeIndicator(trade.entryIndicators?.adx),
+      ema20: normalizeIndicator(trade.entryIndicators?.ema20),
+      ema50: normalizeIndicator(trade.entryIndicators?.ema50),
+      atr: normalizeIndicator(trade.entryIndicators?.atr) || 1, // ATR mínimo 1 para evitar división por 0
+      volume: normalizeIndicator(trade.entryIndicators?.volume),
+    },
+    // Normalizar indicadores de salida
+    exitIndicators: {
+      rsi: normalizeIndicator(trade.exitIndicators?.rsi),
+      macd: normalizeIndicator(trade.exitIndicators?.macd),
+      price: normalizeIndicator(trade.exitIndicators?.price) || trade.exit || trade.entry || 0,
+    },
+    // Asegurar que lessons sea un array
+    lessons: trade.lessons || [],
+  }
+}
+
 interface TradeDetailProps {
   trade: Trade
 }
 
-function TradeDetail({ trade }: TradeDetailProps) {
+function TradeDetail({ trade: rawTrade }: TradeDetailProps) {
+  // Normalizar el trade al renderizar
+  const trade = normalizeTrade(rawTrade)
+  
   const [expanded, setExpanded] = useState(false)
   const pnlColor = getValueColorClass(trade.pnl)
+  
+  // Calcular % de ganancia/pérdida para mostrar
+  const pnlPercentDisplay = trade.investedAmount > 0 
+    ? (trade.pnl / trade.investedAmount) * 100 
+    : 0
   
   // Formatear fechas
   const openDate = new Date(trade.openDate)
@@ -36,6 +92,12 @@ function TradeDetail({ trade }: TradeDetailProps) {
     'BE': { emoji: '⚪', label: 'Breakeven', color: 'bg-gray-100 text-gray-700', desc: 'Salida sin pérdida ni ganancia' },
     'TRAIL': { emoji: '🟢', label: 'Trailing Stop', color: 'bg-green-100 text-green-700', desc: 'Ganancia protegida por trailing' }
   }[trade.result] || { emoji: '⚪', label: trade.result, color: 'bg-gray-100', desc: '' }
+  
+  // Helper para mostrar indicadores con N/A si es 0
+  const formatIndicator = (value: number, decimals: number = 0): string => {
+    if (value === 0 || isNaN(value)) return 'N/A'
+    return formatNumber(value, decimals)
+  }
   
   return (
     <div className="border border-gray-200 rounded-xl overflow-hidden mb-4 shadow-sm">
@@ -64,15 +126,21 @@ function TradeDetail({ trade }: TradeDetailProps) {
         </div>
         
         <div className="flex items-center gap-6">
+          {/* Invertido - Ahora siempre muestra el valor calculado */}
           <div className="text-right hidden sm:block">
             <span className="text-xs text-gray-500">Invertido</span>
             <p className="font-semibold">{formatCurrency(trade.investedAmount)}</p>
           </div>
+          {/* PnL con porcentaje */}
           <div className="text-right">
             <span className="text-xs text-gray-500">PnL</span>
             <p className={clsx('font-bold text-lg', pnlColor)}>
               {trade.pnl >= 0 ? '+' : ''}{formatCurrency(trade.pnl)}
             </p>
+            {/* NUEVO: Mostrar porcentaje debajo del PnL */}
+            <span className={clsx('text-xs', pnlColor)}>
+              ({pnlPercentDisplay >= 0 ? '+' : ''}{formatNumber(pnlPercentDisplay, 2)}%)
+            </span>
           </div>
           <div className="text-right">
             <span className="text-xs text-gray-500">R</span>
@@ -127,8 +195,8 @@ function TradeDetail({ trade }: TradeDetailProps) {
             </div>
           </div>
           
-          {/* Resumen visual del trade */}
-          <div className="grid grid-cols-4 gap-3 mb-6">
+          {/* Resumen visual del trade - MEJORADO con inversión y % */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
             <div className="bg-white rounded-lg p-4 border text-center">
               <span className="text-xs text-gray-500 block mb-1">Entry</span>
               <p className="text-xl font-bold text-gray-900">{formatCurrency(trade.entry, 2)}</p>
@@ -144,6 +212,17 @@ function TradeDetail({ trade }: TradeDetailProps) {
             <div className="bg-green-50 rounded-lg p-4 border border-green-200 text-center">
               <span className="text-xs text-green-600 block mb-1">Take Profit</span>
               <p className="text-xl font-bold text-green-600">{formatCurrency(trade.tp, 2)}</p>
+            </div>
+            {/* NUEVO: Mostrar inversión y % en el resumen */}
+            <div className={clsx(
+              'rounded-lg p-4 border text-center',
+              trade.pnl >= 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+            )}>
+              <span className="text-xs text-gray-500 block mb-1">Invertido</span>
+              <p className="text-lg font-bold text-gray-900">{formatCurrency(trade.investedAmount)}</p>
+              <p className={clsx('text-sm font-semibold', pnlColor)}>
+                {pnlPercentDisplay >= 0 ? '+' : ''}{formatNumber(pnlPercentDisplay, 2)}%
+              </p>
             </div>
           </div>
           
@@ -163,16 +242,22 @@ function TradeDetail({ trade }: TradeDetailProps) {
                     <span><strong>Tendencia:</strong> Precio {'>'} EMA20 {'>'} EMA50 (estructura alcista)</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-green-500 mt-0.5">✓</span>
-                    <span><strong>Fuerza:</strong> ADX = {trade.entryIndicators.adx} {'>'} 25 (tendencia con fuerza)</span>
+                    <span className={trade.entryIndicators.adx > 25 ? 'text-green-500' : 'text-yellow-500'}>
+                      {trade.entryIndicators.adx > 25 ? '✓' : '⚠'}
+                    </span>
+                    <span><strong>Fuerza:</strong> ADX = {formatIndicator(trade.entryIndicators.adx)} {trade.entryIndicators.adx > 25 ? '> 25 (tendencia con fuerza)' : '(sin datos)'}</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-green-500 mt-0.5">✓</span>
-                    <span><strong>Momentum:</strong> RSI = {trade.entryIndicators.rsi} en zona óptima (40-65)</span>
+                    <span className={trade.entryIndicators.rsi >= 40 && trade.entryIndicators.rsi <= 65 ? 'text-green-500' : 'text-yellow-500'}>
+                      {trade.entryIndicators.rsi >= 40 && trade.entryIndicators.rsi <= 65 ? '✓' : '⚠'}
+                    </span>
+                    <span><strong>Momentum:</strong> RSI = {formatIndicator(trade.entryIndicators.rsi, 1)} {trade.entryIndicators.rsi > 0 ? 'en zona óptima (40-65)' : '(sin datos)'}</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-green-500 mt-0.5">✓</span>
-                    <span><strong>Volumen:</strong> {trade.entryIndicators.volume}% vs media (confirmación)</span>
+                    <span className={trade.entryIndicators.volume > 100 ? 'text-green-500' : 'text-yellow-500'}>
+                      {trade.entryIndicators.volume > 100 ? '✓' : '⚠'}
+                    </span>
+                    <span><strong>Volumen:</strong> {formatIndicator(trade.entryIndicators.volume)}% vs media {trade.entryIndicators.volume > 0 ? '(confirmación)' : '(sin datos)'}</span>
                   </li>
                 </ul>
               </div>
@@ -184,32 +269,41 @@ function TradeDetail({ trade }: TradeDetailProps) {
                   <div className="text-center p-2 bg-gray-50 rounded">
                     <span className="text-xs text-gray-500 block">RSI</span>
                     <span className={clsx('font-bold', 
+                      trade.entryIndicators.rsi === 0 ? 'text-gray-400' :
                       trade.entryIndicators.rsi >= 40 && trade.entryIndicators.rsi <= 65 ? 'text-green-600' : 'text-yellow-600'
-                    )}>{trade.entryIndicators.rsi}</span>
+                    )}>{formatIndicator(trade.entryIndicators.rsi, 1)}</span>
                   </div>
                   <div className="text-center p-2 bg-gray-50 rounded">
                     <span className="text-xs text-gray-500 block">ADX</span>
                     <span className={clsx('font-bold',
+                      trade.entryIndicators.adx === 0 ? 'text-gray-400' :
                       trade.entryIndicators.adx > 25 ? 'text-green-600' : 'text-yellow-600'
-                    )}>{trade.entryIndicators.adx}</span>
+                    )}>{formatIndicator(trade.entryIndicators.adx)}</span>
                   </div>
                   <div className="text-center p-2 bg-gray-50 rounded">
                     <span className="text-xs text-gray-500 block">Vol%</span>
                     <span className={clsx('font-bold',
+                      trade.entryIndicators.volume === 0 ? 'text-gray-400' :
                       trade.entryIndicators.volume > 100 ? 'text-green-600' : 'text-yellow-600'
-                    )}>{trade.entryIndicators.volume}%</span>
+                    )}>{formatIndicator(trade.entryIndicators.volume)}%</span>
                   </div>
                   <div className="text-center p-2 bg-gray-50 rounded">
                     <span className="text-xs text-gray-500 block">EMA20</span>
-                    <span className="font-bold text-gray-700">{formatCurrency(trade.entryIndicators.ema20, 0)}</span>
+                    <span className="font-bold text-gray-700">
+                      {trade.entryIndicators.ema20 > 0 ? formatCurrency(trade.entryIndicators.ema20, 0) : 'N/A'}
+                    </span>
                   </div>
                   <div className="text-center p-2 bg-gray-50 rounded">
                     <span className="text-xs text-gray-500 block">EMA50</span>
-                    <span className="font-bold text-gray-700">{formatCurrency(trade.entryIndicators.ema50, 0)}</span>
+                    <span className="font-bold text-gray-700">
+                      {trade.entryIndicators.ema50 > 0 ? formatCurrency(trade.entryIndicators.ema50, 0) : 'N/A'}
+                    </span>
                   </div>
                   <div className="text-center p-2 bg-gray-50 rounded">
                     <span className="text-xs text-gray-500 block">ATR</span>
-                    <span className="font-bold text-gray-700">{formatNumber(trade.entryIndicators.atr, 2)}</span>
+                    <span className="font-bold text-gray-700">
+                      {trade.entryIndicators.atr > 1 ? formatNumber(trade.entryIndicators.atr, 2) : 'N/A'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -217,16 +311,16 @@ function TradeDetail({ trade }: TradeDetailProps) {
             
             <div className="bg-white rounded-lg p-4">
               <h5 className="font-semibold text-gray-700 mb-2 text-sm">📝 Razón específica de entrada:</h5>
-              <p className="text-gray-700">{trade.entryReason}</p>
+              <p className="text-gray-700">{trade.entryReason || 'Sin razón registrada'}</p>
               <div className="mt-3 flex items-center gap-3">
                 <span className="text-sm text-gray-500">Calidad del setup:</span>
                 <span className={clsx(
                   'px-3 py-1 rounded-full text-sm font-bold',
-                  trade.entryGrade.startsWith('A') ? 'bg-green-100 text-green-700' :
-                  trade.entryGrade.startsWith('B') ? 'bg-yellow-100 text-yellow-700' :
+                  trade.entryGrade?.startsWith('A') ? 'bg-green-100 text-green-700' :
+                  trade.entryGrade?.startsWith('B') ? 'bg-yellow-100 text-yellow-700' :
                   'bg-red-100 text-red-700'
                 )}>
-                  Grade {trade.entryGrade}
+                  Grade {trade.entryGrade || 'N/A'}
                 </span>
               </div>
             </div>
@@ -243,7 +337,9 @@ function TradeDetail({ trade }: TradeDetailProps) {
                 <h5 className="font-semibold text-red-600 mb-2 text-sm">🛑 Stop Loss</h5>
                 <p className="text-2xl font-bold text-red-600">{formatCurrency(trade.sl, 2)}</p>
                 <p className="text-xs text-gray-500 mt-1">
-                  {((trade.entry - trade.sl) / trade.entryIndicators.atr).toFixed(1)}x ATR bajo entrada
+                  {trade.entryIndicators.atr > 1 
+                    ? `${((trade.entry - trade.sl) / trade.entryIndicators.atr).toFixed(1)}x ATR bajo entrada`
+                    : 'ATR no disponible'}
                 </p>
                 <p className="text-xs text-gray-500">
                   Riesgo máximo: {formatCurrency(Math.abs(trade.entry - trade.sl) * trade.size, 0)}
@@ -268,7 +364,11 @@ function TradeDetail({ trade }: TradeDetailProps) {
             </div>
             
             <div className="mt-4 p-3 bg-white rounded-lg text-sm">
-              <strong>📐 Ratio Riesgo/Beneficio:</strong> 1:{((trade.tp - trade.entry) / (trade.entry - trade.sl)).toFixed(1)} 
+              <strong>📐 Ratio Riesgo/Beneficio:</strong> {
+                trade.entry !== trade.sl 
+                  ? `1:${((trade.tp - trade.entry) / (trade.entry - trade.sl)).toFixed(1)}`
+                  : 'N/A'
+              }
               <span className="text-gray-500 ml-2">
                 (Objetivo mínimo: 1:2)
               </span>
@@ -288,7 +388,7 @@ function TradeDetail({ trade }: TradeDetailProps) {
             </h4>
             
             <div className="bg-white rounded-lg p-4 mb-4">
-              <p className="text-gray-700 font-medium">{trade.exitReason}</p>
+              <p className="text-gray-700 font-medium">{trade.exitReason || 'Sin razón de salida registrada'}</p>
               {trade.regime && (
                 <div className="mt-2 flex items-center gap-2">
                   <span className="text-xs text-gray-500">Régimen ADX:</span>
@@ -310,15 +410,17 @@ function TradeDetail({ trade }: TradeDetailProps) {
               <div className="bg-white rounded-lg p-3 text-center">
                 <span className="text-xs text-gray-500 block">RSI al salir</span>
                 <span className={clsx('font-bold text-lg',
+                  trade.exitIndicators.rsi === 0 ? 'text-gray-400' :
                   trade.exitIndicators.rsi > 70 ? 'text-red-600' : 
                   trade.exitIndicators.rsi < 30 ? 'text-green-600' : 'text-gray-700'
-                )}>{trade.exitIndicators.rsi}</span>
+                )}>{formatIndicator(trade.exitIndicators.rsi)}</span>
               </div>
               <div className="bg-white rounded-lg p-3 text-center">
                 <span className="text-xs text-gray-500 block">MACD</span>
                 <span className={clsx('font-bold text-lg',
+                  trade.exitIndicators.macd === 0 ? 'text-gray-400' :
                   trade.exitIndicators.macd > 0 ? 'text-green-600' : 'text-red-600'
-                )}>{formatNumber(trade.exitIndicators.macd, 1)}</span>
+                )}>{formatIndicator(trade.exitIndicators.macd, 1)}</span>
               </div>
               <div className="bg-white rounded-lg p-3 text-center">
                 <span className="text-xs text-gray-500 block">Precio salida</span>
@@ -326,6 +428,7 @@ function TradeDetail({ trade }: TradeDetailProps) {
               </div>
             </div>
             
+            {/* NUEVO: Resumen de rentabilidad */}
             <div className={clsx(
               'mt-4 p-4 rounded-lg text-center',
               trade.pnl >= 0 ? 'bg-green-100' : 'bg-red-100'
@@ -334,6 +437,10 @@ function TradeDetail({ trade }: TradeDetailProps) {
               <span className={clsx('text-3xl font-bold', pnlColor)}>
                 {trade.pnl >= 0 ? '+' : ''}{formatCurrency(trade.pnl)} ({trade.rMultiple >= 0 ? '+' : ''}{formatNumber(trade.rMultiple, 2)}R)
               </span>
+              {/* NUEVO: Mostrar % de rentabilidad prominente */}
+              <p className={clsx('text-xl font-semibold mt-2', pnlColor)}>
+                {pnlPercentDisplay >= 0 ? '+' : ''}{formatNumber(pnlPercentDisplay, 2)}% sobre {formatCurrency(trade.investedAmount)}
+              </p>
             </div>
           </div>
           
@@ -342,14 +449,18 @@ function TradeDetail({ trade }: TradeDetailProps) {
             <h4 className="font-bold text-yellow-900 mb-4 text-lg flex items-center gap-2">
               🎓 Lecciones Aprendidas
             </h4>
-            <ul className="space-y-3">
-              {trade.lessons.map((lesson, idx) => (
-                <li key={idx} className="flex items-start gap-3 bg-white p-3 rounded-lg">
-                  <span className="text-xl">{lesson.startsWith('✅') ? '✅' : lesson.startsWith('❌') ? '❌' : lesson.startsWith('📊') ? '📊' : lesson.startsWith('💡') ? '💡' : '•'}</span>
-                  <span className="text-gray-700">{lesson.replace(/^[✅❌📊💡]\s*/, '')}</span>
-                </li>
-              ))}
-            </ul>
+            {trade.lessons && trade.lessons.length > 0 ? (
+              <ul className="space-y-3">
+                {trade.lessons.map((lesson, idx) => (
+                  <li key={idx} className="flex items-start gap-3 bg-white p-3 rounded-lg">
+                    <span className="text-xl">{lesson.startsWith('✅') ? '✅' : lesson.startsWith('❌') ? '❌' : lesson.startsWith('📊') ? '📊' : lesson.startsWith('💡') ? '💡' : '•'}</span>
+                    <span className="text-gray-700">{lesson.replace(/^[✅❌📊💡]\s*/, '')}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-gray-500 text-center py-4">No hay lecciones registradas para este trade</p>
+            )}
           </div>
         </div>
       )}
@@ -363,17 +474,22 @@ export function TradingJournal() {
   
   const filteredTrades = trades.filter(t => {
     if (filter === 'all') return true
-    if (filter === 'crypto') return t.strategy.includes('crypto')
-    return !t.strategy.includes('crypto')
+    if (filter === 'crypto') return t.ticker?.includes('-USD') || t.strategy?.includes('crypto') || t.strategy?.includes('intraday')
+    return !t.ticker?.includes('-USD') && !t.strategy?.includes('crypto') && !t.strategy?.includes('intraday')
   })
   
-  // Estadísticas
-  const totalPnL = filteredTrades.reduce((sum, t) => sum + t.pnl, 0)
-  const winners = filteredTrades.filter(t => t.pnl > 0)
-  const losers = filteredTrades.filter(t => t.pnl < 0)
-  const winRate = filteredTrades.length > 0 ? (winners.length / filteredTrades.length) * 100 : 0
-  const avgR = filteredTrades.length > 0 
-    ? filteredTrades.reduce((sum, t) => sum + t.rMultiple, 0) / filteredTrades.length 
+  // Normalizar trades para estadísticas
+  const normalizedTrades = filteredTrades.map(normalizeTrade)
+  
+  // Estadísticas - ahora usando datos normalizados
+  const totalPnL = normalizedTrades.reduce((sum, t) => sum + t.pnl, 0)
+  const totalInvested = normalizedTrades.reduce((sum, t) => sum + t.investedAmount, 0)
+  const totalPnLPercent = totalInvested > 0 ? (totalPnL / totalInvested) * 100 : 0
+  const winners = normalizedTrades.filter(t => t.pnl > 0)
+  const losers = normalizedTrades.filter(t => t.pnl < 0)
+  const winRate = normalizedTrades.length > 0 ? (winners.length / normalizedTrades.length) * 100 : 0
+  const avgR = normalizedTrades.length > 0 
+    ? normalizedTrades.reduce((sum, t) => sum + t.rMultiple, 0) / normalizedTrades.length 
     : 0
   const avgWin = winners.length > 0 ? winners.reduce((sum, t) => sum + t.rMultiple, 0) / winners.length : 0
   const avgLoss = losers.length > 0 ? losers.reduce((sum, t) => sum + t.rMultiple, 0) / losers.length : 0
@@ -408,10 +524,10 @@ export function TradingJournal() {
           </div>
         </div>
         
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
           <div className="bg-gray-50 rounded-lg p-4 text-center">
             <span className="text-xs text-gray-500 uppercase block mb-1">Trades</span>
-            <p className="text-2xl font-bold text-gray-900">{filteredTrades.length}</p>
+            <p className="text-2xl font-bold text-gray-900">{normalizedTrades.length}</p>
             <span className="text-xs text-gray-500">{winners.length}W / {losers.length}L</span>
           </div>
           <div className="bg-gray-50 rounded-lg p-4 text-center">
@@ -419,6 +535,15 @@ export function TradingJournal() {
             <p className={clsx('text-2xl font-bold', getValueColorClass(totalPnL))}>
               {totalPnL >= 0 ? '+' : ''}{formatCurrency(totalPnL)}
             </p>
+            {/* NUEVO: Mostrar % total */}
+            <span className={clsx('text-xs', getValueColorClass(totalPnLPercent))}>
+              ({totalPnLPercent >= 0 ? '+' : ''}{formatNumber(totalPnLPercent, 2)}%)
+            </span>
+          </div>
+          {/* NUEVO: Capital invertido total */}
+          <div className="bg-gray-50 rounded-lg p-4 text-center">
+            <span className="text-xs text-gray-500 uppercase block mb-1">Invertido</span>
+            <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalInvested)}</p>
           </div>
           <div className="bg-gray-50 rounded-lg p-4 text-center">
             <span className="text-xs text-gray-500 uppercase block mb-1">Win Rate</span>
@@ -465,7 +590,7 @@ export function TradingJournal() {
           Haz clic en cada trade para ver el análisis completo: razón de entrada, gestión de riesgo, salida y lecciones aprendidas.
         </p>
         
-        {filteredTrades.length === 0 ? (
+        {normalizedTrades.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
             <span className="text-5xl mb-4 block">📭</span>
             <p className="text-lg">No hay trades completados todavía</p>
@@ -473,7 +598,7 @@ export function TradingJournal() {
           </div>
         ) : (
           <div className="space-y-2">
-            {[...filteredTrades].reverse().map(trade => (
+            {[...normalizedTrades].reverse().map(trade => (
               <TradeDetail key={trade.id} trade={trade} />
             ))}
           </div>

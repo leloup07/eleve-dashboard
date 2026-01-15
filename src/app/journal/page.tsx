@@ -36,6 +36,7 @@ interface ClosedTrade {
   size: number
   invested_amount: number
   pnl: number
+  pnl_percent?: number
   r_multiple: number
   holding_days: number
   close_date: string
@@ -58,7 +59,7 @@ type StrategyFilter = 'all' | 'crypto' | 'large_caps' | 'small_caps' | 'vwap_rev
 
 // Helper para detectar si es stock
 const isStock = (ticker: string) => {
-  const cryptos = ["BTC","ETH","SOL","XRP","AVAX","LINK","MATIC","DOT","UNI","ATOM","BTC-USD","ETH-USD","SOL-USD"]
+  const cryptos = ["BTC","ETH","SOL","XRP","AVAX","LINK","MATIC","DOT","UNI","ATOM","LTC","FIL","FET","AAVE","INJ","BTC-USD","ETH-USD","SOL-USD","LTC-USD","FIL-USD","FET-USD","AAVE-USD","INJ-USD"]
   return !cryptos.some(c => ticker.toUpperCase().includes(c))
 }
 
@@ -80,11 +81,51 @@ const formatDateTime = (dateStr: string) => {
   return `${day} ${month} ${hours}:${mins}`
 }
 
-// Formatear fecha corta
-const formatDateShort = (dateStr: string) => {
-  if (!dateStr) return ''
-  const date = new Date(dateStr)
-  return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })
+// ============================================
+// NORMALIZACIÓN DE DATOS - FIX para $0, NaN, decimales
+// ============================================
+const normalizePosition = (p: any): Position => {
+  const entry = p.entry || 0
+  const size = p.size || 0
+  const invested = (p.invested_amount && p.invested_amount > 0) ? p.invested_amount : entry * size
+  
+  return {
+    ...p,
+    entry,
+    size,
+    invested_amount: invested,
+    rsi: p.rsi ? Number(p.rsi) : undefined,
+    adx: p.adx ? Number(p.adx) : undefined,
+    volume: p.volume ? Number(p.volume) : undefined,
+  }
+}
+
+const normalizeTrade = (t: any): ClosedTrade => {
+  const entry = t.entry || 0
+  const exit = t.exit || entry  // Si no hay exit, usar entry (BE)
+  const size = t.size || 0
+  const invested = (t.invested_amount && t.invested_amount > 0) ? t.invested_amount : entry * size
+  const pnl = t.pnl || 0
+  const pnlPercent = invested > 0 ? (pnl / invested) * 100 : 0
+  
+  return {
+    ...t,
+    entry,
+    exit,
+    size,
+    invested_amount: invested,
+    pnl,
+    pnl_percent: pnlPercent,
+    rsi: t.rsi ? Number(t.rsi) : undefined,
+    adx: t.adx ? Number(t.adx) : undefined,
+    volume: t.volume ? Number(t.volume) : undefined,
+  }
+}
+
+// Formatear indicadores (1 decimal, N/A si no hay)
+const fmtIndicator = (val: number | undefined, decimals: number = 1): string => {
+  if (val === undefined || val === null || isNaN(val)) return 'N/A'
+  return val.toFixed(decimals)
 }
 
 // Análisis de posición abierta
@@ -99,9 +140,9 @@ const generatePositionAnalysis = (p: Position) => {
     entryAnalysis: `${grade === "A" || grade === "A+" || grade === "B" ? "✅" : "⚠️"} Setup Grado ${grade}
 
 📊 Indicadores de entrada:
-• RSI: ${rsi ?? "N/A"} ${rsi !== undefined ? (rsiOK ? "✅ zona ideal" : "⚠️ fuera de rango") : ""}
-• ADX: ${adx ?? "N/A"} ${adx !== undefined ? (adxOK ? "✅ tendencia fuerte" : "⚠️ tendencia débil") : ""}
-• Volumen: ${p.volume ?? "N/A"}%
+• RSI: ${fmtIndicator(rsi)} ${rsi !== undefined ? (rsiOK ? "✅ zona ideal" : "⚠️ fuera de rango") : ""}
+• ADX: ${fmtIndicator(adx)} ${adx !== undefined ? (adxOK ? "✅ tendencia fuerte" : "⚠️ tendencia débil") : ""}
+• Volumen: ${fmtIndicator(p.volume, 0)}%
 • EMA20: ${p.ema20 ? `$${p.ema20.toFixed(2)}` : "N/A"}
 • EMA50: ${p.ema50 ? `$${p.ema50.toFixed(2)}` : "N/A"}
 • ATR: ${p.atr ? `$${p.atr.toFixed(2)}` : "N/A"}
@@ -113,7 +154,7 @@ const generatePositionAnalysis = (p: Position) => {
 • Stop Loss: $${p.sl?.toFixed(2)} (${((p.sl - p.entry) / p.entry * 100).toFixed(1)}%)
 • Take Profit: $${p.tp?.toFixed(2)} (${((p.tp - p.entry) / p.entry * 100).toFixed(1)}%)
 • Size: ${formatSize(p.size, p.ticker)} unidades
-• Inversión: $${p.invested_amount?.toLocaleString() || '0'}`
+• Inversión: $${p.invested_amount?.toLocaleString()}`
   }
 }
 
@@ -126,14 +167,15 @@ const generateTradeAnalysis = (t: ClosedTrade) => {
   const isSL = t.result === "SL"
   const rsiOK = rsi !== undefined && rsi >= 40 && rsi <= 70
   const adxOK = adx !== undefined && adx >= 25
+  const pnlPct = t.pnl_percent || (t.invested_amount > 0 ? (t.pnl / t.invested_amount) * 100 : 0)
   
   return {
     entryReason: `${grade === "A" || grade === "A+" || grade === "B" ? "✅" : "⚠️"} Setup Grado ${grade}
 
 📊 Indicadores al momento de entrada:
-• RSI: ${rsi ?? "N/A"} ${rsi !== undefined ? (rsiOK ? "✅ zona ideal" : "⚠️ fuera de rango") : ""}
-• ADX: ${adx ?? "N/A"} ${adx !== undefined ? (adxOK ? "✅ tendencia fuerte" : "⚠️ tendencia débil") : ""}
-• Volumen: ${t.volume ?? "N/A"}%
+• RSI: ${fmtIndicator(rsi)} ${rsi !== undefined ? (rsiOK ? "✅ zona ideal" : "⚠️ fuera de rango") : ""}
+• ADX: ${fmtIndicator(adx)} ${adx !== undefined ? (adxOK ? "✅ tendencia fuerte" : "⚠️ tendencia débil") : ""}
+• Volumen: ${fmtIndicator(t.volume, 0)}%
 • EMA20: ${t.ema20 ? `$${t.ema20.toFixed(2)}` : "N/A"}
 • EMA50: ${t.ema50 ? `$${t.ema50.toFixed(2)}` : "N/A"}
 • ATR: ${t.atr ? `$${t.atr.toFixed(2)}` : "N/A"}
@@ -143,7 +185,7 @@ const generateTradeAnalysis = (t: ClosedTrade) => {
     exitReason: `${isWin ? "✅" : isSL ? "🛑" : "↔️"} ${isWin ? `Take Profit (${t.result})` : isSL ? "Stop Loss ejecutado" : "Breakeven"}
 • Precio de entrada: $${t.entry?.toFixed(2)}
 • Precio de salida: $${t.exit?.toFixed(2)}
-• Movimiento: ${((t.exit - t.entry) / t.entry * 100).toFixed(2)}%
+• Movimiento: ${t.entry > 0 ? ((t.exit - t.entry) / t.entry * 100).toFixed(2) : '0'}%
 • Duración: ${t.holding_days || 1} día(s)`,
     
     whatWentWell: isWin ? `✅ Lo que funcionó bien:
@@ -176,16 +218,16 @@ const generateTradeAnalysis = (t: ClosedTrade) => {
     learnings: `💡 Key Takeaways:
 ${isWin 
   ? `✅ Regla validada: ${t.strategy} funciona con setup grado ${grade}
-📈 Los setups con ADX ${adx ?? '>25'} tienen buena probabilidad`
+📈 Los setups con ADX ${fmtIndicator(adx)} tienen buena probabilidad`
   : `❌ Revisar: ¿Cumplía TODOS los filtros de ${t.strategy}?
-📉 ADX en ${adx ?? 'N/A'} - ${adx !== undefined && adx < 25 ? "tendencia insuficiente" : "revisar otros factores"}`}
+📉 ADX en ${fmtIndicator(adx)} - ${adx !== undefined && adx < 25 ? "tendencia insuficiente" : "revisar otros factores"}`}
 
 🎯 Para próxima vez: ${isWin 
   ? "Confiar en setups similares - el sistema funciona" 
   : "Verificar TODAS las condiciones antes de entrar"}
 
 📊 Resultado: ${(t.r_multiple || 0).toFixed(2)}R en ${t.holding_days || 1} día(s)
-💰 P&L: $${t.pnl >= 0 ? '+' : ''}${t.pnl?.toFixed(0)} (${t.invested_amount ? (t.pnl / t.invested_amount * 100).toFixed(1) : '0'}%)`
+💰 P&L: $${t.pnl >= 0 ? '+' : ''}${t.pnl?.toFixed(0)} (${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(2)}%)`
   }
 }
 
@@ -217,16 +259,22 @@ export default function JournalPage() {
         const data = await response.json()
         
         if (data.success !== false) {
-          setPositions([
+          // NORMALIZAR posiciones
+          const allPositions = [
             ...(data.data?.positions || []),
             ...(data.data?.intradayPositions || []).map((p: any) => ({ ...p, strategy: 'vwap_reversion' })),
             ...(data.data?.intraday1PctPositions || []).map((p: any) => ({ ...p, strategy: 'intraday_1pct' }))
-          ])
-          setTrades([
+          ].map(normalizePosition)
+          
+          // NORMALIZAR trades
+          const allTrades = [
             ...(data.data?.trades || []),
             ...(data.data?.intradayTrades || []).map((t: any) => ({ ...t, strategy: 'vwap_reversion' })),
             ...(data.data?.intraday1PctTrades || []).map((t: any) => ({ ...t, strategy: 'intraday_1pct' }))
-          ])
+          ].map(normalizeTrade)
+          
+          setPositions(allPositions)
+          setTrades(allTrades)
           setError(null)
         } else {
           setError(data.error || 'Error cargando datos')
@@ -321,11 +369,14 @@ export default function JournalPage() {
     const filtered = filteredAndSortedTrades
     const winners = filtered.filter(t => t.pnl > 0)
     const losers = filtered.filter(t => t.pnl < 0)
+    const totalInvested = filtered.reduce((sum, t) => sum + (t.invested_amount || 0), 0)
+    const totalPnL = filtered.reduce((sum, t) => sum + (t.pnl || 0), 0)
     
     return {
       openPositions: positions.length,
       closedTrades: filtered.length,
-      totalPnL: filtered.reduce((sum, t) => sum + (t.pnl || 0), 0),
+      totalPnL,
+      totalPnLPercent: totalInvested > 0 ? (totalPnL / totalInvested) * 100 : 0,
       winRate: filtered.length > 0 
         ? (winners.length / filtered.length * 100).toFixed(1)
         : '0',
@@ -393,45 +444,48 @@ export default function JournalPage() {
             <p className={clsx('text-2xl font-bold', stats.totalPnL >= 0 ? 'text-green-400' : 'text-red-400')}>
               ${stats.totalPnL.toFixed(0)}
             </p>
+            <p className={clsx('text-xs', stats.totalPnLPercent >= 0 ? 'text-green-400' : 'text-red-400')}>
+              ({stats.totalPnLPercent >= 0 ? '+' : ''}{stats.totalPnLPercent.toFixed(2)}%)
+            </p>
           </div>
         </div>
         
         {/* Tabs */}
         <div className="flex gap-2 mb-6">
           <button
-            onClick={() => setActiveTab('closed')}
+            onClick={() => { setActiveTab('closed'); setSelectedPosition(null) }}
             className={clsx(
               'px-4 py-2 rounded-lg font-medium transition-colors',
               activeTab === 'closed' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
             )}
           >
-            Trades Cerrados ({stats.closedTrades})
+            Trades Cerrados ({trades.length})
           </button>
           <button
-            onClick={() => setActiveTab('open')}
+            onClick={() => { setActiveTab('open'); setSelectedTrade(null) }}
             className={clsx(
               'px-4 py-2 rounded-lg font-medium transition-colors',
               activeTab === 'open' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
             )}
           >
-            Posiciones Abiertas ({stats.openPositions})
+            Posiciones Abiertas ({positions.length})
           </button>
         </div>
         
-        {/* Filtros y Ordenamiento - Solo para trades cerrados */}
+        {/* Filtros - Solo para trades cerrados */}
         {activeTab === 'closed' && (
           <div className="bg-gray-900 rounded-xl p-4 border border-gray-800 mb-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-gray-300">🔍 Filtros y Ordenamiento</h3>
               <button
                 onClick={clearFilters}
-                className="text-xs text-blue-400 hover:text-blue-300"
+                className="text-xs text-gray-500 hover:text-gray-300"
               >
                 Limpiar filtros
               </button>
             </div>
             
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
               {/* Ordenar por */}
               <div>
                 <label className="text-xs text-gray-500 block mb-1">Ordenar por</label>
@@ -442,7 +496,7 @@ export default function JournalPage() {
                 >
                   <option value="date">Fecha</option>
                   <option value="ticker">Ticker</option>
-                  <option value="pnl">PnL</option>
+                  <option value="pnl">P&L</option>
                   <option value="r_multiple">R-Multiple</option>
                   <option value="strategy">Estrategia</option>
                 </select>
@@ -456,12 +510,12 @@ export default function JournalPage() {
                   onChange={(e) => setSortOrder(e.target.value as SortOrder)}
                   className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm"
                 >
-                  <option value="desc">Descendente ↓</option>
-                  <option value="asc">Ascendente ↑</option>
+                  <option value="desc">Desc ↓</option>
+                  <option value="asc">Asc ↑</option>
                 </select>
               </div>
               
-              {/* Resultado */}
+              {/* Filtro resultado */}
               <div>
                 <label className="text-xs text-gray-500 block mb-1">Resultado</label>
                 <select
@@ -470,13 +524,13 @@ export default function JournalPage() {
                   className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm"
                 >
                   <option value="all">Todos</option>
-                  <option value="winners">🟢 Ganadores</option>
-                  <option value="losers">🔴 Perdedores</option>
-                  <option value="breakeven">⚪ Breakeven</option>
+                  <option value="winners">✅ Winners</option>
+                  <option value="losers">❌ Losers</option>
+                  <option value="breakeven">↔️ Breakeven</option>
                 </select>
               </div>
               
-              {/* Estrategia */}
+              {/* Filtro estrategia */}
               <div>
                 <label className="text-xs text-gray-500 block mb-1">Estrategia</label>
                 <select
@@ -493,7 +547,7 @@ export default function JournalPage() {
                 </select>
               </div>
               
-              {/* Ticker */}
+              {/* Filtro ticker */}
               <div>
                 <label className="text-xs text-gray-500 block mb-1">Ticker</label>
                 <select
@@ -550,50 +604,53 @@ export default function JournalPage() {
                     <p>No hay trades que coincidan</p>
                   </div>
                 ) : (
-                  filteredAndSortedTrades.map((trade, idx) => (
-                    <div
-                      key={`${trade.ticker}-${idx}`}
-                      onClick={() => setSelectedTrade(trade)}
-                      className={clsx(
-                        'p-4 border-b border-gray-800 cursor-pointer hover:bg-gray-800/50 transition-colors',
-                        selectedTrade === trade && 'bg-gray-800'
-                      )}
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="flex items-center gap-2">
-                          <span className="w-3 h-3 rounded-full" style={{
-                            backgroundColor: trade.pnl > 0 ? '#22c55e' : trade.pnl < 0 ? '#ef4444' : '#6b7280'
-                          }} />
-                          <span className="font-bold text-lg">{trade.ticker}</span>
-                        </div>
-                        <span className={clsx(
-                          'px-2 py-1 rounded text-xs font-medium',
-                          trade.result === 'TP' || trade.result === 'TP1' || trade.result === 'TP2' || trade.result === 'TRAIL' 
-                            ? 'bg-green-900/50 text-green-400'
-                            : trade.result === 'SL' 
-                            ? 'bg-red-900/50 text-red-400'
-                            : 'bg-gray-700 text-gray-400'
-                        )}>
-                          {trade.result}
-                        </span>
-                      </div>
-                      <div className="text-sm text-gray-400">{trade.strategy}</div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {formatSize(trade.size, trade.ticker)} uds • ${trade.invested_amount?.toLocaleString() || '0'}
-                      </div>
-                      <div className="flex justify-between items-center mt-2">
-                        <span className="text-xs text-gray-500">{formatDateTime(trade.close_date || trade.exit_time)}</span>
-                        <div className="text-right">
-                          <span className={clsx('font-semibold', trade.pnl >= 0 ? 'text-green-400' : 'text-red-400')}>
-                            ${trade.pnl >= 0 ? '+' : ''}{trade.pnl?.toFixed(0)}
-                          </span>
-                          <span className={clsx('text-xs ml-2', trade.r_multiple >= 0 ? 'text-green-400' : 'text-red-400')}>
-                            ({trade.r_multiple >= 0 ? '+' : ''}{trade.r_multiple?.toFixed(2)}R)
+                  filteredAndSortedTrades.map((trade, idx) => {
+                    const pnlPct = trade.pnl_percent || (trade.invested_amount > 0 ? (trade.pnl / trade.invested_amount) * 100 : 0)
+                    return (
+                      <div
+                        key={`${trade.ticker}-${idx}`}
+                        onClick={() => setSelectedTrade(trade)}
+                        className={clsx(
+                          'p-4 border-b border-gray-800 cursor-pointer hover:bg-gray-800/50 transition-colors',
+                          selectedTrade === trade && 'bg-gray-800'
+                        )}
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="w-3 h-3 rounded-full" style={{
+                              backgroundColor: trade.pnl > 0 ? '#22c55e' : trade.pnl < 0 ? '#ef4444' : '#6b7280'
+                            }} />
+                            <span className="font-bold text-lg">{trade.ticker}</span>
+                          </div>
+                          <span className={clsx(
+                            'px-2 py-1 rounded text-xs font-medium',
+                            trade.result === 'TP' || trade.result === 'TP1' || trade.result === 'TP2' || trade.result === 'TRAIL' 
+                              ? 'bg-green-900/50 text-green-400'
+                              : trade.result === 'SL' 
+                              ? 'bg-red-900/50 text-red-400'
+                              : 'bg-gray-700 text-gray-400'
+                          )}>
+                            {trade.result}
                           </span>
                         </div>
+                        <div className="text-sm text-gray-400">{trade.strategy}</div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {formatSize(trade.size, trade.ticker)} uds • ${trade.invested_amount?.toLocaleString()}
+                        </div>
+                        <div className="flex justify-between items-center mt-2">
+                          <span className="text-xs text-gray-500">{formatDateTime(trade.close_date || trade.exit_time)}</span>
+                          <div className="text-right">
+                            <span className={clsx('font-semibold', trade.pnl >= 0 ? 'text-green-400' : 'text-red-400')}>
+                              ${trade.pnl >= 0 ? '+' : ''}{trade.pnl?.toFixed(0)}
+                            </span>
+                            <span className={clsx('text-xs ml-2', trade.r_multiple >= 0 ? 'text-green-400' : 'text-red-400')}>
+                              ({trade.r_multiple >= 0 ? '+' : ''}{trade.r_multiple?.toFixed(2)}R)
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    )
+                  })
                 )
               ) : (
                 positions.length === 0 ? (
@@ -619,7 +676,7 @@ export default function JournalPage() {
                       </div>
                       <div className="text-sm text-gray-400">{pos.strategy}</div>
                       <div className="text-xs text-gray-500 mt-1">
-                        {formatSize(pos.size, pos.ticker)} uds • ${pos.invested_amount?.toLocaleString() || '0'}
+                        {formatSize(pos.size, pos.ticker)} uds • ${pos.invested_amount?.toLocaleString()}
                       </div>
                       <div className="flex justify-between items-center mt-2">
                         <span className="text-xs text-gray-500">{formatDateTime(pos.open_date)}</span>
@@ -686,18 +743,27 @@ export default function JournalPage() {
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-3 gap-4 mb-6">
+                <div className="grid grid-cols-4 gap-4 mb-6">
                   <div className="bg-gray-800 rounded-lg p-4 text-center">
                     <p className="text-xs text-gray-500">Size</p>
                     <p className="font-semibold">{formatSize(selectedTrade.size, selectedTrade.ticker)}</p>
                   </div>
                   <div className="bg-gray-800 rounded-lg p-4 text-center">
                     <p className="text-xs text-gray-500">Inversión</p>
-                    <p className="font-semibold">${selectedTrade.invested_amount?.toLocaleString() || '0'}</p>
+                    <p className="font-semibold">${selectedTrade.invested_amount?.toLocaleString()}</p>
                   </div>
                   <div className="bg-gray-800 rounded-lg p-4 text-center">
                     <p className="text-xs text-gray-500">Días</p>
                     <p className="font-semibold">{selectedTrade.holding_days || 1}</p>
+                  </div>
+                  <div className={clsx(
+                    'rounded-lg p-4 text-center',
+                    selectedTrade.pnl >= 0 ? 'bg-green-900/30' : 'bg-red-900/30'
+                  )}>
+                    <p className="text-xs text-gray-500">Rentabilidad</p>
+                    <p className={clsx('font-semibold', selectedTrade.pnl >= 0 ? 'text-green-400' : 'text-red-400')}>
+                      {(selectedTrade.pnl_percent || 0) >= 0 ? '+' : ''}{(selectedTrade.pnl_percent || 0).toFixed(2)}%
+                    </p>
                   </div>
                 </div>
                 
@@ -782,7 +848,7 @@ export default function JournalPage() {
                   </div>
                   <div className="bg-gray-800 rounded-lg p-4 text-center">
                     <p className="text-xs text-gray-500">Inversión</p>
-                    <p className="font-semibold">${selectedPosition.invested_amount?.toLocaleString() || '0'}</p>
+                    <p className="font-semibold">${selectedPosition.invested_amount?.toLocaleString()}</p>
                   </div>
                   <div className="bg-gray-800 rounded-lg p-4 text-center">
                     <p className="text-xs text-gray-500">Grado</p>
