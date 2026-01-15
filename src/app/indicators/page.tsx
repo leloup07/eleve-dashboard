@@ -833,11 +833,21 @@ export default function IndicatorsPage() {
   const [loading, setLoading] = useState(true)
   
   useEffect(() => {
-    setLoading(true)
-    setTimeout(() => {
-      setData(generateDemoData(selectedTicker))
-      setLoading(false)
-    }, 300)
+    const fetchData = async () => {
+      setLoading(true)
+      try {
+        const response = await fetch(`/api/indicators?ticker=${selectedTicker}`)
+        const json = await response.json()
+        if (json.success && json.data) {
+          setData(json.data)
+        }
+      } catch (error) {
+        console.error('Error fetching indicators:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
   }, [selectedTicker])
   
   const latest = data[data.length - 1]
