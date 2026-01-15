@@ -154,7 +154,7 @@ const generatePositionAnalysis = (p: Position) => {
 • Stop Loss: $${p.sl?.toFixed(2)} (${((p.sl - p.entry) / p.entry * 100).toFixed(1)}%)
 • Take Profit: $${p.tp?.toFixed(2)} (${((p.tp - p.entry) / p.entry * 100).toFixed(1)}%)
 • Size: ${formatSize(p.size, p.ticker)} unidades
-• Inversión: $${p.invested_amount?.toLocaleString()}`
+• Inversión: $${p.invested_amount?.toLocaleString('es-ES')}`
   }
 }
 
@@ -635,7 +635,7 @@ export default function JournalPage() {
                         </div>
                         <div className="text-sm text-gray-400">{trade.strategy}</div>
                         <div className="text-xs text-gray-500 mt-1">
-                          {formatSize(trade.size, trade.ticker)} uds • ${trade.invested_amount?.toLocaleString()}
+                          {formatSize(trade.size, trade.ticker)} uds • ${trade.invested_amount?.toLocaleString('es-ES')}
                         </div>
                         <div className="flex justify-between items-center mt-2">
                           <span className="text-xs text-gray-500">{formatDateTime(trade.close_date || trade.exit_time)}</span>
@@ -676,7 +676,7 @@ export default function JournalPage() {
                       </div>
                       <div className="text-sm text-gray-400">{pos.strategy}</div>
                       <div className="text-xs text-gray-500 mt-1">
-                        {formatSize(pos.size, pos.ticker)} uds • ${pos.invested_amount?.toLocaleString()}
+                        {formatSize(pos.size, pos.ticker)} uds • ${pos.invested_amount?.toLocaleString('es-ES')}
                       </div>
                       <div className="flex justify-between items-center mt-2">
                         <span className="text-xs text-gray-500">{formatDateTime(pos.open_date)}</span>
@@ -750,7 +750,7 @@ export default function JournalPage() {
                   </div>
                   <div className="bg-gray-800 rounded-lg p-4 text-center">
                     <p className="text-xs text-gray-500">Inversión</p>
-                    <p className="font-semibold">${selectedTrade.invested_amount?.toLocaleString()}</p>
+                    <p className="font-semibold">${selectedTrade.invested_amount?.toLocaleString('es-ES')}</p>
                   </div>
                   <div className="bg-gray-800 rounded-lg p-4 text-center">
                     <p className="text-xs text-gray-500">Días</p>
@@ -848,7 +848,7 @@ export default function JournalPage() {
                   </div>
                   <div className="bg-gray-800 rounded-lg p-4 text-center">
                     <p className="text-xs text-gray-500">Inversión</p>
-                    <p className="font-semibold">${selectedPosition.invested_amount?.toLocaleString()}</p>
+                    <p className="font-semibold">${selectedPosition.invested_amount?.toLocaleString('es-ES')}</p>
                   </div>
                   <div className="bg-gray-800 rounded-lg p-4 text-center">
                     <p className="text-xs text-gray-500">Grado</p>

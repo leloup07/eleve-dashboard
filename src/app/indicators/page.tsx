@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { 
-  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, 
+  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
   ComposedChart, Bar, Area, ReferenceLine, Cell, AreaChart
 } from 'recharts'
 
@@ -79,7 +79,7 @@ function getApplicableStrategy(ticker: string, btcRegime: string = 'UNKNOWN', sp
       description: "Estrategia swing para altcoins. Mayor frecuencia, beta amplificado respecto a BTC.",
       conditions: [
         { name: "BTC en tendencia", check: () => btcRegime === "BULL", desc: "Régimen global de BTC" },
-        { name: "EMA12 > EMA26", check: (d) => d.ema20 > d.ema50, desc: "EMAs rápidas alcistas" },
+        { name: "EMA rápida > EMA lenta", check: (d) => d.ema20 > d.ema50, desc: "EMAs rápidas alcistas" },
         { name: "RSI 40-65", check: (d) => d.rsi >= 40 && d.rsi <= 65, desc: "Sin sobrecompra" },
         { name: "ADX > 22", check: (d) => d.adx > 22, desc: "Tendencia moderada" },
         { name: "Volumen OK", check: (d) => d.volume > 0, desc: "Volumen sobre media" },
@@ -146,7 +146,7 @@ function getStrategyByType(type: string, btcRegime: string = 'UNKNOWN', spyRegim
       description: "Estrategia swing para altcoins. Mayor frecuencia, beta amplificado respecto a BTC.",
       conditions: [
         { name: "BTC en tendencia", check: () => btcRegime === "BULL", desc: "Régimen global de BTC" },
-        { name: "EMA12 > EMA26", check: (d) => d.ema20 > d.ema50, desc: "EMAs rápidas alcistas" },
+        { name: "EMA rápida > EMA lenta", check: (d) => d.ema20 > d.ema50, desc: "EMAs rápidas alcistas" },
         { name: "RSI 40-65", check: (d) => d.rsi >= 40 && d.rsi <= 65, desc: "Sin sobrecompra" },
         { name: "ADX > 22", check: (d) => d.adx > 22, desc: "Tendencia moderada" },
         { name: "Volumen OK", check: (d) => d.volume > 0, desc: "Volumen sobre media" },
@@ -334,14 +334,14 @@ function getEMAContext(price: number, ema20: number, ema50: number, ema200: numb
       situation: `Tendencia alcista confirmada. Las EMAs están perfectamente alineadas (EMA20 > EMA50 > EMA200) y el precio cotiza por encima de todas ellas.
 
 📊 Posición actual:
-• Precio está ${dist20 > 0 ? '+' : ''}${dist20.toFixed(1)}% vs EMA20 ($${ema20.toLocaleString('es-ES', {maximumFractionDigits: 0})})
-• Precio está ${dist50 > 0 ? '+' : ''}${dist50.toFixed(1)}% vs EMA50 ($${ema50.toLocaleString('es-ES', {maximumFractionDigits: 0})})
-• Precio está ${dist200 > 0 ? '+' : ''}${dist200.toFixed(1)}% vs EMA200 ($${ema200.toLocaleString('es-ES', {maximumFractionDigits: 0})})
+• Precio está ${dist20 > 0 ? '+' : ''}${dist20.toFixed(1)}% vs EMA20 ($${ema20.toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})})
+• Precio está ${dist50 > 0 ? '+' : ''}${dist50.toFixed(1)}% vs EMA50 ($${ema50.toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})})
+• Precio está ${dist200 > 0 ? '+' : ''}${dist200.toFixed(1)}% vs EMA200 ($${ema200.toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})})
 
 Esto indica que los compradores tienen control total. Las instituciones están acumulando y cada pullback está siendo comprado.`,
       action: `✅ Buscar entradas LONG en pullbacks:
-1. Zona ideal de compra: $${(ema20 - atr).toLocaleString('es-ES', {maximumFractionDigits: 0})} - $${ema20.toLocaleString('es-ES', {maximumFractionDigits: 0})} (EMA20 ± 1ATR)
-2. Zona secundaria: $${ema50.toLocaleString('es-ES', {maximumFractionDigits: 0})} (EMA50 - soporte más fuerte)
+1. Zona ideal de compra: $${(ema20 - atr).toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})} - $${ema20.toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (EMA20 ± 1ATR)
+2. Zona secundaria: $${ema50.toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (EMA50 - soporte más fuerte)
 3. Trigger: Espera vela de rechazo o patrón envolvente alcista
 4. Stop Loss: Debajo de EMA50 o -1.5 ATR desde entrada
 
@@ -365,8 +365,8 @@ Esto es SALUDABLE. Los mercados no suben en línea recta. Los pullbacks permiten
       action: `👀 ATENCIÓN - Posible zona de entrada:
 
 Niveles clave a vigilar:
-• $${ema20.toLocaleString('es-ES', {maximumFractionDigits: 0})} - EMA20 (primer soporte dinámico)
-• $${ema50.toLocaleString('es-ES', {maximumFractionDigits: 0})} - EMA50 (soporte fuerte)
+• $${ema20.toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})} - EMA20 (primer soporte dinámico)
+• $${ema50.toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})} - EMA50 (soporte fuerte)
 
 Qué buscar para entrar:
 1. Vela con mecha inferior larga tocando EMA20/50
@@ -384,8 +384,8 @@ Qué buscar para entrar:
       situation: `Tendencia bajista confirmada. Las EMAs están alineadas a la baja (EMA20 < EMA50 < EMA200).
 
 📊 Posición actual:
-• Precio está ${Math.abs(dist20).toFixed(1)}% BAJO EMA20 ($${ema20.toLocaleString('es-ES', {maximumFractionDigits: 0})})
-• Precio está ${Math.abs(dist50).toFixed(1)}% BAJO EMA50 ($${ema50.toLocaleString('es-ES', {maximumFractionDigits: 0})})
+• Precio está ${Math.abs(dist20).toFixed(1)}% BAJO EMA20 ($${ema20.toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})})
+• Precio está ${Math.abs(dist50).toFixed(1)}% BAJO EMA50 ($${ema50.toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})})
 
 Los vendedores dominan. Cada rebote está siendo vendido. Las instituciones están distribuyendo.`,
       action: `🚫 NO OPERAR LONG:
@@ -463,7 +463,7 @@ Si YA tienes posición:
 • Sube tu stop loss a breakeven o en ganancia
 • Deja correr el resto con trailing stop
 
-Nivel de corrección esperado: $${(price - atr*2).toLocaleString('es-ES', {maximumFractionDigits: 0})} - $${(price - atr*3).toLocaleString('es-ES', {maximumFractionDigits: 0})}`,
+Nivel de corrección esperado: $${(price - atr*2).toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})} - $${(price - atr*3).toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
       hybrid: '❌ Hybrid v2.1 NUNCA entra con RSI > 70 - Riesgo de corrección demasiado alto',
       color: 'red'
     }
@@ -494,7 +494,7 @@ Si quieres entrar de todos modos:
 
 Mejor estrategia:
 • Espera pullback a zona RSI 45-55
-• El precio ideal de entrada sería alrededor de $${(price - atr*1.5).toLocaleString('es-ES', {maximumFractionDigits: 0})}`,
+• El precio ideal de entrada sería alrededor de $${(price - atr*1.5).toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
       hybrid: '⚠️ Hybrid v2.1 prefiere esperar - Zona límite superior (ideal: 40-65)',
       color: 'orange'
     }
@@ -529,8 +529,8 @@ RSI ${rsi.toFixed(1)} está en la mitad superior de la zona ideal (50-65)
 Plan de entrada:
 1. Confirmar con otros indicadores: EMAs alcistas, MACD positivo, ADX > 25
 2. Buscar trigger: Vela envolvente alcista, martillo, o ruptura de resistencia menor
-3. Stop Loss: $${(price - atr*1.5).toLocaleString('es-ES', {maximumFractionDigits: 0})} (1.5 ATR abajo)
-4. Take Profit 1: $${(price + atr*2.5).toLocaleString('es-ES', {maximumFractionDigits: 0})} (2.5 ATR arriba) - cerrar 70%
+3. Stop Loss: $${(price - atr*1.5).toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (1.5 ATR abajo)
+4. Take Profit 1: $${(price + atr*2.5).toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (2.5 ATR arriba) - cerrar 70%
 5. Take Profit 2: Trailing stop para el 30% restante` : 
 `👀 OBSERVAR - RSI en parte baja de zona ideal (40-50):
 
@@ -838,8 +838,8 @@ function getBollingerContext(price: number, upper: number, middle: number, lower
       zone: 'SOBRE BANDA SUPERIOR',
       situation: `Precio rompiendo banda superior - Posible sobreextensión alcista o breakout.
       
-• Banda Superior: $${upper.toLocaleString('es-ES', {maximumFractionDigits: 0})}
-• Precio actual: $${price.toLocaleString('es-ES', {maximumFractionDigits: 0})} (${(((price-upper)/upper)*100).toFixed(1)}% sobre banda)
+• Banda Superior: $${upper.toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+• Precio actual: $${price.toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${(((price-upper)/upper)*100).toFixed(1)}% sobre banda)
 • Ancho de bandas: ${width.toFixed(1)}%`,
       action: width > 4 ? 'Bandas anchas = volatilidad alta. El breakout puede ser válido.' : 'Bandas estrechas previas = posible inicio de movimiento grande.',
       color: 'orange'
@@ -851,8 +851,8 @@ function getBollingerContext(price: number, upper: number, middle: number, lower
       zone: 'BAJO BANDA INFERIOR',
       situation: `Precio rompiendo banda inferior - Posible sobreventa o breakdown.
       
-• Banda Inferior: $${lower.toLocaleString('es-ES', {maximumFractionDigits: 0})}
-• Precio actual: $${price.toLocaleString('es-ES', {maximumFractionDigits: 0})} (${(((lower-price)/lower)*100).toFixed(1)}% bajo banda)`,
+• Banda Inferior: $${lower.toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+• Precio actual: $${price.toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${(((lower-price)/lower)*100).toFixed(1)}% bajo banda)`,
       action: 'Buscar señales de reversión. El precio tiende a volver dentro de las bandas.',
       color: 'red'
     }
@@ -862,9 +862,9 @@ function getBollingerContext(price: number, upper: number, middle: number, lower
     zone: position > 80 ? 'ZONA ALTA' : position < 20 ? 'ZONA BAJA' : 'ZONA MEDIA',
     situation: `Precio dentro de las bandas - Posición: ${position.toFixed(0)}%
 
-• Superior: $${upper.toLocaleString('es-ES', {maximumFractionDigits: 0})}
-• Media (SMA20): $${middle.toLocaleString('es-ES', {maximumFractionDigits: 0})}
-• Inferior: $${lower.toLocaleString('es-ES', {maximumFractionDigits: 0})}
+• Superior: $${upper.toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+• Media (SMA20): $${middle.toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+• Inferior: $${lower.toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
 • Ancho: ${width.toFixed(1)}%`,
     action: position > 80 ? 'Cerca de resistencia dinámica. Precaución con longs.' : position < 20 ? 'Cerca de soporte dinámico. Posible zona de compra.' : 'Zona neutral. La SMA20 actúa como pivote.',
     color: position > 80 ? 'orange' : position < 20 ? 'green' : 'blue'
@@ -915,11 +915,13 @@ export default function IndicatorsPage() {
   const [data, setData] = useState<OHLCData[]>([])
   const [activeTab, setActiveTab] = useState<'ema' | 'rsi' | 'macd' | 'adx' | 'bb' | 'stoch' | 'hybrid' | 'strategy'>('ema')
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   
   // Obtener régimen global de BTC y SPY
   useEffect(() => {
     const fetchRegimes = async () => {
       try {
+        const strategy = manualStrategy ? getStrategyByType(manualStrategy, btcRegime, spyRegime) : getApplicableStrategy(selectedTicker, btcRegime, spyRegime)
         const response = await fetch('/api/trading')
         const json = await response.json()
         if (json.success && json.data) {
@@ -936,19 +938,28 @@ export default function IndicatorsPage() {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true)
+      setError(null)
       try {
-        const response = await fetch(`/api/indicators?ticker=${selectedTicker}`)
+        const strategy = manualStrategy ? getStrategyByType(manualStrategy, btcRegime, spyRegime) : getApplicableStrategy(selectedTicker, btcRegime, spyRegime)
+        const response = await fetch(`/api/indicators?ticker=${selectedTicker}&interval=1h&range=7d&strategy=${strategy.type}`)
         const json = await response.json()
-        if (json.success && json.data) {
+        if (json.success && json.data && json.data.length > 0) {
           setData(json.data)
+        } else {
+          setError(json.error || 'No se pudieron obtener datos')
         }
-      } catch (error) {
-        console.error('Error fetching indicators:', error)
+      } catch (err: any) {
+        console.error('Error fetching indicators:', err)
+        setError('Error de conexión al obtener datos')
       } finally {
         setLoading(false)
       }
     }
     fetchData()
+    
+    // Refresh cada 5 minutos
+    const interval = setInterval(fetchData, 300000)
+    return () => clearInterval(interval)
   }, [selectedTicker])
   
   const latest = data[data.length - 1]
@@ -966,7 +977,7 @@ export default function IndicatorsPage() {
     { name: 'RSI 40-65', met: latest.rsi >= 40 && latest.rsi <= 65, desc: `RSI actual: ${latest.rsi.toFixed(1)}` },
     { name: 'MACD > Signal', met: latest.macd > latest.macdSignal, desc: `MACD: ${latest.macd.toFixed(2)} vs Signal: ${latest.macdSignal.toFixed(2)}` },
     { name: 'ADX > 25', met: latest.adx > 25, desc: `ADX actual: ${latest.adx.toFixed(1)}` },
-    { name: 'Precio > EMA20', met: latest.close > latest.ema20, desc: `Precio: $${latest.close.toLocaleString('es-ES', {maximumFractionDigits: 0})} vs EMA20: $${latest.ema20.toLocaleString('es-ES', {maximumFractionDigits: 0})}` },
+    { name: 'Precio > EMA20', met: latest.close > latest.ema20, desc: `Precio: $${latest.close.toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})} vs EMA20: $${latest.ema20.toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` },
     { name: '+DI > -DI', met: latest.plusDi > latest.minusDi, desc: `+DI: ${latest.plusDi.toFixed(1)} vs -DI: ${latest.minusDi.toFixed(1)}` },
   ] : []
   
@@ -1020,7 +1031,18 @@ export default function IndicatorsPage() {
       
       {loading ? (
         <div className="flex items-center justify-center h-64 bg-white rounded-xl border">
-          <div className="text-gray-500">Cargando {selectedTicker}...</div>
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-3"></div>
+            <div className="text-gray-500">Cargando datos reales de {selectedTicker}...</div>
+          </div>
+        </div>
+      ) : error ? (
+        <div className="flex items-center justify-center h-64 bg-red-50 rounded-xl border border-red-200">
+          <div className="text-center">
+            <div className="text-4xl mb-3">⚠️</div>
+            <div className="text-red-600 font-semibold">{error}</div>
+            <p className="text-sm text-gray-500 mt-2">Intenta seleccionar otro activo o refresca la página</p>
+          </div>
         </div>
       ) : latest && (
         <>
@@ -1028,7 +1050,7 @@ export default function IndicatorsPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
             <div className="bg-white rounded-lg border p-3">
               <p className="text-[10px] text-gray-500 uppercase">Precio</p>
-              <p className="text-lg font-bold">${latest.close.toLocaleString('es-ES', {maximumFractionDigits: 0})}</p>
+              <p className="text-lg font-bold">${latest.close.toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
             </div>
             <div className={`rounded-lg border p-3 ${emaContext?.color === 'green' ? 'bg-green-50' : emaContext?.color === 'red' ? 'bg-red-50' : 'bg-yellow-50'}`}>
               <p className="text-[10px] text-gray-500 uppercase">Régimen</p>
@@ -1100,12 +1122,13 @@ export default function IndicatorsPage() {
                     <ResponsiveContainer width="100%" height="100%">
                       <ComposedChart data={data.slice(-60)}>
                         <XAxis dataKey="timestamp" tickFormatter={(v) => new Date(v).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} stroke="#64748b" fontSize={10} />
-                        <YAxis domain={['auto', 'auto']} stroke="#64748b" fontSize={10} tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} />
-                        <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }} formatter={(value: number) => [`$${value.toLocaleString('es-ES', { maximumFractionDigits: 0 })}`, '']} />
+                        <YAxis domain={['auto', 'auto']} stroke="#64748b" fontSize={10} tickFormatter={(v) => `$${v.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
+                        <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }} formatter={(value: number) => [`$${value.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, '']} />
+                        <Legend wrapperStyle={{ paddingTop: '10px' }} />
                         <Line type="monotone" dataKey="close" stroke="#fff" dot={false} strokeWidth={2} name="Precio" />
                         <Line type="monotone" dataKey="ema20" stroke="#22c55e" dot={false} strokeWidth={1.5} name="EMA20" />
                         <Line type="monotone" dataKey="ema50" stroke="#f59e0b" dot={false} strokeWidth={1.5} name="EMA50" />
-                        <Line type="monotone" dataKey="ema200" stroke="#ef4444" dot={false} strokeWidth={1} strokeDasharray="5 5" name="EMA200" />
+                        <Line type="monotone" dataKey="ema200" stroke="#a855f7" dot={false} strokeWidth={2} strokeDasharray="5 5" name="EMA200" />
                       </ComposedChart>
                     </ResponsiveContainer>
                   </div>
@@ -1259,6 +1282,7 @@ export default function IndicatorsPage() {
                         <YAxis domain={[0, 60]} stroke="#64748b" fontSize={10} />
                         <ReferenceLine y={25} stroke="#f59e0b" strokeDasharray="3 3" label={{ value: '25', fill: '#f59e0b', fontSize: 10 }} />
                         <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }} />
+                        <Legend wrapperStyle={{ paddingTop: '10px' }} />
                         <Line type="monotone" dataKey="adx" stroke="#fff" dot={false} strokeWidth={2} name="ADX" />
                         <Line type="monotone" dataKey="plusDi" stroke="#22c55e" dot={false} strokeWidth={1.5} name="+DI" />
                         <Line type="monotone" dataKey="minusDi" stroke="#ef4444" dot={false} strokeWidth={1.5} name="-DI" />
@@ -1358,6 +1382,7 @@ export default function IndicatorsPage() {
                         <ReferenceLine y={80} stroke="#ef4444" strokeDasharray="3 3" />
                         <ReferenceLine y={20} stroke="#22c55e" strokeDasharray="3 3" />
                         <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }} />
+                        <Legend wrapperStyle={{ paddingTop: '10px' }} />
                         <Line type="monotone" dataKey="stochK" stroke="#3b82f6" dot={false} strokeWidth={2} name="%K" />
                         <Line type="monotone" dataKey="stochD" stroke="#f97316" dot={false} strokeWidth={1.5} name="%D" />
                       </LineChart>
@@ -1428,8 +1453,8 @@ export default function IndicatorsPage() {
                           <h4 className="text-xl font-bold text-green-600 mb-3">🟢 SETUP VÁLIDO</h4>
                           <p className="text-gray-700 mb-4">Buscar trigger de entrada (vela de confirmación)</p>
                           <div className="text-sm text-gray-600 space-y-2 bg-white/50 p-3 rounded">
-                            <p><strong>Stop Loss:</strong> ${(latest.close - latest.atr * 1.5).toLocaleString('es-ES', { maximumFractionDigits: 0 })} (-1.5 ATR)</p>
-                            <p><strong>Take Profit 1:</strong> ${(latest.close + latest.atr * 2.5).toLocaleString('es-ES', { maximumFractionDigits: 0 })} (+2.5 ATR) - 70%</p>
+                            <p><strong>Stop Loss:</strong> ${(latest.close - latest.atr * 1.5).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (-1.5 ATR)</p>
+                            <p><strong>Take Profit 1:</strong> ${(latest.close + latest.atr * 2.5).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (+2.5 ATR) - 70%</p>
                             <p><strong>Take Profit 2:</strong> Trailing stop para 30% restante</p>
                             <p><strong>Riesgo:</strong> 1% del capital</p>
                           </div>
@@ -1510,8 +1535,8 @@ export default function IndicatorsPage() {
                               <h4 className="text-xl font-bold text-green-600 mb-3">✅ SETUP VÁLIDO - Operable</h4>
                               <p className="text-gray-700 mb-4">El sistema {strategy.name} autoriza entrada.</p>
                               <div className="text-sm text-gray-600 space-y-2 bg-white/50 p-3 rounded">
-                                <p><strong>Stop Loss:</strong> ${(latest.close - latest.atr * 1.5).toLocaleString('es-ES', { maximumFractionDigits: 0 })}</p>
-                                <p><strong>Take Profit:</strong> ${(latest.close + latest.atr * 2.5).toLocaleString('es-ES', { maximumFractionDigits: 0 })}</p>
+                                <p><strong>Stop Loss:</strong> ${(latest.close - latest.atr * 1.5).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                <p><strong>Take Profit:</strong> ${(latest.close + latest.atr * 2.5).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                               </div>
                             </div>
                           ) : isPartial ? (

@@ -29,11 +29,11 @@ function calcRSI(closes: number[], period: number = 14): number[] {
   return rsi
 }
 
-function calcMACD(closes: number[], fastPeriod: number = 12, slowPeriod: number = 26, signalPeriod: number = 9): { macd: number[], signal: number[], hist: number[] } {
-  const emaFast = calcEMA(closes, fastPeriod)
-  const emaSlow = calcEMA(closes, slowPeriod)
-  const macd = emaFast.map((v, i) => v - emaSlow[i])
-  const signal = calcEMA(macd, signalPeriod)
+function calcMACD(closes: number[]): { macd: number[], signal: number[], hist: number[] } {
+  const ema12 = calcEMA(closes, 12)
+  const ema26 = calcEMA(closes, 26)
+  const macd = ema12.map((v, i) => v - ema26[i])
+  const signal = calcEMA(macd, 9)
   const hist = macd.map((v, i) => v - signal[i])
   return { macd, signal, hist }
 }
@@ -88,26 +88,11 @@ function calcStochastic(highs: number[], lows: number[], closes: number[], perio
   return { k, d: calcEMA(k, smooth) }
 }
 
-// Configuración de EMAs por estrategia
-const STRATEGY_EMAS: Record<string, { fast: number, mid: number, slow: number }> = {
-  'crypto_core': { fast: 20, mid: 50, slow: 200 },
-  'crypto_aggressive': { fast: 12, mid: 26, slow: 50 },  // EMAs rápidas para MACD
-  'large_caps': { fast: 20, mid: 50, slow: 200 },
-  'small_caps': { fast: 20, mid: 50, slow: 200 },
-  'vwap_reversion': { fast: 9, mid: 21, slow: 50 },      // EMAs intraday
-  'one_percent_spot': { fast: 9, mid: 21, slow: 50 },
-  'default': { fast: 20, mid: 50, slow: 200 }
-}
-
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const ticker = searchParams.get('ticker') || 'BTC-USD'
   const interval = searchParams.get('interval') || '1h'
   const range = searchParams.get('range') || '7d'
-  const strategy = searchParams.get('strategy') || 'default'
-  
-  // Obtener EMAs para la estrategia
-  const emaConfig = STRATEGY_EMAS[strategy] || STRATEGY_EMAS['default']
   
   try {
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${interval}&range=${range}`
@@ -130,19 +115,11 @@ export async function GET(request: NextRequest) {
     
     if (closes.length < 20) throw new Error('Not enough data')
     
-    // EMAs dinámicas según estrategia
-    const emaFast = calcEMA(closes, emaConfig.fast)
-    const emaMid = calcEMA(closes, emaConfig.mid)
-    const emaSlow = closes.length >= emaConfig.slow 
-      ? calcEMA(closes, emaConfig.slow) 
-      : calcEMA(closes, Math.min(closes.length, emaConfig.mid))
-    
-    // MACD usa EMAs de la estrategia si es aggressive, sino 12/26/9 estándar
-    const macdFast = strategy === 'crypto_aggressive' ? emaConfig.fast : 12
-    const macdSlow = strategy === 'crypto_aggressive' ? emaConfig.mid : 26
-    
+    const ema20 = calcEMA(closes, 20)
+    const ema50 = calcEMA(closes, 50)
+    const ema200 = closes.length >= 200 ? calcEMA(closes, 200) : calcEMA(closes, Math.min(closes.length, 50))
     const rsi = calcRSI(closes)
-    const { macd, signal, hist } = calcMACD(closes, macdFast, macdSlow, 9)
+    const { macd, signal, hist } = calcMACD(closes)
     const atr = calcATR(highs, lows, closes)
     const { adx, plusDi, minusDi } = calcADX(highs, lows, closes)
     const { upper: bbUpper, middle: bbMiddle, lower: bbLower } = calcBollinger(closes)
@@ -151,14 +128,7 @@ export async function GET(request: NextRequest) {
     const data = closes.map((close: number, i: number) => ({
       timestamp: new Date(timestamps[i] * 1000).toISOString(),
       close, high: highs[i], low: lows[i], volume: volumes[i],
-      // EMAs con nombres genéricos + valores de período
-      emaFast: emaFast[i], 
-      emaMid: emaMid[i], 
-      emaSlow: emaSlow[i] || emaMid[i],
-      // Mantener compatibilidad con código existente
-      ema20: emaFast[i],  // Alias para compatibilidad
-      ema50: emaMid[i],   // Alias para compatibilidad
-      ema200: emaSlow[i] || emaMid[i],  // Alias para compatibilidad
+      ema20: ema20[i], ema50: ema50[i], ema200: ema200[i] || ema50[i],
       rsi: rsi[i] || 50, rsiPrev: rsi[i-1] || 50,
       macd: macd[i], macdSignal: signal[i], macdHist: hist[i], macdHistPrev: hist[i-1] || 0,
       bbUpper: bbUpper[i], bbMiddle: bbMiddle[i], bbLower: bbLower[i],
@@ -166,13 +136,7 @@ export async function GET(request: NextRequest) {
       stochK: stochK[i], stochD: stochD[i], obv: 0
     }))
     
-    return NextResponse.json({ 
-      success: true, 
-      ticker, 
-      strategy,
-      emaConfig,  // Devolver config para que el frontend sepa qué EMAs se usan
-      data 
-    })
+    return NextResponse.json({ success: true, ticker, data })
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
