@@ -1128,9 +1128,9 @@ export default function IndicatorsPage() {
                         <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }} formatter={(value: number) => [`$${value.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, '']} />
                         <Legend wrapperStyle={{ paddingTop: '10px' }} />
                         <Line type="monotone" dataKey="close" stroke="#fff" dot={false} strokeWidth={2} name="Precio" />
-                        <Line type="monotone" dataKey="ema20" stroke="#22c55e" dot={false} strokeWidth={1.5} name="EMA20" />
-                        <Line type="monotone" dataKey="ema50" stroke="#f59e0b" dot={false} strokeWidth={1.5} name="EMA50" />
-                        <Line type="monotone" dataKey="ema200" stroke="#a855f7" dot={false} strokeWidth={2} strokeDasharray="5 5" name="EMA200" />
+                        <Line type="monotone" dataKey="ema20" stroke="#22c55e" dot={false} strokeWidth={1.5} name={{`EMA${emaConfig.fast}`} />
+                        <Line type="monotone" dataKey="ema50" stroke="#f59e0b" dot={false} strokeWidth={1.5} name={{`EMA${emaConfig.mid}`} />
+                        <Line type="monotone" dataKey="ema200" stroke="#a855f7" dot={false} strokeWidth={2} strokeDasharray="5 5" name={{`EMA${emaConfig.slow}`} />
                       </ComposedChart>
                     </ResponsiveContainer>
                   </div>
