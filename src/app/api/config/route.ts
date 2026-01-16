@@ -1,248 +1,153 @@
 /**
  * ELEVE v4.3 - API Route para sincronización de configuración
- * 
- * Este endpoint permite que los cambios en la UI se sincronicen con el backend.
- * El bot Python puede leer esta configuración desde Redis o un archivo JSON.
+ * ARREGLADO: Usa ioredis (igual que workers) en lugar de Upstash
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { Redis } from '@upstash/redis'
+import Redis from 'ioredis'
 
-// Inicializar Redis (si está configurado)
-const redis = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
-  ? new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN,
-    })
-  : null
+const getRedisClient = () => {
+  const redisUrl = process.env.REDIS_URL
+  if (!redisUrl) {
+    throw new Error('REDIS_URL no configurada')
+  }
+  return new Redis(redisUrl)
+}
 
-// Clave donde se guarda la configuración
-const CONFIG_KEY = 'eleve:config:strategies'
-const INTRADAY_CONFIG_KEY = 'eleve:config:intraday'
-const IRG_CONFIG_KEY = 'eleve:config:irg'
+const REDIS_KEYS = {
+  strategies: 'eleve:config:strategies',
+  intraday: 'eleve:intraday:config',
+  intraday1pct: 'eleve:intraday1pct:config',
+  irg: 'eleve:irg:config'
+}
 
-// GET: Obtener configuración actual
 export async function GET(request: NextRequest) {
+  let redis: Redis | null = null
   try {
     const { searchParams } = new URL(request.url)
     const type = searchParams.get('type') || 'all'
-    
-    if (!redis) {
-      return NextResponse.json(
-        { error: 'Redis not configured', message: 'Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN' },
-        { status: 503 }
-      )
-    }
+    redis = getRedisClient()
     
     if (type === 'strategies') {
-      const config = await redis.get(CONFIG_KEY)
-      return NextResponse.json({ success: true, data: config || {} })
+      const config = await redis.get(REDIS_KEYS.strategies)
+      await redis.quit()
+      return NextResponse.json({ success: true, data: config ? JSON.parse(config) : {} })
     }
-    
     if (type === 'intraday') {
-      const config = await redis.get(INTRADAY_CONFIG_KEY)
-      return NextResponse.json({ success: true, data: config || {} })
+      const config = await redis.get(REDIS_KEYS.intraday)
+      await redis.quit()
+      return NextResponse.json({ success: true, data: config ? JSON.parse(config) : {} })
     }
-    
+    if (type === 'intraday1pct') {
+      const config = await redis.get(REDIS_KEYS.intraday1pct)
+      await redis.quit()
+      return NextResponse.json({ success: true, data: config ? JSON.parse(config) : {} })
+    }
     if (type === 'irg') {
-      const config = await redis.get(IRG_CONFIG_KEY)
-      return NextResponse.json({ success: true, data: config || {} })
+      const config = await redis.get(REDIS_KEYS.irg)
+      await redis.quit()
+      return NextResponse.json({ success: true, data: config ? JSON.parse(config) : {} })
     }
     
-    // Obtener todo
-    const [strategies, intraday, irg] = await Promise.all([
-      redis.get(CONFIG_KEY),
-      redis.get(INTRADAY_CONFIG_KEY),
-      redis.get(IRG_CONFIG_KEY),
+    const [strategies, intraday, intraday1pct, irg] = await Promise.all([
+      redis.get(REDIS_KEYS.strategies),
+      redis.get(REDIS_KEYS.intraday),
+      redis.get(REDIS_KEYS.intraday1pct),
+      redis.get(REDIS_KEYS.irg),
     ])
+    await redis.quit()
     
     return NextResponse.json({
       success: true,
       data: {
-        strategies: strategies || {},
-        intraday: intraday || {},
-        irg: irg || {},
+        strategies: strategies ? JSON.parse(strategies) : {},
+        intraday: intraday ? JSON.parse(intraday) : {},
+        intraday1pct: intraday1pct ? JSON.parse(intraday1pct) : {},
+        irg: irg ? JSON.parse(irg) : {},
       },
       timestamp: new Date().toISOString(),
     })
-    
   } catch (error) {
-    console.error('Error fetching config:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch config', details: String(error) },
-      { status: 500 }
-    )
+    if (redis) { try { await redis.quit() } catch {} }
+    return NextResponse.json({ error: 'Failed to fetch config', details: String(error) }, { status: 500 })
   }
 }
 
-// POST: Actualizar configuración
 export async function POST(request: NextRequest) {
+  let redis: Redis | null = null
   try {
     const body = await request.json()
     const { type, key, config, fullConfig } = body
+    redis = getRedisClient()
     
-    if (!redis) {
-      // Si no hay Redis, logueamos y simulamos éxito
-      // En producción, podrías guardar en un archivo JSON
-      console.log('[CONFIG] No Redis - would save:', { type, key, config })
-      return NextResponse.json({ 
-        success: true, 
-        message: 'Config saved (local only - Redis not configured)',
-        warning: 'Changes will not persist to backend without Redis'
-      })
-    }
-    
-    // Actualizar estrategia específica
     if (type === 'strategy' && key && config) {
-      // Obtener config actual
-      const current = await redis.get(CONFIG_KEY) as Record<string, unknown> || {}
-      
-      // Actualizar la estrategia específica
-      current[key] = {
-        ...(current[key] as Record<string, unknown> || {}),
-        ...config,
-        lastUpdated: new Date().toISOString(),
-        updatedFrom: 'dashboard'
-      }
-      
-      // Guardar
-      await redis.set(CONFIG_KEY, current)
-      
-      // Publicar evento para que el bot lo detecte
-      await redis.publish('eleve:config:updated', JSON.stringify({
-        type: 'strategy',
-        key,
-        timestamp: new Date().toISOString()
-      }))
-      
-      return NextResponse.json({ 
-        success: true, 
-        message: `Strategy ${key} updated`,
-        key,
-        timestamp: new Date().toISOString()
-      })
+      const raw = await redis.get(REDIS_KEYS.strategies)
+      let current: Record<string, unknown> = {}
+      if (raw) { try { current = JSON.parse(raw) } catch {} }
+      current[key] = { ...(current[key] as Record<string, unknown> || {}), ...config, lastUpdated: new Date().toISOString() }
+      await redis.set(REDIS_KEYS.strategies, JSON.stringify(current))
+      await redis.quit()
+      return NextResponse.json({ success: true, message: `Strategy ${key} updated` })
     }
     
-    // Actualizar configuración intraday
     if (type === 'intraday' && config) {
-      const current = await redis.get(INTRADAY_CONFIG_KEY) as Record<string, unknown> || {}
-      
-      await redis.set(INTRADAY_CONFIG_KEY, {
-        ...current,
-        ...config,
-        lastUpdated: new Date().toISOString(),
-        updatedFrom: 'dashboard'
-      })
-      
-      await redis.publish('eleve:config:updated', JSON.stringify({
-        type: 'intraday',
-        timestamp: new Date().toISOString()
-      }))
-      
-      return NextResponse.json({ 
-        success: true, 
-        message: 'Intraday config updated',
-        timestamp: new Date().toISOString()
-      })
+      const raw = await redis.get(REDIS_KEYS.intraday)
+      let current: Record<string, unknown> = {}
+      if (raw) { try { current = JSON.parse(raw) } catch {} }
+      await redis.set(REDIS_KEYS.intraday, JSON.stringify({ ...current, ...config, lastUpdated: new Date().toISOString() }))
+      await redis.quit()
+      return NextResponse.json({ success: true, message: 'Intraday config updated' })
     }
     
-    // Actualizar configuración IRG (v4.3)
+    if (type === 'intraday1pct' && config) {
+      const raw = await redis.get(REDIS_KEYS.intraday1pct)
+      let current: Record<string, unknown> = {}
+      if (raw) { try { current = JSON.parse(raw) } catch {} }
+      await redis.set(REDIS_KEYS.intraday1pct, JSON.stringify({ ...current, ...config, lastUpdated: new Date().toISOString() }))
+      await redis.quit()
+      return NextResponse.json({ success: true, message: 'Intraday 1% config updated' })
+    }
+    
     if (type === 'irg' && config) {
-      await redis.set(IRG_CONFIG_KEY, {
-        ...config,
-        lastUpdated: new Date().toISOString(),
-        updatedFrom: 'dashboard'
-      })
-      
-      await redis.publish('eleve:config:updated', JSON.stringify({
-        type: 'irg',
-        timestamp: new Date().toISOString()
-      }))
-      
-      return NextResponse.json({ 
-        success: true, 
-        message: 'IRG config updated',
-        timestamp: new Date().toISOString()
-      })
+      await redis.set(REDIS_KEYS.irg, JSON.stringify({ ...config, lastUpdated: new Date().toISOString() }))
+      await redis.quit()
+      return NextResponse.json({ success: true, message: 'IRG config updated' })
     }
     
-    // Actualizar toda la configuración
     if (fullConfig) {
-      if (fullConfig.strategies) {
-        await redis.set(CONFIG_KEY, fullConfig.strategies)
-      }
-      if (fullConfig.intraday) {
-        await redis.set(INTRADAY_CONFIG_KEY, fullConfig.intraday)
-      }
-      if (fullConfig.irg) {
-        await redis.set(IRG_CONFIG_KEY, fullConfig.irg)
-      }
-      
-      await redis.publish('eleve:config:updated', JSON.stringify({
-        type: 'full',
-        timestamp: new Date().toISOString()
-      }))
-      
-      return NextResponse.json({ 
-        success: true, 
-        message: 'Full config updated',
-        timestamp: new Date().toISOString()
-      })
+      if (fullConfig.strategies) await redis.set(REDIS_KEYS.strategies, JSON.stringify(fullConfig.strategies))
+      if (fullConfig.intraday) await redis.set(REDIS_KEYS.intraday, JSON.stringify(fullConfig.intraday))
+      if (fullConfig.intraday1pct) await redis.set(REDIS_KEYS.intraday1pct, JSON.stringify(fullConfig.intraday1pct))
+      if (fullConfig.irg) await redis.set(REDIS_KEYS.irg, JSON.stringify(fullConfig.irg))
+      await redis.quit()
+      return NextResponse.json({ success: true, message: 'Full config updated' })
     }
     
-    return NextResponse.json(
-      { error: 'Invalid request body', required: 'type, key, config OR fullConfig' },
-      { status: 400 }
-    )
-    
+    await redis.quit()
+    return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
   } catch (error) {
-    console.error('Error updating config:', error)
-    return NextResponse.json(
-      { error: 'Failed to update config', details: String(error) },
-      { status: 500 }
-    )
+    if (redis) { try { await redis.quit() } catch {} }
+    return NextResponse.json({ error: 'Failed to update config', details: String(error) }, { status: 500 })
   }
 }
 
-// DELETE: Reset configuración
 export async function DELETE(request: NextRequest) {
+  let redis: Redis | null = null
   try {
     const { searchParams } = new URL(request.url)
     const type = searchParams.get('type')
+    redis = getRedisClient()
     
-    if (!redis) {
-      return NextResponse.json(
-        { error: 'Redis not configured' },
-        { status: 503 }
-      )
-    }
+    if (type === 'strategies') await redis.del(REDIS_KEYS.strategies)
+    else if (type === 'intraday') await redis.del(REDIS_KEYS.intraday)
+    else if (type === 'intraday1pct') await redis.del(REDIS_KEYS.intraday1pct)
+    else if (type === 'irg') await redis.del(REDIS_KEYS.irg)
+    else await Promise.all([redis.del(REDIS_KEYS.strategies), redis.del(REDIS_KEYS.intraday), redis.del(REDIS_KEYS.intraday1pct), redis.del(REDIS_KEYS.irg)])
     
-    if (type === 'strategies') {
-      await redis.del(CONFIG_KEY)
-    } else if (type === 'intraday') {
-      await redis.del(INTRADAY_CONFIG_KEY)
-    } else if (type === 'irg') {
-      await redis.del(IRG_CONFIG_KEY)
-    } else {
-      // Reset todo
-      await Promise.all([
-        redis.del(CONFIG_KEY),
-        redis.del(INTRADAY_CONFIG_KEY),
-        redis.del(IRG_CONFIG_KEY),
-      ])
-    }
-    
-    return NextResponse.json({ 
-      success: true, 
-      message: `Config ${type || 'all'} reset`,
-      timestamp: new Date().toISOString()
-    })
-    
+    await redis.quit()
+    return NextResponse.json({ success: true, message: `Config ${type || 'all'} reset` })
   } catch (error) {
-    console.error('Error deleting config:', error)
-    return NextResponse.json(
-      { error: 'Failed to delete config', details: String(error) },
-      { status: 500 }
-    )
+    if (redis) { try { await redis.quit() } catch {} }
+    return NextResponse.json({ error: 'Failed to delete config', details: String(error) }, { status: 500 })
   }
 }

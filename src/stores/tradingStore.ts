@@ -578,7 +578,7 @@ export const useTradingStore = create<TradingStore>()(
         }))
         
         const result = await syncConfigToBackend({
-          type: 'intraday',
+          type: 'intraday1pct',
           config: { ...get().intraday1PctConfig, ...updates }
         })
         
