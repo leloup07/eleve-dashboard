@@ -116,6 +116,8 @@ export interface Position {
   ticker: string
   strategy: string
   entry: number
+  atr?: number
+  riskPerShare?: number
   sl: number
   tp: number
   size: number
@@ -148,6 +150,8 @@ export interface Trade {
   ticker: string
   strategy: string
   entry: number
+  atr?: number
+  riskPerShare?: number
   exit: number
   sl: number
   tp: number
