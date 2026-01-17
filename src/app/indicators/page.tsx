@@ -1,5 +1,7 @@
 'use client'
 
+import { useTradingStore } from '@/stores/tradingStore'
+
 import { useState, useEffect, useMemo } from 'react'
 import { 
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
@@ -908,6 +910,8 @@ El precio está en el rango medio. Sin extremos.`,
 }
 
 export default function IndicatorsPage() {
+  const strategies = useTradingStore(state => state.strategies)
+  const intraday1PctConfig = useTradingStore(state => state.intraday1PctConfig)
   const [selectedTicker, setSelectedTicker] = useState('BTC-USD')
   const [manualStrategy, setManualStrategy] = useState<string | null>(null)
   const [btcRegime, setBtcRegime] = useState<string>('UNKNOWN')
@@ -1507,7 +1511,7 @@ export default function IndicatorsPage() {
                         </div>
                         <div className="text-right">
                           <p className="text-sm text-gray-500">Timeframe: {strategy.timeframe}</p>
-                          <p className="text-sm text-gray-500">Capital: ${strategy.capital.toLocaleString()}</p>
+                          <p className="text-sm text-gray-500">Capital: {(strategies.find(s => s.key === strategy.type)?.capital || intraday1PctConfig?.capital || strategy.capital).toLocaleString()}</p>
                         </div>
                       </div>
                       
