@@ -186,7 +186,7 @@ export default function IntradayPage() {
         </div>
         <div className="card">
           <span className="text-sm text-gray-500">Posiciones</span>
-          <p className="text-2xl font-bold">{positions.length}/2</p>
+          <p className="text-2xl font-bold">{positions.length}/{intradayConfig?.maxPositions || 2}</p>
         </div>
       </div>
 
