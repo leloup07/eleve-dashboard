@@ -35,6 +35,7 @@ export function useRealTradingData(autoRefreshMs = 30000) {
   const setBotActive = useTradingStore(state => state.setBotActive)
   const setRedisConnected = useTradingStore(state => state.setRedisConnected)
   const setIntraday1PctConfig = useTradingStore(state => state.setIntraday1PctConfig)
+  const setIntradayConfig = useTradingStore(state => state.setIntradayConfig)
   
   const fetchData = useCallback(async () => {
     try {
@@ -136,6 +137,9 @@ export function useRealTradingData(autoRefreshMs = 30000) {
         if (configJson.success && configJson.data?.intraday1pct) {
           setIntraday1PctConfig(configJson.data.intraday1pct)
         }
+        if (configJson.data?.intraday) {
+          setIntradayConfig(configJson.data.intraday)
+        }
         setWorker(data.worker || null)
         
         // Set intraday data
@@ -168,7 +172,7 @@ export function useRealTradingData(autoRefreshMs = 30000) {
     } finally {
       setLoading(false)
     }
-  }, [setPositions, setTrades, setRegime, setBotActive, setRedisConnected, setIntraday1PctConfig])
+  }, [setPositions, setTrades, setRegime, setBotActive, setRedisConnected, setIntraday1PctConfig, setIntradayConfig])
   
   useEffect(() => {
     fetchData()
