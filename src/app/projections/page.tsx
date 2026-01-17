@@ -55,7 +55,7 @@ const ALL_TICKERS = [...CRYPTO_TICKERS, ...STOCK_TICKERS]
 // Función para obtener datos reales de Yahoo Finance
 async function fetchRealPriceData(ticker: string): Promise<{ current: number, history: number[], volatility: number }> {
   try {
-    const url = `/api/indicators?ticker=${ticker}&interval=1d&range=180d`
+    const url = `/api/indicators?ticker=${ticker}&interval=1d&range=30d`
     const response = await fetch(url, { 
       headers: { 'User-Agent': 'Mozilla/5.0' },
       next: { revalidate: 300 }
