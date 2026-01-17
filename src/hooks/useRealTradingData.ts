@@ -137,6 +137,14 @@ export function useRealTradingData(autoRefreshMs = 30000) {
         if (configJson.success && configJson.data?.intraday1pct) {
           setIntraday1PctConfig(configJson.data.intraday1pct)
         }
+        if (configJson.data?.strategies) {
+          Object.entries(configJson.data.strategies).forEach(([key, config]: [string, any]) => {
+            if (config.capital) {
+              const store = useTradingStore.getState()
+              store.updateStrategy(key, { capital: config.capital })
+            }
+          })
+        }
         if (configJson.data?.intraday) {
           setIntradayConfig(configJson.data.intraday)
         }
