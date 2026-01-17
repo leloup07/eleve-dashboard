@@ -138,7 +138,7 @@ function RecentTrades() {
 }
 
 export default function HomePage() {
-  const strategies = useTradingStore(state => state.strategies.map(s => s.key === 'one_percent_spot' ? { ...s, capital: state.intraday1PctConfig?.capital || s.capital } : s.key === 'vwap_reversion' ? { ...s, capital: state.intradayConfig?.capital || s.capital } : s))
+  const strategies = useTradingStore(state => state.strategies.map(s => s.key === 'one_percent_spot' ? { ...s, capital: state.intraday1PctConfig?.capital || s.capital, maxPositions: state.intraday1PctConfig?.maxPositions || s.maxPositions } : s.key === 'vwap_reversion' ? { ...s, capital: state.intradayConfig?.capital || s.capital, maxPositions: state.intradayConfig?.maxPositions || s.maxPositions } : s))
   const positions = useTradingStore(state => state.positions)
   const trades = useTradingStore(state => state.trades)
   const redisConnected = useTradingStore(state => state.redisConnected)
