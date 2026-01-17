@@ -1,5 +1,7 @@
 'use client'
 
+import { useRealTradingData } from '@/hooks/useRealTradingData'
+
 import { useState, useEffect } from 'react'
 import { useTradingStore } from '@/stores/tradingStore'
 import { formatCurrency, formatPercent, formatNumber, formatRatio } from '@/lib/formatters'
@@ -1425,6 +1427,7 @@ function Intraday1PctEditor() {
 }
 
 export default function ConfigPage() {
+  useRealTradingData(0) // Carga de Redis al iniciar, sin auto-refresh
   const strategies = useTradingStore(state => state.strategies)
   
   return (
