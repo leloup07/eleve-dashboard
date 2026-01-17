@@ -146,6 +146,7 @@ const generatePositionAnalysis = (p: Position) => {
 • EMA20: ${p.ema20 ? `$${p.ema20.toFixed(2)}` : "N/A"}
 • EMA50: ${p.ema50 ? `$${p.ema50.toFixed(2)}` : "N/A"}
 • ATR: ${p.atr ? `$${p.atr.toFixed(2)}` : "N/A"}
+• R($): ${p.riskPerShare ? `$${p.riskPerShare.toFixed(2)}` : "N/A"}
 
 🎯 Razón: ${p.reason || 'Setup cumplió condiciones de entrada'}`,
     
@@ -179,6 +180,7 @@ const generateTradeAnalysis = (t: ClosedTrade) => {
 • EMA20: ${t.ema20 ? `$${t.ema20.toFixed(2)}` : "N/A"}
 • EMA50: ${t.ema50 ? `$${t.ema50.toFixed(2)}` : "N/A"}
 • ATR: ${t.atr ? `$${t.atr.toFixed(2)}` : "N/A"}
+• R($): ${t.riskPerShare ? `$${t.riskPerShare.toFixed(2)}` : "N/A"}
 
 🎯 Razón original: ${t.reason || 'Setup cumplió condiciones'}`,
     
