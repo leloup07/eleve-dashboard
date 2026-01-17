@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTradingStore } from '@/stores/tradingStore'
 import { formatCurrency, formatPercent, formatNumber, formatRatio } from '@/lib/formatters'
 import { clsx } from 'clsx'
@@ -672,6 +672,7 @@ function IntradayEditor() {
   const updateIntradayConfig = useTradingStore(state => state.updateIntradayConfig)
   const [editing, setEditing] = useState(false)
   const [localConfig, setLocalConfig] = useState(intradayConfig)
+  useEffect(() => { setLocalConfig(intradayConfig) }, [intradayConfig])
   const [syncing, setSyncing] = useState(false)
   const [syncStatus, setSyncStatus] = useState<'idle' | 'success' | 'error'>('idle')
   
@@ -1032,6 +1033,7 @@ function Intraday1PctEditor() {
   const updateConfig = useTradingStore(state => state.updateIntraday1PctConfig)
   const [editing, setEditing] = useState(false)
   const [localConfig, setLocalConfig] = useState(config)
+  useEffect(() => { setLocalConfig(config) }, [config])
   const [syncing, setSyncing] = useState(false)
   const [syncStatus, setSyncStatus] = useState<'idle' | 'success' | 'error'>('idle')
   
