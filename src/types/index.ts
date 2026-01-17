@@ -275,7 +275,7 @@ export interface SyncStatus {
 }
 
 export interface ConfigUpdatePayload {
-  type: 'strategy' | 'intraday' | 'irg' | 'full'
+  type: 'strategy' | 'intraday' | 'intraday1pct' | 'irg' | 'full'
   key?: string
   config?: Partial<StrategyConfig | IntradayConfig | Intraday1PctConfig | IRGConfig>
   fullConfig?: {
