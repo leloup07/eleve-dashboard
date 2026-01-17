@@ -424,8 +424,8 @@ export const useTradingStore = create<TradingStore>()(
         const state = get()
         
         const initialCapital = state.strategies.filter(s => !s.key.includes("vwap") && !s.key.includes("one_percent")).reduce((sum, s) => sum + s.capital, 0) + (state.intradayConfig?.capital || 0) + (state.intraday1PctConfig?.capital || 0)
-        const cryptoInitial = state.strategies
-          .filter(s => s.key.includes('crypto') || s.key.includes('vwap') || s.key.includes('one_percent'))
+        const cryptoInitial = (state.intradayConfig?.capital || 0) + (state.intraday1PctConfig?.capital || 0) + state.strategies
+          .filter(s => s.key.includes('crypto'))
           .reduce((sum, s) => sum + s.capital, 0)
         const stocksInitial = state.strategies
           .filter(s => s.key.includes('caps'))
