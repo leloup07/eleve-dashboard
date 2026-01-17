@@ -52,43 +52,52 @@ const STOCK_TICKERS = ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOGL', 'META', 'TSLA', 
 const ALL_TICKERS = [...CRYPTO_TICKERS, ...STOCK_TICKERS]
 
 // Función para generar datos simulados
-function generatePriceData(ticker: string): { current: number, history: number[], volatility: number } {
-  const isCrypto = ticker.includes('-USD')
-  let basePrice: number
-  let volatility: number
-  
-  switch (ticker) {
-    case 'BTC-USD': basePrice = 95000; volatility = 0.025; break
-    case 'ETH-USD': basePrice = 3400; volatility = 0.03; break
-    case 'SOL-USD': basePrice = 190; volatility = 0.04; break
-    case 'XRP-USD': basePrice = 2.3; volatility = 0.035; break
-    case 'ADA-USD': basePrice = 0.95; volatility = 0.04; break
-    case 'AAPL': basePrice = 248; volatility = 0.015; break
-    case 'MSFT': basePrice = 420; volatility = 0.012; break
-    case 'NVDA': basePrice = 135; volatility = 0.025; break
-    case 'AMZN': basePrice = 225; volatility = 0.018; break
-    case 'GOOGL': basePrice = 195; volatility = 0.015; break
-    case 'META': basePrice = 610; volatility = 0.02; break
-    case 'TSLA': basePrice = 410; volatility = 0.035; break
-    case 'BROS': basePrice = 65; volatility = 0.03; break
-    case 'HIMS': basePrice = 28; volatility = 0.04; break
-    default: basePrice = 100; volatility = 0.02
+// Función para obtener datos reales de Yahoo Finance
+async function fetchRealPriceData(ticker: string): Promise<{ current: number, history: number[], volatility: number }> {
+  try {
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=6mo`
+    const response = await fetch(url, { 
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+      next: { revalidate: 300 }
+    })
+    
+    if (!response.ok) throw new Error('Yahoo API error')
+    
+    const json = await response.json()
+    const result = json.chart?.result?.[0]
+    
+    if (!result?.indicators?.quote?.[0]) throw new Error('No data')
+    
+    const closes = result.indicators.quote[0].close.filter((c: number | null) => c !== null) as number[]
+    const current = closes[closes.length - 1]
+    
+    const returns: number[] = []
+    for (let i = 1; i < closes.length; i++) {
+      returns.push((closes[i] - closes[i-1]) / closes[i-1])
+    }
+    const avgReturn = returns.reduce((a, b) => a + b, 0) / returns.length
+    const variance = returns.reduce((a, b) => a + Math.pow(b - avgReturn, 2), 0) / returns.length
+    const volatility = Math.sqrt(variance)
+    
+    return { current, history: closes, volatility }
+  } catch (error) {
+    console.error('Error fetching price data:', error)
+    const d: Record<string, { price: number, vol: number }> = {
+      'BTC-USD': { price: 104000, vol: 0.025 },
+      'ETH-USD': { price: 3300, vol: 0.03 },
+      'SOL-USD': { price: 210, vol: 0.04 },
+      'AAPL': { price: 230, vol: 0.015 },
+      'MSFT': { price: 430, vol: 0.012 },
+      'NVDA': { price: 140, vol: 0.025 },
+    }
+    const def = d[ticker] || { price: 100, vol: 0.02 }
+    const history: number[] = []
+    let price = def.price * 0.9
+    for (let i = 0; i < 180; i++) { price *= (1 + (Math.random() - 0.48) * def.vol); history.push(price) }
+    return { current: price, history, volatility: def.vol }
   }
-  
-  // Generate historical prices
-  const history: number[] = []
-  let price = basePrice * (0.85 + Math.random() * 0.15)
-  
-  for (let i = 0; i < 180; i++) {
-    const change = (Math.random() - 0.48) * volatility
-    price = price * (1 + change)
-    history.push(price)
-  }
-  
-  return { current: price, history, volatility }
 }
 
-// Monte Carlo simulation
 function runMonteCarlo(currentPrice: number, volatility: number, days: number = 30, simulations: number = 1000): MonteCarloResult {
   const mu = 0.0001 // Small positive drift
   const sigma = volatility
@@ -318,8 +327,8 @@ export default function ProjectionsPage() {
   useEffect(() => {
     setLoading(true)
     
-    setTimeout(() => {
-      const data = generatePriceData(selectedTicker)
+    const loadData = async () => {
+      const data = await fetchRealPriceData(selectedTicker)
       const mc = runMonteCarlo(data.current, data.volatility, projectionDays)
       const lvls = calculateLevels(data.history, data.current)
       const dec = calculateGoNoGo(data.current, lvls, mc)
@@ -329,7 +338,8 @@ export default function ProjectionsPage() {
       setLevels(lvls)
       setDecision(dec)
       setLoading(false)
-    }, 800)
+    }
+    loadData()
   }, [selectedTicker, projectionDays])
   
   // Prepare chart data for percentile paths

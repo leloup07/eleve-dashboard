@@ -23,6 +23,7 @@ interface Position {
   ema20?: number
   ema50?: number
   atr?: number
+  riskPerShare?: number
 }
 
 interface ClosedTrade {
@@ -49,6 +50,7 @@ interface ClosedTrade {
   ema20?: number
   ema50?: number
   atr?: number
+  riskPerShare?: number
 }
 
 // Tipos para filtros y ordenamiento
