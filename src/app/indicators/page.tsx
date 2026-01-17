@@ -1053,6 +1053,10 @@ export default function IndicatorsPage() {
         <>
           {/* Resumen rápido */}
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+            <div className="bg-blue-50 rounded-lg border p-3 cursor-pointer hover:bg-blue-100" onClick={() => setActiveTab('strategy')}>
+              <p className="text-[10px] text-gray-500 uppercase">Estrategia</p>
+              <p className="text-lg font-bold">🎯</p>
+            </div>
             <div className="bg-white rounded-lg border p-3">
               <p className="text-[10px] text-gray-500 uppercase">Precio</p>
               <p className="text-lg font-bold">${latest.close.toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
@@ -1072,6 +1076,10 @@ export default function IndicatorsPage() {
             <div className={`rounded-lg border p-3 ${latest.adx > 25 ? 'bg-green-50' : 'bg-yellow-50'}`}>
               <p className="text-[10px] text-gray-500 uppercase">ADX</p>
               <p className="text-lg font-bold">{latest.adx.toFixed(1)}</p>
+            </div>
+            <div className="bg-blue-50 rounded-lg border p-3 cursor-pointer hover:bg-blue-100" onClick={() => setActiveTab('strategy')}>
+              <p className="text-[10px] text-gray-500 uppercase">Estrategia</p>
+              <p className="text-lg font-bold">🎯</p>
             </div>
             <div className="bg-white rounded-lg border p-3">
               <p className="text-[10px] text-gray-500 uppercase">ATR</p>
@@ -1093,8 +1101,8 @@ export default function IndicatorsPage() {
                 { key: 'adx', label: '💪 ADX' },
                 { key: 'bb', label: '📏 Bollinger' },
                 { key: 'stoch', label: '🎰 Stochastic' },
+                { key: 'strategy', label: '🎯 Estrategia ELEVE' },
                 { key: 'hybrid', label: '📊 Hybrid (educativo)' },
-                { key: 'strategy', label: '🎯 Estrategia ELEVE' }
               ].map(tab => (
                 <button
                   key={tab.key}
