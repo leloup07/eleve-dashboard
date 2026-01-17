@@ -1,6 +1,7 @@
 'use client'
 
 import { useTradingStore } from '@/stores/tradingStore'
+import { useRealTradingData } from '@/hooks/useRealTradingData'
 
 import { useState, useEffect } from 'react'
 import { formatCurrency, formatPercent, formatNumber } from '@/lib/formatters'
@@ -97,6 +98,7 @@ export default function IntradayPage() {
     ? (todayTrades.filter(t => t.pnl > 0).length / todayTrades.length) * 100 
     : 0
 
+  useRealTradingData(0)
   const intradayConfig = useTradingStore(state => state.intradayConfig)
   const capital = intradayConfig?.capital || 10000
 
