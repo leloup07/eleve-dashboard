@@ -384,6 +384,7 @@ interface TradingStore {
   setIRGState: (state: Partial<IRGState>) => void
   setBotActive: (active: boolean) => void
   setRedisConnected: (connected: boolean) => void
+  setIntraday1PctConfig: (config: Intraday1PctConfig) => void
   setPositions: (positions: Position[]) => void
   setTrades: (trades: Trade[]) => void
   refreshData: () => void
@@ -649,6 +650,7 @@ export const useTradingStore = create<TradingStore>()(
       setBotActive: (active) => set({ botActive: active, lastUpdate: new Date().toISOString() }),
       
       setRedisConnected: (connected) => set({ redisConnected: connected }),
+      setIntraday1PctConfig: (config) => set({ intraday1PctConfig: config }),
       
       setPositions: (positions) => set({ positions, lastUpdate: new Date().toISOString() }),
       

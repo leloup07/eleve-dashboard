@@ -34,6 +34,7 @@ export function useRealTradingData(autoRefreshMs = 30000) {
   const setRegime = useTradingStore(state => state.setRegime)
   const setBotActive = useTradingStore(state => state.setBotActive)
   const setRedisConnected = useTradingStore(state => state.setRedisConnected)
+  const setIntraday1PctConfig = useTradingStore(state => state.setIntraday1PctConfig)
   
   const fetchData = useCallback(async () => {
     try {
@@ -128,6 +129,13 @@ export function useRealTradingData(autoRefreshMs = 30000) {
         setRegime('spy', (data.spyRegime || 'UNKNOWN') as any)
         setBotActive(data.botActive || false)
         setRedisConnected(data.redisConnected || false)
+        
+        // Fetch config from Redis
+        const configRes = await fetch("/api/config")
+        const configJson = await configRes.json()
+        if (configJson.success && configJson.data?.intraday1pct) {
+          setIntraday1PctConfig(configJson.data.intraday1pct)
+        }
         setWorker(data.worker || null)
         
         // Set intraday data
@@ -160,7 +168,7 @@ export function useRealTradingData(autoRefreshMs = 30000) {
     } finally {
       setLoading(false)
     }
-  }, [setPositions, setTrades, setRegime, setBotActive, setRedisConnected])
+  }, [setPositions, setTrades, setRegime, setBotActive, setRedisConnected, setIntraday1PctConfig])
   
   useEffect(() => {
     fetchData()
