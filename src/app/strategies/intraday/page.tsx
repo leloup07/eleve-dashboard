@@ -95,7 +95,8 @@ export default function IntradayPage() {
     ? (todayTrades.filter(t => t.pnl > 0).length / todayTrades.length) * 100 
     : 0
 
-  const capital = 10000 // INTRADAY_CAPITAL
+  const intradayConfig = useTradingStore(state => state.intradayConfig)
+  const capital = intradayConfig?.capital || 10000
 
   return (
     <div className="space-y-6">
