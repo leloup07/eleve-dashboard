@@ -988,6 +988,9 @@ export default function IndicatorsPage() {
   
   const conditionsMet = hybridConditions.filter(c => c.met).length
 
+  const strategy = manualStrategy ? getStrategyByType(manualStrategy, btcRegime, spyRegime) : getApplicableStrategy(selectedTicker, btcRegime, spyRegime)
+  const strategyConditionsMet = latest && strategy ? strategy.conditions.filter(c => c.check(latest)).length : 0
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -1055,7 +1058,7 @@ export default function IndicatorsPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
             <div className="bg-blue-50 rounded-lg border p-3 cursor-pointer hover:bg-blue-100" onClick={() => setActiveTab('strategy')}>
               <p className="text-[10px] text-gray-500 uppercase">Estrategia</p>
-              <p className="text-lg font-bold">{conditionsMet}/6</p>
+              <p className="text-lg font-bold">{strategyConditionsMet}/{strategy?.conditions?.length || 6}</p>
             </div>
             <div className="bg-white rounded-lg border p-3">
               <p className="text-[10px] text-gray-500 uppercase">Precio</p>
@@ -1076,10 +1079,6 @@ export default function IndicatorsPage() {
             <div className={`rounded-lg border p-3 ${latest.adx > 25 ? 'bg-green-50' : 'bg-yellow-50'}`}>
               <p className="text-[10px] text-gray-500 uppercase">ADX</p>
               <p className="text-lg font-bold">{latest.adx.toFixed(1)}</p>
-            </div>
-            <div className="bg-blue-50 rounded-lg border p-3 cursor-pointer hover:bg-blue-100" onClick={() => setActiveTab('strategy')}>
-              <p className="text-[10px] text-gray-500 uppercase">Estrategia</p>
-              <p className="text-lg font-bold">{conditionsMet}/6</p>
             </div>
             <div className="bg-white rounded-lg border p-3">
               <p className="text-[10px] text-gray-500 uppercase">ATR</p>
