@@ -246,19 +246,19 @@ export default function IntradayPage() {
             </div>
             <div className="flex justify-between py-2 border-b">
               <span className="text-gray-600">Riesgo/Trade</span>
-              <span className="font-mono">0.3%</span>
+              <span className="font-mono">{(intradayConfig?.riskPerTrade || 0.003) * 100}%</span>
             </div>
             <div className="flex justify-between py-2 border-b">
               <span className="text-gray-600">Max Posiciones</span>
-              <span className="font-mono">2</span>
+              <span className="font-mono">{intradayConfig?.maxPositions || 2}</span>
             </div>
             <div className="flex justify-between py-2 border-b">
               <span className="text-gray-600">SL (ATR)</span>
-              <span className="font-mono">1.2×</span>
+              <span className="font-mono">{intradayConfig?.slAtrMult || 1.2}×</span>
             </div>
             <div className="flex justify-between py-2 border-b">
               <span className="text-gray-600">TP (ATR)</span>
-              <span className="font-mono">1.5×</span>
+              <span className="font-mono">{intradayConfig?.tpAtrMult || 1.5}×</span>
             </div>
             <div className="flex justify-between py-2 border-b">
               <span className="text-gray-600">Horario</span>
@@ -266,7 +266,7 @@ export default function IntradayPage() {
             </div>
             <div className="flex justify-between py-2">
               <span className="text-gray-600">Scan Interval</span>
-              <span className="font-mono">5 min</span>
+              <span className="font-mono">{(intradayConfig?.scanInterval || 300) / 60} min</span>
             </div>
           </div>
         </div>
