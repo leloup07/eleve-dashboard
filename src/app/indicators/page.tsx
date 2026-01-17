@@ -1055,7 +1055,7 @@ export default function IndicatorsPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
             <div className="bg-blue-50 rounded-lg border p-3 cursor-pointer hover:bg-blue-100" onClick={() => setActiveTab('strategy')}>
               <p className="text-[10px] text-gray-500 uppercase">Estrategia</p>
-              <p className="text-lg font-bold">🎯</p>
+              <p className="text-lg font-bold">{conditionsMet}/6</p>
             </div>
             <div className="bg-white rounded-lg border p-3">
               <p className="text-[10px] text-gray-500 uppercase">Precio</p>
@@ -1079,7 +1079,7 @@ export default function IndicatorsPage() {
             </div>
             <div className="bg-blue-50 rounded-lg border p-3 cursor-pointer hover:bg-blue-100" onClick={() => setActiveTab('strategy')}>
               <p className="text-[10px] text-gray-500 uppercase">Estrategia</p>
-              <p className="text-lg font-bold">🎯</p>
+              <p className="text-lg font-bold">{conditionsMet}/6</p>
             </div>
             <div className="bg-white rounded-lg border p-3">
               <p className="text-[10px] text-gray-500 uppercase">ATR</p>
