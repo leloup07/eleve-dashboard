@@ -106,6 +106,14 @@ export function PositionRow({ position, expanded, onToggle }: PositionRowProps) 
             <p className="font-medium">{formatCurrency(position.investedAmount, 0)}</p>
             <span className="text-xs text-gray-400">{formatUnits(remainingUnits, position.ticker)} uds</span>
           </div>
+          <div className="text-right hidden lg:block">
+            <span className="text-xs text-gray-500">ATR</span>
+            <p className="font-medium">${position.atr?.toFixed(2) || —}</p>
+          </div>
+          <div className="text-right hidden lg:block">
+            <span className="text-xs text-gray-500">R ($)</span>
+            <p className="font-medium">${position.riskPerShare?.toFixed(2) || —}</p>
+          </div>
           <div className="text-right hidden md:block">
             <span className="text-xs text-gray-500">Entry</span>
             <p className="font-medium">{formatCurrency(position.entry, 2)}</p>
