@@ -1,5 +1,7 @@
 'use client'
 
+import { useTradingStore } from '@/stores/tradingStore'
+
 import { useState, useEffect } from 'react'
 import { formatCurrency, formatPercent, formatNumber } from '@/lib/formatters'
 import { clsx } from 'clsx'
