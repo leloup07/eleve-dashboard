@@ -1466,7 +1466,7 @@ export default function ConfigPage() {
       <div>
         <h2 className="text-xl font-bold text-gray-800 mb-4">📈 Estrategias Swing</h2>
         <div className="space-y-6">
-          {strategies.filter(s => s.key.indexOf("intraday") !== 0).map(strategy => (
+          {strategies.filter(s => s.key !== "vwap_reversion" && s.key !== "one_percent_spot").map(strategy => (
             <StrategyEditor key={strategy.key} strategy={strategy} />
           ))}
         </div>
