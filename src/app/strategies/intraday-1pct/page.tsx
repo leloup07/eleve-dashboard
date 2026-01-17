@@ -1,5 +1,7 @@
 'use client'
 
+import { useRealTradingData } from '@/hooks/useRealTradingData'
+
 import { useEffect, useState } from 'react'
 import { useTradingStore } from '@/stores/tradingStore'
 import { clsx } from 'clsx'
@@ -212,6 +214,7 @@ function PositionCard({ pos }: { pos: Position }) {
 }
 
 export default function Intraday1PctPage() {
+  useRealTradingData(0)
   const config = useTradingStore(state => state.intraday1PctConfig)
   const [positions, setPositions] = useState<Position[]>([])
   const [trades, setTrades] = useState<Trade[]>([])
