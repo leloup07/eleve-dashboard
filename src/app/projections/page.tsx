@@ -55,7 +55,7 @@ const ALL_TICKERS = [...CRYPTO_TICKERS, ...STOCK_TICKERS]
 // Función para obtener datos reales de Yahoo Finance
 async function fetchRealPriceData(ticker: string): Promise<{ current: number, history: number[], volatility: number }> {
   try {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=6mo`
+    const url = `/api/indicators?ticker=${ticker}&interval=1d&range=180d`
     const response = await fetch(url, { 
       headers: { 'User-Agent': 'Mozilla/5.0' },
       next: { revalidate: 300 }
@@ -64,11 +64,11 @@ async function fetchRealPriceData(ticker: string): Promise<{ current: number, hi
     if (!response.ok) throw new Error('Yahoo API error')
     
     const json = await response.json()
-    const result = json.chart?.result?.[0]
+    const result = json
     
     if (!result?.indicators?.quote?.[0]) throw new Error('No data')
     
-    const closes = result.indicators.quote[0].close.filter((c: number | null) => c !== null) as number[]
+    const closes = result.data.map((d: any) => d.close).filter((c: number | null) => c !== null) as number[]
     const current = closes[closes.length - 1]
     
     const returns: number[] = []
