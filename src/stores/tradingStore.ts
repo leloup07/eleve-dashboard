@@ -574,7 +574,7 @@ export const useTradingStore = create<TradingStore>()(
         set(state => ({
           intraday1PctConfig: { ...state.intraday1PctConfig, ...updates },
           strategies: updates.capital !== undefined 
-            ? state.strategies.map(s => s.key === 'one_percent_spot' ? { ...s, capital: updates.capital } : s) 
+            ? state.strategies.map(s => s.key === 'one_percent_spot' ? { ...s, capital: updates.capital! } : s) 
             : state.strategies,
           lastUpdate: new Date().toISOString(),
           syncStatus: { ...state.syncStatus, isSyncing: true }
