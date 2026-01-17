@@ -108,11 +108,11 @@ export function PositionRow({ position, expanded, onToggle }: PositionRowProps) 
           </div>
           <div className="text-right hidden lg:block">
             <span className="text-xs text-gray-500">ATR</span>
-            <p className="font-medium">${position.atr?.toFixed(2) || —}</p>
+            <p className="font-medium">{position.atr?.toFixed(2) || '—'}</p>
           </div>
           <div className="text-right hidden lg:block">
             <span className="text-xs text-gray-500">R ($)</span>
-            <p className="font-medium">${position.riskPerShare?.toFixed(2) || —}</p>
+            <p className="font-medium">{`$${position.riskPerShare?.toFixed(2) || '—'}`}</p>
           </div>
           <div className="text-right hidden md:block">
             <span className="text-xs text-gray-500">Entry</span>
