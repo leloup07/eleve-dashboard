@@ -476,7 +476,7 @@ export const useTradingStore = create<TradingStore>()(
         
         const realizedPnL = strategyTrades.reduce((sum, t) => sum + t.pnl, 0)
         const unrealizedPnL = positions.reduce((sum, p) => sum + (p.unrealizedPnL || 0), 0)
-        const initialCapital = strategy?.capital || 0
+        const initialCapital = strategyKey === 'one_percent_spot' ? (state.intraday1PctConfig?.capital || strategy?.capital || 0) : strategyKey === 'vwap_reversion' ? (state.intradayConfig?.capital || strategy?.capital || 0) : (strategy?.capital || 0)
         const currentEquity = initialCapital + realizedPnL + unrealizedPnL
         
         return {
