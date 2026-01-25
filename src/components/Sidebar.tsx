@@ -35,10 +35,13 @@ export function Sidebar() {
   const strategies = useTradingStore(state => state.strategies)
   const globalMode = useTradingStore(state => state.getGlobalTradingMode())
   
-  const cryptoCapital = strategies
+  const intradayConfig = useTradingStore(state => state.intradayConfig)
+  const intraday1PctConfig = useTradingStore(state => state.intraday1PctConfig)
+  
+  const cryptoCapital = (intradayConfig?.capital || 0) + (intraday1PctConfig?.capital || 0) + strategies
     .filter(s => s.key.includes('crypto'))
     .reduce((sum, s) => sum + s.capital, 0)
-  const stocksCapital = strategies
+  const stocksCapital = strategies.filter(s => s.key.includes('caps'))
     .filter(s => !s.key.includes('crypto'))
     .reduce((sum, s) => sum + s.capital, 0)
 
