@@ -54,23 +54,61 @@ const ALL_TICKERS = [...CRYPTO_TICKERS, ...STOCK_TICKERS]
 // Función para generar datos simulados
 // Función para obtener datos reales de Yahoo Finance
 async function fetchRealPriceData(ticker: string): Promise<{ current: number, history: number[], volatility: number }> {
+  // Mapeo de tickers a IDs de CoinGecko
+  const cryptoMap: Record<string, string> = {
+    'BTC': 'bitcoin', 'BTC-USD': 'bitcoin',
+    'ETH': 'ethereum', 'ETH-USD': 'ethereum',
+    'SOL': 'solana', 'SOL-USD': 'solana',
+    'XRP': 'ripple', 'XRP-USD': 'ripple',
+    'AVAX': 'avalanche-2', 'AVAX-USD': 'avalanche-2',
+    'LINK': 'chainlink', 'LINK-USD': 'chainlink',
+  }
+
+  const coinId = cryptoMap[ticker]
+
+  // Para crypto, usar CoinGecko
+  if (coinId) {
+    try {
+      const res = await fetch(
+        `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=30`,
+        { next: { revalidate: 60 } }
+      )
+      if (!res.ok) throw new Error('CoinGecko error')
+      const data = await res.json()
+      const prices = data.prices.map((p: number[]) => p[1])
+      const current = prices[prices.length - 1]
+
+      // Calcular volatilidad
+      const returns: number[] = []
+      for (let i = 1; i < prices.length; i++) {
+        returns.push((prices[i] - prices[i-1]) / prices[i-1])
+      }
+      const avgReturn = returns.reduce((a, b) => a + b, 0) / returns.length
+      const variance = returns.reduce((a, b) => a + Math.pow(b - avgReturn, 2), 0) / returns.length
+      const volatility = Math.sqrt(variance)
+
+      return { current, history: prices, volatility }
+    } catch (e) {
+      console.error('CoinGecko error:', e)
+    }
+  }
+
+  // Fallback: usar API interna
   try {
     const url = `/api/indicators?ticker=${ticker}&interval=1h&range=30d`
-    const response = await fetch(url, { 
+    const response = await fetch(url, {
       headers: { 'User-Agent': 'Mozilla/5.0' },
       next: { revalidate: 300 }
     })
-    
-    if (!response.ok) throw new Error('Yahoo API error')
-    
+
+    if (!response.ok) throw new Error('API error')
+
     const json = await response.json()
-    const result = json
-    
-    if (!result?.indicators?.quote?.[0]) throw new Error('No data')
-    
-    const closes = result.data.map((d: any) => d.close).filter((c: number | null) => c !== null) as number[]
+    if (!json?.data?.length) throw new Error('No data')
+
+    const closes = json.data.map((d: any) => d.close).filter((c: number | null) => c !== null) as number[]
     const current = closes[closes.length - 1]
-    
+
     const returns: number[] = []
     for (let i = 1; i < closes.length; i++) {
       returns.push((closes[i] - closes[i-1]) / closes[i-1])
@@ -78,23 +116,21 @@ async function fetchRealPriceData(ticker: string): Promise<{ current: number, hi
     const avgReturn = returns.reduce((a, b) => a + b, 0) / returns.length
     const variance = returns.reduce((a, b) => a + Math.pow(b - avgReturn, 2), 0) / returns.length
     const volatility = Math.sqrt(variance)
-    
+
     return { current, history: closes, volatility }
   } catch (error) {
     console.error('Error fetching price data:', error)
-    const d: Record<string, { price: number, vol: number }> = {
-      'BTC-USD': { price: 104000, vol: 0.025 },
-      'ETH-USD': { price: 3300, vol: 0.03 },
-      'SOL-USD': { price: 210, vol: 0.04 },
-      'AAPL': { price: 230, vol: 0.015 },
-      'MSFT': { price: 430, vol: 0.012 },
-      'NVDA': { price: 140, vol: 0.025 },
+    // Fallback con volatilidades típicas (el precio se intentará obtener de otra forma)
+    const defaultVol: Record<string, number> = {
+      'BTC': 0.025, 'BTC-USD': 0.025,
+      'ETH': 0.03, 'ETH-USD': 0.03,
+      'SOL': 0.04, 'SOL-USD': 0.04,
+      'AAPL': 0.015, 'MSFT': 0.012, 'NVDA': 0.025,
+      'GOOGL': 0.015, 'META': 0.02, 'TSLA': 0.035,
     }
-    const def = d[ticker] || { price: 100, vol: 0.02 }
-    const history: number[] = []
-    let price = def.price * 0.9
-    for (let i = 0; i < 180; i++) { price *= (1 + (Math.random() - 0.48) * def.vol); history.push(price) }
-    return { current: price, history, volatility: def.vol }
+    const vol = defaultVol[ticker] || 0.02
+    // Retornar 0 para indicar que no hay precio - la UI debe manejarlo
+    return { current: 0, history: [], volatility: vol }
   }
 }
 
