@@ -23,7 +23,7 @@ import type {
   SyncStatus,
   ConfigUpdatePayload
 } from '@/types'
-import { APP_VERSION, STRATEGY_DESCRIPTIONS } from '@/config/version'
+import { APP_VERSION, STRATEGY_DESCRIPTIONS, TRAILING_LABEL } from '@/config/version'
 
 // =====================================================
 // CONFIGURACIÓN INICIAL IRG (v5.0)
@@ -123,7 +123,7 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
     horizon: 'SWING',
     gatekeeper: 'BTC_REGIME', // v5.0: Swing usa BTC regime
     timeframes: { context: '1W', trend: '1D', entry: '4H' },
-    stops: { slAtrMult: 2.0, tpAtrMult: 4.0, trailing: "+2R → (n-1)R" },
+    stops: { slAtrMult: 2.0, tpAtrMult: 4.0, trailing: TRAILING_LABEL },
     entryFilters: {
       adxMin: 20,
       rsiMin: 40,
@@ -157,7 +157,7 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
     horizon: 'SWING',
     gatekeeper: 'BTC_REGIME', // v5.0: Swing usa BTC regime
     timeframes: { context: '1D', trend: '4H', entry: '1H' },
-    stops: { slAtrMult: 1.8, tpAtrMult: 3.6, trailing: "+2R → (n-1)R" },
+    stops: { slAtrMult: 1.8, tpAtrMult: 3.6, trailing: TRAILING_LABEL },
     entryFilters: {
       adxMin: 15,
       rsiMin: 35,
@@ -191,7 +191,7 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
     horizon: 'SWING',
     gatekeeper: 'BTC_REGIME', // Para stocks sería SPY_REGIME
     timeframes: { context: '1W', trend: '1D', entry: '4H' },
-    stops: { slAtrMult: 1.5, tpAtrMult: 3.0, trailing: "+2R → (n-1)R" },
+    stops: { slAtrMult: 1.5, tpAtrMult: 3.0, trailing: TRAILING_LABEL },
     entryFilters: {
       adxMin: 20,
       rsiMin: 40,
@@ -225,7 +225,7 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
     horizon: 'SWING',
     gatekeeper: 'BTC_REGIME',
     timeframes: { context: '1W', trend: '1D', entry: '1H' },
-    stops: { slAtrMult: 2.0, tpAtrMult: 5.0, trailing: "+2R → (n-1)R" },
+    stops: { slAtrMult: 2.0, tpAtrMult: 5.0, trailing: TRAILING_LABEL },
     entryFilters: {
       adxMin: 25,
       rsiMin: 40,

@@ -7,6 +7,7 @@ import { useTradingStore } from '@/stores/tradingStore'
 import { formatCurrency, formatPercent, formatNumber, formatRatio } from '@/lib/formatters'
 import { clsx } from 'clsx'
 import type { StrategyConfig } from '@/types'
+import { TRAILING_LABEL } from '@/config/version'
 
 function StrategyEditor({ strategy }: { strategy: StrategyConfig }) {
   const updateStrategy = useTradingStore(state => state.updateStrategy)
@@ -337,9 +338,9 @@ function StrategyEditor({ strategy }: { strategy: StrategyConfig }) {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">Trailing</label>
-                <p className="font-medium text-green-600">+2R → (n-1)R</p>
-                <p className="text-xs text-gray-500 mt-1">Activa a +2R, sube SL a (n-1)×R</p>
+                <label className="block text-sm font-medium text-gray-600 mb-1">Gestión de salida</label>
+                <p className="font-medium text-green-600">{TRAILING_LABEL}</p>
+                <p className="text-xs text-gray-500 mt-1">Sin TP fijo. 100% trailing.</p>
               </div>
             </div>
 
