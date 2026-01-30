@@ -126,15 +126,15 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
     stops: { slAtrMult: 2.0, tpAtrMult: 4.0, trailing: TRAILING_LABEL },
     entryFilters: {
       adxMin: 20,
-      rsiMin: 40,
+      rsiMin: 35,        // Relajado: era 40
       rsiMax: 70,
       emaFast: 20,
       emaMedium: 50,
       emaSlow: 200,
-      pullbackAtr: 0.5
+      pullbackAtr: 1.0   // Relajado: era 0.5 (permite pullbacks más profundos)
     },
     expectedPerformance: {
-      tradesPerMonth: '2-4',
+      tradesPerMonth: '4-8',  // Actualizado por filtros relajados
       winRate: '40-45%',
       riskReward: '2.0:1',
       annualReturn: '30-50%',
@@ -160,15 +160,15 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
     stops: { slAtrMult: 1.8, tpAtrMult: 3.6, trailing: TRAILING_LABEL },
     entryFilters: {
       adxMin: 15,
-      rsiMin: 35,
+      rsiMin: 30,        // Relajado: era 35
       rsiMax: 75,
       emaFast: 20,
       emaMedium: 50,
       emaSlow: 200,
-      pullbackAtr: 0.7
+      pullbackAtr: 1.0   // Relajado: era 0.7 (permite pullbacks más profundos)
     },
     expectedPerformance: {
-      tradesPerMonth: '15-25',
+      tradesPerMonth: '20-35',  // Actualizado por filtros relajados
       winRate: '35-40%',
       riskReward: '2.0:1',
       annualReturn: '60-100%',

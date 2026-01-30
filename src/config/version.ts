@@ -15,9 +15,9 @@ export const STRATEGY_DESCRIPTIONS = {
   // ESTRATEGIAS SWING - Usan trailing (n-1)R
   // =====================================================
 
-  crypto_core: `Estrategia swing conservadora para BTC y ETH. Análisis multi-timeframe: contexto semanal (1W), tendencia diaria (1D), entrada en 4H. Opera pullbacks a EMA20 en tendencia alcista. RSI 40-70. SL inicial: 2.0× ATR. Sin TP. Gestión 100% por SL dinámico (n−1)R desde +2R. Gatekeeper: BTC regime.`,
+  crypto_core: `Estrategia swing conservadora para BTC y ETH. Análisis multi-timeframe: contexto semanal (1W), tendencia diaria (1D), entrada en 4H. Opera pullbacks hasta 1.0× ATR a EMA20/EMA50. RSI 35-70. SL inicial: 2.0× ATR. Sin TP. Gestión 100% por SL dinámico (n−1)R desde +2R. Gatekeeper: BTC regime.`,
 
-  crypto_aggressive: `Estrategia swing oportunista para altcoins (SOL, AVAX, LINK, XRP). Contexto en 1D, tendencia 4H, entrada 1H. Pullback a EMA12. SL inicial: 1.8× ATR. Sin TP. Gestión 100% por SL dinámico (n−1)R desde +2R. Gatekeeper: BTC regime.`,
+  crypto_aggressive: `Estrategia swing oportunista para altcoins (SOL, AVAX, LINK, XRP). Contexto en 1D, tendencia 4H, entrada 1H. Pullbacks hasta 1.0× ATR. RSI 30-75. SL inicial: 1.8× ATR. Sin TP. Gestión 100% por SL dinámico (n−1)R desde +2R. Gatekeeper: BTC regime.`,
 
   large_caps: `Estrategia swing para blue chips S&P 500 (market cap >100B). Filtro macro: SPY alcista semanal. Entrada en 4H con RSI 40-65. SL inicial: 1.5× ATR. Sin TP. Gestión 100% por SL dinámico (n−1)R desde +2R. Gatekeeper: BTC regime.`,
 
