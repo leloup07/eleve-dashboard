@@ -8,6 +8,7 @@ import { StrategyCard } from '@/components/StrategyCard'
 import { OpenPositions } from '@/components/OpenPositions'
 import { formatCurrency, formatPercent, formatNumber } from '@/lib/formatters'
 import { clsx } from 'clsx'
+import { APP_VERSION } from '@/config/version'
 
 // TradingView Ticker Banner Component
 function TickerBanner({ symbols, title }: { symbols: { proName: string, title: string }[], title: string }) {
@@ -344,7 +345,7 @@ export default function HomePage() {
       
       {/* Footer */}
       <div className="text-center text-xs text-gray-400 py-4">
-        ELEVE v5.0 | {new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+        ELEVE {APP_VERSION} | {new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
       </div>
     </div>
   )

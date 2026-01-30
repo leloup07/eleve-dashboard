@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { clsx } from 'clsx'
 import { useTradingStore } from '@/stores/tradingStore'
 import { formatCapitalShort } from '@/lib/formatters'
+import { APP_VERSION } from '@/config/version'
 
 const navigation = [
   { name: 'Home', href: '/', icon: '🏠' },
@@ -49,7 +50,7 @@ export function Sidebar() {
     <>
       {/* Logo */}
       <div className="p-4 border-b border-white/10">
-        <h1 className="text-xl font-bold">🚀 ELEVE v5.0</h1>
+        <h1 className="text-xl font-bold">🚀 ELEVE {APP_VERSION}</h1>
         <p className="text-xs text-white/60 mt-1">6 Estrategias Activas</p>
       </div>
       
