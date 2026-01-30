@@ -83,7 +83,7 @@ export interface StrategyConfig {
   }
   stops: {
     slAtrMult: number
-    tpAtrMult: number
+    tpAtrMult: number; trailing?: string
   }
   entryFilters: {
     adxMin: number
@@ -235,7 +235,7 @@ export interface IntradayConfig {
   maxDailyProfit: number
   assets: string[]
   slAtrMult: number
-  tpAtrMult: number
+  tpAtrMult: number; trailing?: string
   asiaStartHour: number
   asiaEndHour: number
   tradingEndHour: number
