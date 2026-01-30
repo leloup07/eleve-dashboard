@@ -262,7 +262,7 @@ export function StrategyPage({ strategyKey }: StrategyPageProps) {
             <h4 className="font-semibold text-gray-700 mb-3">🎯 Stops</h4>
             <div className="space-y-2 text-sm">
               <p><span className="text-gray-500">Stop Loss:</span> {strategy.stops.slAtrMult}x ATR</p>
-              <p><span className="text-gray-500">Take Profit:</span> {strategy.stops.tpAtrMult}x ATR</p>
+              <p><span className="text-gray-500">Trailing:</span> +2R → (n-1)R</p>
               <p><span className="text-gray-500">Riesgo/Trade:</span> {formatPercent(strategy.riskPerTrade * 100, 2)}</p>
             </div>
           </div>
