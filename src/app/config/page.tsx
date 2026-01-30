@@ -337,31 +337,15 @@ function StrategyEditor({ strategy }: { strategy: StrategyConfig }) {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">Take Profit (ATR×)</label>
-                {editing ? (
-                  <input
-                    type="number"
-                    value={localConfig.stops.tpAtrMult}
-                    onChange={(e) => setLocalConfig({ 
-                      ...localConfig, 
-                      stops: { ...localConfig.stops, tpAtrMult: Number(e.target.value) }
-                    })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                    step="0.1"
-                    min="1"
-                    max="10"
-                  />
-                ) : (
-                  <p className="font-medium">{formatNumber(strategy.stops.tpAtrMult, 1)}x ATR</p>
-                )}
+                <label className="block text-sm font-medium text-gray-600 mb-1">Trailing</label>
+                <p className="font-medium text-green-600">+2R → (n-1)R</p>
+                <p className="text-xs text-gray-500 mt-1">Activa a +2R, sube SL a (n-1)×R</p>
               </div>
             </div>
-            
+
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">R:R Ratio</label>
-              <p className="font-medium text-blue-600 text-lg">
-                {formatRatio((editing ? localConfig : strategy).stops.tpAtrMult / (editing ? localConfig : strategy).stops.slAtrMult)}
-              </p>
+              <label className="block text-sm font-medium text-gray-600 mb-1">R:R Objetivo</label>
+              <p className="font-medium text-blue-600 text-lg">∞ (trailing)</p>
             </div>
             
             <h4 className="font-semibold text-gray-700 border-b pb-2 mt-6">📊 Timeframes</h4>
