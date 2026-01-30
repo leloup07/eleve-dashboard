@@ -1,5 +1,5 @@
 /**
- * ELEVE v4.3 - Trading Store con Sincronización
+ * ELEVE v5.0 - Trading Store con Sincronización
  * 
  * CAMBIO CLAVE: Cuando actualizas una estrategia en la UI,
  * automáticamente se sincroniza con el backend (Redis).
@@ -25,7 +25,7 @@ import type {
 } from '@/types'
 
 // =====================================================
-// CONFIGURACIÓN INICIAL IRG (v4.3)
+// CONFIGURACIÓN INICIAL IRG (v5.0)
 // =====================================================
 
 const INITIAL_IRG_CONFIG: IRGConfig = {
@@ -76,7 +76,7 @@ const INITIAL_INTRADAY_CONFIG: IntradayConfig = {
   asiaEndHour: 8,
   tradingEndHour: 20,
   scanInterval: 300,
-  useIRG: true // v4.3: Usa IRG
+  useIRG: true // v5.0: Usa IRG
 }
 
 const INITIAL_INTRADAY_1PCT_CONFIG: Intraday1PctConfig = {
@@ -98,20 +98,20 @@ const INITIAL_INTRADAY_1PCT_CONFIG: Intraday1PctConfig = {
   rsiMin: 40,
   rsiMax: 55,
   scanInterval: 300,
-  useIRG: true // v4.3: Usa IRG
+  useIRG: true // v5.0: Usa IRG
 }
 
 // =====================================================
-// ESTRATEGIAS INICIALES (v4.3)
+// ESTRATEGIAS INICIALES (v5.0)
 // =====================================================
 
 const INITIAL_STRATEGIES: StrategyConfig[] = [
   {
     key: 'crypto_core',
     name: 'Crypto Core',
-    version: 'v4.3',
+    version: 'v5.0',
     status: 'ACTIVE',
-    description: 'Estrategia swing conservadora para BTC y ETH. Captura tendencias largas en los activos más líquidos del mercado crypto usando análisis multi-timeframe: contexto semanal (1W) define régimen macro, diario (1D) confirma tendencia, y 4H determina entrada. Opera pullbacks a EMA20 en tendencia alcista confirmada. RSI 40-70 para evitar extremos. Stop loss a 2x ATR, take profit escalonado: 50% en 2.5x ATR, resto con trailing. Usa BTC regime como gatekeeper.',
+    description: 'Estrategia swing conservadora para BTC y ETH. Captura tendencias largas en los activos más líquidos del mercado crypto usando análisis multi-timeframe: contexto semanal (1W) define régimen macro, diario (1D) confirma tendencia, y 4H determina entrada. Opera pullbacks a EMA20 en tendencia alcista confirmada. RSI 40-70 para evitar extremos. Stop loss a 2x ATR, trailing SL activado a +2R usando fórmula (n-1)R. Usa BTC regime como gatekeeper.',
     capital: 0,
     riskPerTrade: 0,
     maxPositions: 0,
@@ -120,7 +120,7 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
     assets: ['BTC', 'ETH'],
     assetDescription: 'BTC (60%) + ETH (40%)',
     horizon: 'SWING',
-    gatekeeper: 'BTC_REGIME', // v4.3: Swing usa BTC regime
+    gatekeeper: 'BTC_REGIME', // v5.0: Swing usa BTC regime
     timeframes: { context: '1W', trend: '1D', entry: '4H' },
     stops: { slAtrMult: 2.0, tpAtrMult: 4.0, trailing: "+2R → (n-1)R" },
     entryFilters: {
@@ -143,9 +143,9 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
   {
     key: 'crypto_aggressive',
     name: 'Crypto Aggressive',
-    version: 'v4.3',
+    version: 'v5.0',
     status: 'ACTIVE',
-    description: 'Estrategia swing oportunista para altcoins de alta liquidez (SOL, AVAX, LINK, XRP). Caza rotaciones y movimientos intermedios con mayor frecuencia que Core. Contexto lo marca BTC en diario; si BTC alcista, altcoins siguen con beta amplificado. Análisis en 4H con EMAs rápidas (12/26), entrada en 1H en pullback a EMA12. Stops amplios (2.5x ATR) por volatilidad de altcoins. TP agresivo a 5x ATR. Usa BTC regime como gatekeeper.',
+    description: 'Estrategia swing oportunista para altcoins de alta liquidez (SOL, AVAX, LINK, XRP). Caza rotaciones y movimientos intermedios con mayor frecuencia que Core. Contexto lo marca BTC en diario; si BTC alcista, altcoins siguen con beta amplificado. Análisis en 4H con EMAs rápidas (12/26), entrada en 1H en pullback a EMA12. Stops amplios por volatilidad de altcoins. Trailing SL activado a +2R usando fórmula (n-1)R. Usa BTC regime como gatekeeper.',
     capital: 0,
     riskPerTrade: 0,
     maxPositions: 0,
@@ -154,7 +154,7 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
     assets: ['SOL', 'XRP', 'AVAX', 'LINK'],
     assetDescription: 'SOL, XRP, AVAX, LINK (máx 3 posiciones)',
     horizon: 'SWING',
-    gatekeeper: 'BTC_REGIME', // v4.3: Swing usa BTC regime
+    gatekeeper: 'BTC_REGIME', // v5.0: Swing usa BTC regime
     timeframes: { context: '1D', trend: '4H', entry: '1H' },
     stops: { slAtrMult: 1.8, tpAtrMult: 3.6, trailing: "+2R → (n-1)R" },
     entryFilters: {
@@ -177,9 +177,9 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
   {
     key: 'large_caps',
     name: 'Large Caps',
-    version: 'v4.3',
+    version: 'v5.0',
     status: 'ACTIVE',
-    description: 'Estrategia swing para acciones blue chip del S&P 500 (top 50 por market cap >100B). Filtro macro: SPY debe estar en tendencia alcista semanal. Análisis individual en diario buscando estructura HH-HL con precio sobre EMA20. Entrada en 4H cuando precio retrocede a zona de valor con RSI 40-65. Stops más ajustados (1.8x ATR) por menor volatilidad que crypto. TP a 3.5x ATR. Usa BTC regime como gatekeeper.',
+    description: 'Estrategia swing para acciones blue chip del S&P 500 (top 50 por market cap >100B). Filtro macro: SPY debe estar en tendencia alcista semanal. Análisis individual en diario buscando estructura HH-HL con precio sobre EMA20. Entrada en 4H cuando precio retrocede a zona de valor con RSI 40-65. Stops más ajustados por menor volatilidad que crypto. Trailing SL activado a +2R usando fórmula (n-1)R. Usa BTC regime como gatekeeper.',
     capital: 0,
     riskPerTrade: 0,
     maxPositions: 0,
@@ -211,9 +211,9 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
   {
     key: 'small_caps',
     name: 'Small Caps',
-    version: 'v4.3',
+    version: 'v5.0',
     status: 'ACTIVE',
-    description: 'Estrategia swing momentum para small caps del Russell 2000 (market cap 1B-10B). Busca impulsos parabólicos con filtros exigentes: ADX >25, RSI 40-65, pullback corto (0.5x ATR). Filtro macro: IWM en tendencia alcista. Stops a 2x ATR, TP agresivo a 5x ATR. Gestión diferencial por régimen: en TREND mantiene 100% con trailing amplio (2.5x ATR) para capturar movimientos de +8R a +12R. Usa BTC regime como gatekeeper.',
+    description: 'Estrategia swing momentum para small caps del Russell 2000 (market cap 1B-10B). Busca impulsos parabólicos con filtros exigentes: ADX >25, RSI 40-65, pullback corto (0.5x ATR). Filtro macro: IWM en tendencia alcista. Stops a 2x ATR. Trailing SL activado a +2R usando fórmula (n-1)R para capturar movimientos largos. Usa BTC regime como gatekeeper.',
     capital: 0,
     riskPerTrade: 0,
     maxPositions: 0,
@@ -245,7 +245,7 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
   {
     key: 'vwap_reversion',
     name: 'VWAP Reversion',
-    version: 'v4.3',
+    version: 'v5.0',
     status: 'ACTIVE',
     description: 'Estrategia intraday mean-reversion. Opera fake breaks del rango asiático (00:00-08:00 UTC) que revierten al VWAP. Busca sobre-extensiones de más de 1 ATR respecto al VWAP en BTC y ETH. SL a 1.2x ATR, TP a 1.5x ATR. Límites diarios: -1% pérdida máxima, +1.5% target. Sin trailing, filosofía cobrar y fuera. USA IRG COMO GATEKEEPER.',
     capital: 0,
@@ -256,7 +256,7 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
     assets: ['BTC-USD', 'ETH-USD'],
     assetDescription: 'BTC y ETH (sesión asiática)',
     horizon: 'INTRADAY',
-    gatekeeper: 'IRG', // v4.3: Intraday usa IRG
+    gatekeeper: 'IRG', // v5.0: Intraday usa IRG
     timeframes: { context: '15m', trend: '5m', entry: '5m' },
     stops: { slAtrMult: 1.2, tpAtrMult: 1.5 },
     entryFilters: {
@@ -279,7 +279,7 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
   {
     key: 'one_percent_spot',
     name: '1% Spot',
-    version: 'v4.3',
+    version: 'v5.0',
     status: 'ACTIVE',
     description: 'Estrategia intraday trend-following. Busca +1% rápidos en altcoins con momentum limpio. Filtros: market cap >$300M, volumen 24h >$50M, ratio vol/mcap >0.15, ADX >20, RSI 40-55. TP fijo +1%, SL -0.5% (R:R 2:1). Mueve a BE en +0.6%. Límites diarios: -1.5% pérdida, +3% target. USA IRG COMO GATEKEEPER.',
     capital: 0,
@@ -290,7 +290,7 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
     assets: ['SOL-USD', 'XRP-USD', 'AVAX-USD', 'LINK-USD', 'DOT-USD'],
     assetDescription: 'Altcoins >$300M market cap',
     horizon: 'INTRADAY',
-    gatekeeper: 'IRG', // v4.3: Intraday usa IRG
+    gatekeeper: 'IRG', // v5.0: Intraday usa IRG
     timeframes: { context: '1H', trend: '15m', entry: '5m' },
     stops: { slAtrMult: 0.5, tpAtrMult: 1.0 },
     entryFilters: {
@@ -509,7 +509,7 @@ export const useTradingStore = create<TradingStore>()(
         return state.strategies.some(s => s.mode === 'live') ? 'live' : 'paper'
       },
       
-      // v4.3: Filtrar estrategias por horizonte
+      // v5.0: Filtrar estrategias por horizonte
       getSwingStrategies: () => {
         return get().strategies.filter(s => s.horizon === 'SWING')
       },

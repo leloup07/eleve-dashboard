@@ -3,7 +3,7 @@ import './globals.css'
 import { Sidebar } from '@/components/Sidebar'
 
 export const metadata: Metadata = {
-  title: 'ELEVE Trading Dashboard v4.3',
+  title: 'ELEVE Trading Dashboard v5.0',
   description: 'Plataforma de trading automatizado con 6 estrategias activas',
 }
 

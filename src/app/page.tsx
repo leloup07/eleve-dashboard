@@ -344,7 +344,7 @@ export default function HomePage() {
       
       {/* Footer */}
       <div className="text-center text-xs text-gray-400 py-4">
-        ELEVE v4.3 | {new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+        ELEVE v5.0 | {new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
       </div>
     </div>
   )
