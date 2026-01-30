@@ -49,7 +49,7 @@ export function Sidebar() {
     <>
       {/* Logo */}
       <div className="p-4 border-b border-white/10">
-        <h1 className="text-xl font-bold">🚀 ELEVE v4.3</h1>
+        <h1 className="text-xl font-bold">🚀 ELEVE v5.0</h1>
         <p className="text-xs text-white/60 mt-1">6 Estrategias Activas</p>
       </div>
       
