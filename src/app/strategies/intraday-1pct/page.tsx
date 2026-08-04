@@ -307,7 +307,7 @@ export default function Intraday1PctPage() {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <div className="card text-center p-4">
           <p className="text-xs text-gray-500">Capital</p>
-          <p className="text-xl font-bold">${config.capital.toLocaleString()}</p>
+          <p className="text-xl font-bold">${(config.capital ?? 0).toLocaleString()}</p>
         </div>
         <div className="card text-center p-4">
           <p className="text-xs text-gray-500">PnL Hoy</p>

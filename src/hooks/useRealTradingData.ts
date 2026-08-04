@@ -139,9 +139,13 @@ export function useRealTradingData(autoRefreshMs = 30000) {
         }
         if (configJson.data?.strategies) {
           Object.entries(configJson.data.strategies).forEach(([key, config]: [string, any]) => {
-            if (config.capital) {
+            const updates: any = {}
+            if (config.capital !== undefined) updates.capital = config.capital
+            if (config.riskPerTrade !== undefined) updates.riskPerTrade = config.riskPerTrade
+            if (config.maxPositions !== undefined) updates.maxPositions = config.maxPositions
+            if (Object.keys(updates).length > 0) {
               const store = useTradingStore.getState()
-              store.updateStrategy(key, { capital: config.capital })
+              store.updateStrategy(key, updates)
             }
           })
         }

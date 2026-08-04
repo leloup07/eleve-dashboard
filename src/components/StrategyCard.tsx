@@ -23,7 +23,8 @@ export function StrategyCard({ strategy }: StrategyCardProps) {
   // Calcular equity: capital inicial + PnL realizado
   const currentEquity = performance.currentEquity
   const totalPnL = performance.pnl + performance.unrealizedPnL
-  const pnlPercent = strategy.capital > 0 ? (totalPnL / strategy.capital) * 100 : 0
+  const pnlPercent = strategy.capital && strategy.capital > 0 ? (totalPnL / strategy.capital) * 100 : 0
+  const isLoadingCapital = strategy.capital === null || strategy.capital === undefined
   
   const getStatusDisplay = () => {
     if (!strategy.enabled) {
@@ -90,7 +91,7 @@ export function StrategyCard({ strategy }: StrategyCardProps) {
         <div className="flex justify-between items-center">
           <div>
             <span className="text-xs text-gray-500 uppercase block">Equity Actual</span>
-            <p className="text-xl font-bold text-gray-900">{formatCurrency(currentEquity, 0)}</p>
+            <p className="text-xl font-bold text-gray-900">{isLoadingCapital ? 'Cargando...' : formatCurrency(currentEquity, 0)}</p>
           </div>
           {totalPnL !== 0 && (
             <div className="text-right">
@@ -126,11 +127,11 @@ export function StrategyCard({ strategy }: StrategyCardProps) {
       <div className="grid grid-cols-4 gap-2 mb-3 text-center">
         <div>
           <span className="text-[10px] text-gray-500 uppercase block">Inicial</span>
-          <p className="text-sm font-medium text-gray-600">{formatCurrency(strategy.capital, 0)}</p>
+          <p className="text-sm font-medium text-gray-600">{isLoadingCapital ? '...' : formatCurrency(strategy.capital, 0)}</p>
         </div>
         <div>
           <span className="text-[10px] text-gray-500 uppercase block">Max</span>
-          <p className="text-sm font-bold text-gray-900">{strategy.maxPositions}</p>
+          <p className="text-sm font-bold text-gray-900">{strategy.maxPositions ?? '...'}</p>
         </div>
         <div>
           <span className="text-[10px] text-gray-500 uppercase block">R:R</span>
@@ -140,7 +141,7 @@ export function StrategyCard({ strategy }: StrategyCardProps) {
           <span className="text-[10px] text-gray-500 uppercase block">Pos</span>
           <p className="text-sm font-bold text-gray-900">
             <span className={positions.length > 0 ? 'text-blue-600' : ''}>{positions.length}</span>
-            <span className="text-gray-400">/{strategy.maxPositions}</span>
+            <span className="text-gray-400">/{strategy.maxPositions ?? '...'}</span>
           </p>
         </div>
       </div>

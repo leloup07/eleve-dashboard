@@ -41,10 +41,10 @@ export function Sidebar() {
   
   const cryptoCapital = (intradayConfig?.capital || 0) + (intraday1PctConfig?.capital || 0) + strategies
     .filter(s => s.key.includes('crypto'))
-    .reduce((sum, s) => sum + s.capital, 0)
+    .reduce((sum, s) => sum + (s.capital || 0), 0)
   const stocksCapital = strategies.filter(s => s.key.includes('caps'))
     .filter(s => !s.key.includes('crypto'))
-    .reduce((sum, s) => sum + s.capital, 0)
+    .reduce((sum, s) => sum + (s.capital || 0), 0)
 
   const SidebarContent = () => (
     <>

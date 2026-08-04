@@ -64,9 +64,9 @@ export interface StrategyConfig {
   version: string
   status: StrategyStatus
   description: string
-  capital: number
-  riskPerTrade: number
-  maxPositions: number
+  capital: number | null
+  riskPerTrade: number | null
+  maxPositions: number | null
   mode: TradingMode
   enabled: boolean
   assets: string[]
@@ -228,9 +228,9 @@ export interface StrategyPerformance {
 export interface IntradayConfig {
   enabled: boolean
   mode: 'paper' | 'live'
-  capital: number
-  riskPerTrade: number
-  maxPositions: number
+  capital: number | null
+  riskPerTrade: number | null
+  maxPositions: number | null
   maxDailyLoss: number
   maxDailyProfit: number
   assets: string[]
@@ -247,9 +247,9 @@ export interface IntradayConfig {
 export interface Intraday1PctConfig {
   enabled: boolean
   mode: 'paper' | 'live'
-  capital: number
-  riskPerTrade: number
-  maxPositions: number
+  capital: number | null
+  riskPerTrade: number | null
+  maxPositions: number | null
   maxDailyLoss: number
   maxDailyProfit: number
   tpPercent: number

@@ -65,9 +65,9 @@ const INITIAL_IRG_STATE: IRGState = {
 const INITIAL_INTRADAY_CONFIG: IntradayConfig = {
   enabled: true,
   mode: 'paper',
-  capital: 0,
-  riskPerTrade: 0,
-  maxPositions: 0,
+  capital: null,
+  riskPerTrade: null,
+  maxPositions: null,
   maxDailyLoss: 0.01,
   maxDailyProfit: 0.015,
   assets: ['BTC-USD', 'ETH-USD'],
@@ -83,9 +83,9 @@ const INITIAL_INTRADAY_CONFIG: IntradayConfig = {
 const INITIAL_INTRADAY_1PCT_CONFIG: Intraday1PctConfig = {
   enabled: true,
   mode: 'paper',
-  capital: 0,
-  riskPerTrade: 0,
-  maxPositions: 0,
+  capital: null,
+  riskPerTrade: null,
+  maxPositions: null,
   maxDailyLoss: 0.015,
   maxDailyProfit: 0.03,
   tpPercent: 0.01,
@@ -113,9 +113,9 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
     version: APP_VERSION,
     status: 'ACTIVE',
     description: STRATEGY_DESCRIPTIONS.crypto_core,
-    capital: 7500,
-    riskPerTrade: 0.01,
-    maxPositions: 2,
+    capital: null,
+    riskPerTrade: null,
+    maxPositions: null,
     mode: 'paper',
     enabled: true,
     assets: ['BTC', 'ETH'],
@@ -147,9 +147,9 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
     version: APP_VERSION,
     status: 'ACTIVE',
     description: STRATEGY_DESCRIPTIONS.crypto_aggressive,
-    capital: 7500,
-    riskPerTrade: 0.01,
-    maxPositions: 3,
+    capital: null,
+    riskPerTrade: null,
+    maxPositions: null,
     mode: 'paper',
     enabled: true,
     assets: ['SOL', 'XRP', 'AVAX', 'LINK'],
@@ -181,9 +181,9 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
     version: APP_VERSION,
     status: 'ACTIVE',
     description: STRATEGY_DESCRIPTIONS.large_caps,
-    capital: 7500,
-    riskPerTrade: 0.01,
-    maxPositions: 4,
+    capital: null,
+    riskPerTrade: null,
+    maxPositions: null,
     mode: 'paper',
     enabled: true,
     assets: ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOGL', 'META', 'TSLA'],
@@ -215,9 +215,9 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
     version: APP_VERSION,
     status: 'ACTIVE',
     description: STRATEGY_DESCRIPTIONS.small_caps,
-    capital: 7500,
-    riskPerTrade: 0.015,
-    maxPositions: 4,
+    capital: null,
+    riskPerTrade: null,
+    maxPositions: null,
     mode: 'paper',
     enabled: true,
     assets: ['BROS', 'HIMS', 'OSCR', 'DOCS', 'FIVE', 'WING', 'ANF', 'PGNY'],
@@ -249,9 +249,9 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
     version: 'v5.0',
     status: 'ACTIVE',
     description: 'Estrategia intraday mean-reversion. Opera fake breaks del rango asiático (00:00-08:00 UTC) que revierten al VWAP. Busca sobre-extensiones de más de 1 ATR respecto al VWAP en BTC y ETH. SL a 1.2x ATR, TP a 1.5x ATR. Límites diarios: -1% pérdida máxima, +1.5% target. Sin trailing, filosofía cobrar y fuera. USA IRG COMO GATEKEEPER.',
-    capital: 0,
-    riskPerTrade: 0,
-    maxPositions: 0,
+    capital: null,
+    riskPerTrade: null,
+    maxPositions: null,
     mode: 'paper',
     enabled: true,
     assets: ['BTC-USD', 'ETH-USD'],
@@ -283,9 +283,9 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
     version: 'v5.0',
     status: 'ACTIVE',
     description: 'Estrategia intraday trend-following. Busca +1% rápidos en altcoins con momentum limpio. Filtros: market cap >$300M, volumen 24h >$50M, ratio vol/mcap >0.15, ADX >20, RSI 40-55. TP fijo +1%, SL -0.5% (R:R 2:1). Mueve a BE en +0.6%. Límites diarios: -1.5% pérdida, +3% target. USA IRG COMO GATEKEEPER.',
-    capital: 0,
-    riskPerTrade: 0,
-    maxPositions: 0,
+    capital: null,
+    riskPerTrade: null,
+    maxPositions: null,
     mode: 'paper',
     enabled: true,
     assets: ['SOL-USD', 'XRP-USD', 'AVAX-USD', 'LINK-USD', 'DOT-USD'],
@@ -424,13 +424,13 @@ export const useTradingStore = create<TradingStore>()(
       getDashboardStats: () => {
         const state = get()
         
-        const initialCapital = state.strategies.filter(s => !s.key.includes("vwap") && !s.key.includes("one_percent")).reduce((sum, s) => sum + s.capital, 0) + (state.intradayConfig?.capital || 0) + (state.intraday1PctConfig?.capital || 0)
+        const initialCapital = state.strategies.filter(s => !s.key.includes("vwap") && !s.key.includes("one_percent")).reduce((sum, s) => sum + (s.capital || 0), 0) + (state.intradayConfig?.capital || 0) + (state.intraday1PctConfig?.capital || 0)
         const cryptoInitial = (state.intradayConfig?.capital || 0) + (state.intraday1PctConfig?.capital || 0) + state.strategies
           .filter(s => s.key.includes('crypto'))
-          .reduce((sum, s) => sum + s.capital, 0)
+          .reduce((sum, s) => sum + (s.capital || 0), 0)
         const stocksInitial = state.strategies
           .filter(s => s.key.includes('caps'))
-          .reduce((sum, s) => sum + s.capital, 0)
+          .reduce((sum, s) => sum + (s.capital || 0), 0)
         
         const totalRealizedPnL = state.trades.reduce((sum, t) => sum + t.pnl, 0)
         const totalUnrealizedPnL = state.positions.reduce((sum, p) => sum + (p.unrealizedPnL || 0), 0)

@@ -266,7 +266,7 @@ function StrategyEditor({ strategy }: { strategy: StrategyConfig }) {
               {editing ? (
                 <input
                   type="number"
-                  value={localConfig.capital}
+                  value={localConfig.capital ?? ''}
                   onChange={(e) => setLocalConfig({ ...localConfig, capital: Number(e.target.value) })}
                   className="w-full px-3 py-2 border rounded-lg"
                   step="1000"
@@ -282,7 +282,7 @@ function StrategyEditor({ strategy }: { strategy: StrategyConfig }) {
                 {editing ? (
                   <input
                     type="number"
-                    value={(localConfig.riskPerTrade * 100).toFixed(2)}
+                    value={((localConfig.riskPerTrade ?? 0) * 100).toFixed(2)}
                     onChange={(e) => setLocalConfig({ ...localConfig, riskPerTrade: Number(e.target.value) / 100 })}
                     className="w-full px-3 py-2 border rounded-lg"
                     step="0.25"
@@ -290,7 +290,7 @@ function StrategyEditor({ strategy }: { strategy: StrategyConfig }) {
                     max="5"
                   />
                 ) : (
-                  <p className="font-medium">{(strategy.riskPerTrade * 100).toFixed(2)}%</p>
+                  <p className="font-medium">{((strategy.riskPerTrade ?? 0) * 100).toFixed(2)}%</p>
                 )}
               </div>
               
@@ -299,7 +299,7 @@ function StrategyEditor({ strategy }: { strategy: StrategyConfig }) {
                 {editing ? (
                   <input
                     type="number"
-                    value={localConfig.maxPositions}
+                    value={localConfig.maxPositions ?? ''}
                     onChange={(e) => setLocalConfig({ ...localConfig, maxPositions: Number(e.target.value) })}
                     className="w-full px-3 py-2 border rounded-lg"
                     min="1"
@@ -807,12 +807,12 @@ function IntradayEditor() {
               {editing ? (
                 <input
                   type="number"
-                  value={localConfig.capital}
+                  value={localConfig.capital ?? ''}
                   onChange={(e) => setLocalConfig({...localConfig, capital: Number(e.target.value)})}
                   className="w-full px-3 py-2 border rounded-lg"
                 />
               ) : (
-                <p className="font-mono">${intradayConfig.capital.toLocaleString()}</p>
+                <p className="font-mono">${(intradayConfig.capital ?? 0).toLocaleString()}</p>
               )}
             </div>
             <div>
@@ -821,12 +821,12 @@ function IntradayEditor() {
                 <input
                   type="number"
                   step="0.001"
-                  value={localConfig.riskPerTrade}
+                  value={localConfig.riskPerTrade ?? ''}
                   onChange={(e) => setLocalConfig({...localConfig, riskPerTrade: Number(e.target.value)})}
                   className="w-full px-3 py-2 border rounded-lg"
                 />
               ) : (
-                <p className="font-mono">{(intradayConfig.riskPerTrade * 100).toFixed(1)}%</p>
+                <p className="font-mono">{((intradayConfig.riskPerTrade ?? 0) * 100).toFixed(1)}%</p>
               )}
             </div>
             <div>
@@ -834,7 +834,7 @@ function IntradayEditor() {
               {editing ? (
                 <input
                   type="number"
-                  value={localConfig.maxPositions}
+                  value={localConfig.maxPositions ?? ''}
                   onChange={(e) => setLocalConfig({...localConfig, maxPositions: Number(e.target.value)})}
                   className="w-full px-3 py-2 border rounded-lg"
                 />
@@ -1162,12 +1162,12 @@ function Intraday1PctEditor() {
               {editing ? (
                 <input
                   type="number"
-                  value={localConfig.capital}
+                  value={localConfig.capital ?? ''}
                   onChange={(e) => setLocalConfig({...localConfig, capital: Number(e.target.value)})}
                   className="w-full px-3 py-2 border rounded-lg"
                 />
               ) : (
-                <p className="font-mono">${config.capital.toLocaleString()}</p>
+                <p className="font-mono">${(config.capital ?? 0).toLocaleString()}</p>
               )}
             </div>
             <div>
@@ -1176,12 +1176,12 @@ function Intraday1PctEditor() {
                 <input
                   type="number"
                   step="0.001"
-                  value={localConfig.riskPerTrade}
+                  value={localConfig.riskPerTrade ?? ''}
                   onChange={(e) => setLocalConfig({...localConfig, riskPerTrade: Number(e.target.value)})}
                   className="w-full px-3 py-2 border rounded-lg"
                 />
               ) : (
-                <p className="font-mono">{(config.riskPerTrade * 100).toFixed(1)}%</p>
+                <p className="font-mono">{((config.riskPerTrade ?? 0) * 100).toFixed(1)}%</p>
               )}
             </div>
             <div>
@@ -1189,7 +1189,7 @@ function Intraday1PctEditor() {
               {editing ? (
                 <input
                   type="number"
-                  value={localConfig.maxPositions}
+                  value={localConfig.maxPositions ?? ''}
                   onChange={(e) => setLocalConfig({...localConfig, maxPositions: Number(e.target.value)})}
                   className="w-full px-3 py-2 border rounded-lg"
                 />
