@@ -74,8 +74,11 @@ export async function POST(request: Request) {
       } catch {}
     }
     
-    // Actualizar la estrategia específica
+    // Actualizar la estrategia específica SIN destruir lo que no venga en el
+    // formulario: antes esto reemplazaba el objeto entero, así que guardar una
+    // ficha podía borrar campos que el worker sí lee (entryFilters, stops...).
     allConfigs[key] = {
+      ...(allConfigs[key] as Record<string, unknown> || {}),
       ...config,
       updatedAt: new Date().toISOString()
     }

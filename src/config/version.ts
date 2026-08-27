@@ -17,11 +17,11 @@ export const STRATEGY_DESCRIPTIONS = {
 
   crypto_core: `Estrategia swing conservadora para BTC y ETH. Análisis multi-timeframe: contexto semanal (1W), tendencia diaria (1D), entrada en 4H. Opera pullbacks hasta 1.0× ATR a EMA20/EMA50. RSI 35-70. SL inicial: 2.0× ATR. Sin TP. Gestión 100% por SL dinámico (n−1)R desde +2R. Gatekeeper: BTC regime.`,
 
-  crypto_aggressive: `Estrategia swing oportunista para altcoins (SOL, AVAX, LINK, XRP). Contexto en 1D, tendencia 4H, entrada 1H. Pullbacks hasta 1.0× ATR. RSI 30-75. SL inicial: 1.8× ATR. Sin TP. Gestión 100% por SL dinámico (n−1)R desde +2R. Gatekeeper: BTC regime.`,
+  crypto_aggressive: `Estrategia swing oportunista para altcoins (SOL, AVAX, LINK, XRP). Contexto en 1D, tendencia 4H, entrada 1H. Pullbacks hasta 1.0× ATR. RSI 30-75. SL inicial: 2.0× ATR. Sin TP. Gestión 100% por SL dinámico (n−1)R desde +2R. Gatekeeper: BTC regime.`,
 
-  large_caps: `Estrategia swing para blue chips S&P 500 (market cap >100B). Filtro macro: SPY alcista semanal. Entrada en 4H con RSI 40-65. SL inicial: 1.5× ATR. Sin TP. Gestión 100% por SL dinámico (n−1)R desde +2R. Gatekeeper: BTC regime.`,
+  large_caps: `Estrategia swing para blue chips S&P 500 (market cap >100B). Filtro macro: SPY alcista semanal. Entrada en 1H con RSI 30-70, sin filtro ADX ni de pullback. SL inicial: 2.0× ATR. Sin TP. Gestión 100% por SL dinámico (n−1)R desde +2R. Gatekeeper: BTC regime.`,
 
-  small_caps: `Estrategia swing momentum para small caps Russell 2000 (market cap 1B-10B). Filtros: ADX >25, RSI 40-65. Filtro macro: IWM alcista. SL inicial: 2.0× ATR. Sin TP. Gestión 100% por SL dinámico (n−1)R desde +2R. Gatekeeper: BTC regime.`,
+  small_caps: `Estrategia swing momentum para small caps Russell 2000 (market cap 1B-10B). Filtros: RSI 30-70, sin filtro ADX ni de pullback. Filtro macro: IWM alcista. SL inicial: 2.0× ATR. Sin TP. Gestión 100% por SL dinámico (n−1)R desde +2R. Gatekeeper: BTC regime.`,
 
   // =====================================================
   // ESTRATEGIAS INTRADAY - NO usan trailing por R

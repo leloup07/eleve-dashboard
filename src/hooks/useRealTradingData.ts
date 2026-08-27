@@ -169,6 +169,12 @@ export function useRealTradingData(autoRefreshMs = 30000) {
             if (config.capital !== undefined) updates.capital = config.capital
             if (config.riskPerTrade !== undefined) updates.riskPerTrade = config.riskPerTrade
             if (config.maxPositions !== undefined) updates.maxPositions = config.maxPositions
+            // Filtros y stops: Redis es la fuente de verdad, es lo que lee el worker.
+            // Sin esto la ficha mostraba los valores hardcodeados de INITIAL_STRATEGIES,
+            // que no coincidian con lo que realmente se ejecuta.
+            if (config.entryFilters !== undefined) updates.entryFilters = config.entryFilters
+            if (config.stops !== undefined) updates.stops = config.stops
+            if (config.description !== undefined) updates.description = config.description
             if (Object.keys(updates).length > 0) {
               // Hidratación local: NO usar updateStrategy(), que hace POST de vuelta a Redis
               // y convierte cada refresco en un ciclo lectura→escritura.
