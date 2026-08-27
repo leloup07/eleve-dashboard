@@ -32,9 +32,9 @@ export const STRATEGY_DESCRIPTIONS = {
   // ESTRATEGIAS INTRADAY - NO usan trailing por R
   // =====================================================
 
-  vwap_reversion: `Mean-reversion tras fake breaks del rango asiático (00:00-08:00 UTC), operando de 8:00 a 20:00 UTC. Sin trailing: cobrar y fuera.`,
+  vwap_reversion: `Mean-reversion tras fake breaks del rango asiático (00:00-08:00 UTC), operando de 8:00 a 20:00 UTC. Sin trailing: cobrar y fuera. Sin gatekeeper de régimen: sus puertas son el horario, el veto por RSI extremo y los límites diarios.`,
 
-  intraday_1pct: `Spot momentum sobre altcoins con filtros estrictos de liquidez y TP/SL fijos. Mueve el stop a breakeven cuando el trade avanza. Sin trailing por R.`
+  intraday_1pct: `Spot momentum sobre altcoins con filtros estrictos de liquidez (market cap, volumen 24h y ratio vol/mcap) y TP/SL fijos. Mueve el stop a breakeven, costes incluidos, cuando el trade avanza. Gatekeeper: ADX de BTC en 1H.`
 } as const
 
 // Para TypeScript

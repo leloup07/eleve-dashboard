@@ -125,7 +125,7 @@ export function PositionRow({ position, expanded, onToggle }: PositionRowProps) 
           <div className="text-right">
             <span className="text-xs text-gray-500">PnL</span>
             <p className={clsx('font-bold', pnlColor)}>
-              {unrealizedPnL >= 0 ? '+' : ''}${Math.abs(unrealizedPnL).toFixed(0)}
+              {unrealizedPnL >= 0 ? '+' : '−'}${Math.abs(unrealizedPnL).toFixed(0)}
             </p>
           </div>
           <div className="text-right">

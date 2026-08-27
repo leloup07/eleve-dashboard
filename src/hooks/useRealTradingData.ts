@@ -65,6 +65,9 @@ export function useRealTradingData(autoRefreshMs = 30000) {
           unrealizedPnL: p.unrealized_pnl ?? 0,
           unrealizedPnLPercent: p.unrealized_pnl_percent ?? 0,
           maxPrice: p.max_price || p.entry,
+          // La tarjeta los pinta y el API los sirve, pero no se mapeaban: salían "—"
+          atr: p.atr ?? undefined,
+          riskPerShare: p.riskPerShare ?? p.risk_per_unit ?? undefined,
           partialTpTaken: p.partial_tp_taken || false,
           entryReason: p.reason || '',
           entryGrade: p.grade || 'B',
@@ -209,11 +212,17 @@ export function useRealTradingData(autoRefreshMs = 30000) {
                 ...(cfg.slPercent != null ? { slPercent: cfg.slPercent } : {}),
                 ...(cfg.tpPercent != null ? { tpPercent: cfg.tpPercent } : {})
               },
+              // Solo lo que su worker lee de verdad. Los valores de adxMin y
+              // pullbackAtr que traía el store eran de la plantilla swing: el
+              // worker VWAP no mira ADX ni pullback, y el del 1% tampoco usa
+              // un pullback configurable. Anunciar filtros que no se aplican
+              // es el mismo problema que teníamos con el IRG.
               entryFilters: {
                 ...s.entryFilters,
-                ...(cfg.rsiMin != null ? { rsiMin: cfg.rsiMin } : {}),
-                ...(cfg.rsiMax != null ? { rsiMax: cfg.rsiMax } : {}),
-                ...(cfg.minAdx != null ? { adxMin: cfg.minAdx } : {})
+                rsiMin: cfg.rsiMin ?? 0,
+                rsiMax: cfg.rsiMax ?? 100,
+                adxMin: cfg.minAdx ?? 0,
+                pullbackAtr: 0
               },
               costs: {
                 commissionPct: cfg.commissionPct ?? 0,
