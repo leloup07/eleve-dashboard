@@ -1429,7 +1429,7 @@ function Intraday1PctEditor() {
 
 export default function ConfigPage() {
   const experiment = useTradingStore(state => state.experiment)
-  useRealTradingData(0) // Carga de Redis al iniciar, sin auto-refresh
+  const { worker } = useRealTradingData(0) // Carga de Redis al iniciar, sin auto-refresh
   const strategies = useTradingStore(state => state.strategies)
   
   return (
@@ -1451,6 +1451,17 @@ export default function ConfigPage() {
             puede llegar al worker mientras dure: editarlos invalidaría la evidencia que este experimento
             está produciendo. Para cambiar una regla hay que crear una especificación nueva y activarla
             de forma explícita.
+          </p>
+          {worker?.commit && (
+            <p className="text-xs text-amber-700 mt-2 font-mono">
+              workers ejecutando el commit {worker.commit}
+              {worker.spec_ids && Object.keys(worker.spec_ids).length > 0 &&
+                ` · specs ${Object.entries(worker.spec_ids).map(([k, v]) => `${k}=${v}`).join(' ')}`}
+            </p>
+          )}
+          <p className="text-xs text-amber-700 mt-1">
+            Qué regla se aplicó a una decisión depende de dos cosas: la spec (los parámetros) y el
+            commit (el código que los interpreta). Sin las dos, un resultado no es reproducible.
           </p>
         </div>
       ) : (
