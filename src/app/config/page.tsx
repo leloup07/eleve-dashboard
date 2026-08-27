@@ -83,8 +83,7 @@ function StrategyEditor({ strategy }: { strategy: StrategyConfig }) {
   }
   
   const emoji = {
-    crypto_core: '💎',
-    crypto_aggressive: '⚡',
+    crypto_swing: '🪙',
     large_caps: '📈',
     small_caps: '🎯'
   }[strategy.key] || '📊'

@@ -40,7 +40,7 @@ const LARGE_CAPS = ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOGL', 'META', 'TSLA']
 const SMALL_CAPS = ['BROS', 'HIMS', 'OSCR', 'DOCS', 'FIVE', 'WING', 'ANF', 'PGNY']
 
 // Estrategias ELEVE
-type StrategyType = "crypto_core" | "crypto_aggressive" | "large_caps" | "small_caps"
+type StrategyType = "crypto_swing" | "large_caps" | "small_caps"
 
 interface StrategyInfo {
   name: string
@@ -51,41 +51,24 @@ interface StrategyInfo {
   conditions: { name: string; check: (data: OHLCData) => boolean; desc: string }[]
 }
 
-const CRYPTO_CORE_TICKERS = ["BTC-USD", "ETH-USD"]
-const CRYPTO_AGGRESSIVE_TICKERS = ["SOL-USD", "XRP-USD", "AVAX-USD", "LINK-USD", "ADA-USD", "DOT-USD"]
+// Universo de Crypto Swing (BTC, ETH y altcoins líquidas). Se usa CRYPTO_PAIRS
+// para que ningún par cripto que muestre la página caiga en la rama de acciones.
+const CRYPTO_SWING_TICKERS = CRYPTO_PAIRS
 
 function getApplicableStrategy(ticker: string, btcRegime: string = 'UNKNOWN', spyRegime: string = 'UNKNOWN'): StrategyInfo {
-  if (CRYPTO_CORE_TICKERS.includes(ticker)) {
+  if (CRYPTO_SWING_TICKERS.includes(ticker)) {
     return {
-      name: "Crypto Core",
-      type: "crypto_core",
-      timeframe: "1D / 4H",
-      capital: 15000,
-      description: "Estrategia swing conservadora para BTC y ETH. Pullbacks a EMA20 en tendencia alcista.",
+      name: "Crypto Swing",
+      type: "crypto_swing",
+      timeframe: "1D / 1H",
+      capital: 30000,
+      description: "Swing sobre BTC, ETH y altcoins líquidas. Régimen y momentum en diario, entrada en 1H sobre pullback a la EMA20.",
       conditions: [
-        { name: "Régimen BTC = BULL", check: () => btcRegime === "BULL", desc: "Régimen global de BTC" },
-        { name: "EMA20 > EMA50", check: (d) => d.ema20 > d.ema50, desc: "Tendencia alcista confirmada" },
-        { name: "RSI 40-60", check: (d) => d.rsi >= 40 && d.rsi <= 60, desc: "Momentum equilibrado" },
-        { name: "ADX > 20", check: (d) => d.adx > 20, desc: "Tendencia presente" },
-        { name: "Pullback a EMA20", check: (d) => Math.abs(d.close - d.ema20) / d.close < 0.02, desc: "Precio cerca de EMA20 (<2%)" },
-        { name: "ATR controlado", check: (d) => d.atr / d.close < 0.03, desc: "Volatilidad < 3%" }
-      ]
-    }
-  }
-  if (CRYPTO_AGGRESSIVE_TICKERS.includes(ticker)) {
-    return {
-      name: "Crypto Aggressive",
-      type: "crypto_aggressive",
-      timeframe: "4H / 1H",
-      capital: 15000,
-      description: "Estrategia swing para altcoins. Mayor frecuencia, beta amplificado respecto a BTC.",
-      conditions: [
-        { name: "BTC en tendencia", check: () => btcRegime === "BULL", desc: "Régimen global de BTC" },
-        { name: "EMA rápida > EMA lenta", check: (d) => d.ema20 > d.ema50, desc: "EMAs rápidas alcistas" },
-        { name: "RSI 40-65", check: (d) => d.rsi >= 40 && d.rsi <= 65, desc: "Sin sobrecompra" },
-        { name: "ADX > 22", check: (d) => d.adx > 22, desc: "Tendencia moderada" },
-        { name: "Volumen OK", check: (d) => d.volume > 0, desc: "Volumen sobre media" },
-        { name: "Correlación BTC", check: () => true, desc: "Correlación positiva con BTC" }
+        { name: "Régimen BTC ≠ BEAR", check: () => btcRegime !== "BEAR", desc: "Gatekeeper: régimen de BTC" },
+        { name: "EMA20 > EMA50 (1D)", check: (d) => d.ema20 > d.ema50, desc: "Tendencia alcista en diario" },
+        { name: "RSI 30-75", check: (d) => d.rsi >= 30 && d.rsi <= 75, desc: "Fuera de extremos" },
+        { name: "ADX ≥ 15", check: (d) => d.adx >= 15, desc: "Tendencia presente" },
+        { name: "Pullback ≤ 1× ATR", check: (d) => Math.abs(d.close - d.ema20) / d.atr <= 1.0, desc: "Cerca de la EMA20 medido en ATR" }
       ]
     }
   }
@@ -125,34 +108,18 @@ function getApplicableStrategy(ticker: string, btcRegime: string = 'UNKNOWN', sp
 
 function getStrategyByType(type: string, btcRegime: string = 'UNKNOWN', spyRegime: string = 'UNKNOWN'): StrategyInfo {
   const strategies: Record<string, StrategyInfo> = {
-    crypto_core: {
-      name: "Crypto Core",
-      type: "crypto_core",
-      timeframe: "1D / 4H",
-      capital: 15000,
-      description: "Estrategia swing conservadora para BTC y ETH. Pullbacks a EMA20 en tendencia alcista.",
+    crypto_swing: {
+      name: "Crypto Swing",
+      type: "crypto_swing",
+      timeframe: "1D / 1H",
+      capital: 30000,
+      description: "Swing sobre BTC, ETH y altcoins líquidas. Régimen y momentum en diario, entrada en 1H sobre pullback a la EMA20.",
       conditions: [
-        { name: "Régimen BTC = BULL", check: () => btcRegime === "BULL", desc: "Régimen global de BTC" },
-        { name: "EMA20 > EMA50", check: (d) => d.ema20 > d.ema50, desc: "Tendencia alcista confirmada" },
-        { name: "RSI 40-60", check: (d) => d.rsi >= 40 && d.rsi <= 60, desc: "Momentum equilibrado" },
-        { name: "ADX > 20", check: (d) => d.adx > 20, desc: "Tendencia presente" },
-        { name: "Pullback a EMA20", check: (d) => Math.abs(d.close - d.ema20) / d.close < 0.02, desc: "Precio cerca de EMA20 (<2%)" },
-        { name: "ATR controlado", check: (d) => d.atr / d.close < 0.03, desc: "Volatilidad < 3%" }
-      ]
-    },
-    crypto_aggressive: {
-      name: "Crypto Aggressive",
-      type: "crypto_aggressive",
-      timeframe: "4H / 1H",
-      capital: 15000,
-      description: "Estrategia swing para altcoins. Mayor frecuencia, beta amplificado respecto a BTC.",
-      conditions: [
-        { name: "BTC en tendencia", check: () => btcRegime === "BULL", desc: "Régimen global de BTC" },
-        { name: "EMA rápida > EMA lenta", check: (d) => d.ema20 > d.ema50, desc: "EMAs rápidas alcistas" },
-        { name: "RSI 40-65", check: (d) => d.rsi >= 40 && d.rsi <= 65, desc: "Sin sobrecompra" },
-        { name: "ADX > 22", check: (d) => d.adx > 22, desc: "Tendencia moderada" },
-        { name: "Volumen OK", check: (d) => d.volume > 0, desc: "Volumen sobre media" },
-        { name: "Correlación BTC", check: () => true, desc: "Correlación positiva con BTC" }
+        { name: "Régimen BTC ≠ BEAR", check: () => btcRegime !== "BEAR", desc: "Gatekeeper: régimen de BTC" },
+        { name: "EMA20 > EMA50 (1D)", check: (d) => d.ema20 > d.ema50, desc: "Tendencia alcista en diario" },
+        { name: "RSI 30-75", check: (d) => d.rsi >= 30 && d.rsi <= 75, desc: "Fuera de extremos" },
+        { name: "ADX ≥ 15", check: (d) => d.adx >= 15, desc: "Tendencia presente" },
+        { name: "Pullback ≤ 1× ATR", check: (d) => Math.abs(d.close - d.ema20) / d.atr <= 1.0, desc: "Cerca de la EMA20 medido en ATR" }
       ]
     },
     large_caps: {
@@ -201,7 +168,7 @@ function getStrategyByType(type: string, btcRegime: string = 'UNKNOWN', spyRegim
       ]
     }
   }
-  return strategies[type] || strategies.crypto_core
+  return strategies[type] || strategies.crypto_swing
 }
 
 // Funciones de cálculo

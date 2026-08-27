@@ -108,71 +108,38 @@ const INITIAL_INTRADAY_1PCT_CONFIG: Intraday1PctConfig = {
 
 const INITIAL_STRATEGIES: StrategyConfig[] = [
   {
-    key: 'crypto_core',
-    name: 'Crypto Core',
+    key: 'crypto_swing',
+    name: 'Crypto Swing',
     version: APP_VERSION,
     status: 'ACTIVE',
-    description: STRATEGY_DESCRIPTIONS.crypto_core,
+    description: STRATEGY_DESCRIPTIONS.crypto_swing,
     capital: null,
     riskPerTrade: null,
     maxPositions: null,
     mode: 'paper',
     enabled: true,
-    assets: ['BTC', 'ETH'],
-    assetDescription: 'BTC (60%) + ETH (40%)',
+    assets: ['BTC', 'ETH', 'SOL', 'XRP', 'AVAX', 'LINK'],
+    assetDescription: 'BTC, ETH y altcoins líquidas',
     horizon: 'SWING',
-    gatekeeper: 'BTC_REGIME', // v5.0: Swing usa BTC regime
-    timeframes: { context: '1W', trend: '1D', entry: '4H' },
-    stops: { slAtrMult: 2.0, tpAtrMult: 4.0, trailing: TRAILING_LABEL },
-    entryFilters: {
-      adxMin: 20,
-      rsiMin: 35,        // Relajado: era 40
-      rsiMax: 70,
-      emaFast: 20,
-      emaMedium: 50,
-      emaSlow: 200,
-      pullbackAtr: 1.0   // Relajado: era 0.5 (permite pullbacks más profundos)
-    },
-    expectedPerformance: {
-      tradesPerMonth: '4-8',  // Actualizado por filtros relajados
-      winRate: '40-45%',
-      riskReward: '2.0:1',
-      annualReturn: '30-50%',
-      maxDrawdown: '-12%'
-    }
-  },
-  {
-    key: 'crypto_aggressive',
-    name: 'Crypto Aggressive',
-    version: APP_VERSION,
-    status: 'ACTIVE',
-    description: STRATEGY_DESCRIPTIONS.crypto_aggressive,
-    capital: null,
-    riskPerTrade: null,
-    maxPositions: null,
-    mode: 'paper',
-    enabled: true,
-    assets: ['SOL', 'XRP', 'AVAX', 'LINK'],
-    assetDescription: 'SOL, XRP, AVAX, LINK (máx 3 posiciones)',
-    horizon: 'SWING',
-    gatekeeper: 'BTC_REGIME', // v5.0: Swing usa BTC regime
-    timeframes: { context: '1D', trend: '4H', entry: '1H' },
-    stops: { slAtrMult: 1.8, tpAtrMult: 3.6, trailing: TRAILING_LABEL },
+    gatekeeper: 'BTC_REGIME',
+    // Los timeframes reales del motor: régimen y momentum en diario, entrada en 1H.
+    timeframes: { context: '1D', trend: '1D', entry: '1H' },
+    stops: { slAtrMult: 1.5, tpAtrMult: 0, trailing: TRAILING_LABEL, atrTimeframe: '1d' },
     entryFilters: {
       adxMin: 15,
-      rsiMin: 30,        // Relajado: era 35
+      rsiMin: 30,
       rsiMax: 75,
       emaFast: 20,
       emaMedium: 50,
       emaSlow: 200,
-      pullbackAtr: 1.0   // Relajado: era 0.7 (permite pullbacks más profundos)
+      pullbackAtr: 1.0
     },
     expectedPerformance: {
-      tradesPerMonth: '20-35',  // Actualizado por filtros relajados
-      winRate: '35-40%',
-      riskReward: '2.0:1',
-      annualReturn: '60-100%',
-      maxDrawdown: '-22%'
+      tradesPerMonth: '?',
+      winRate: '?',
+      riskReward: '?',
+      annualReturn: '?',
+      maxDrawdown: '?'
     }
   },
   {

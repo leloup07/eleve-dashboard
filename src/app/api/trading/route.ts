@@ -45,7 +45,7 @@ function processPosition(p: any, category: string) {
   return {
     ...p,
     category,
-    // La estrategia real la escribe el worker (crypto_core, crypto_aggressive, ...).
+    // La estrategia real la escribe el worker (crypto_swing, large_caps, ...).
     // No la pisamos con la categoría o las páginas por estrategia se quedan vacías.
     strategy: p.strategy || category,
     invested_amount: investedAmount,

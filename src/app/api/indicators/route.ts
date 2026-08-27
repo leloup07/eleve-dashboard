@@ -96,8 +96,7 @@ function calcStochastic(highs: number[], lows: number[], closes: number[], perio
 
 // Configuración de EMAs por estrategia
 const STRATEGY_EMAS: Record<string, { fast: number, mid: number, slow: number }> = {
-  'crypto_core': { fast: 20, mid: 50, slow: 200 },
-  'crypto_aggressive': { fast: 12, mid: 26, slow: 50 },  // EMAs rápidas para MACD
+  'crypto_swing': { fast: 20, mid: 50, slow: 200 },
   'large_caps': { fast: 20, mid: 50, slow: 200 },
   'small_caps': { fast: 20, mid: 50, slow: 200 },
   'vwap_reversion': { fast: 9, mid: 21, slow: 50 },      // EMAs intraday
@@ -144,8 +143,8 @@ export async function GET(request: NextRequest) {
       : calcEMA(closes, Math.min(closes.length, emaConfig.mid))
     
     // MACD usa EMAs de la estrategia si es aggressive, sino 12/26/9 estándar
-    const macdFast = strategy === 'crypto_aggressive' ? emaConfig.fast : 12
-    const macdSlow = strategy === 'crypto_aggressive' ? emaConfig.mid : 26
+    const macdFast = 12
+    const macdSlow = 26
     
     const rsi = calcRSI(closes)
     const { macd, signal, hist } = calcMACD(closes, macdFast, macdSlow, 9)

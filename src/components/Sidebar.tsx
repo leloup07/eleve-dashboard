@@ -11,8 +11,7 @@ import { APP_VERSION } from '@/config/version'
 const navigation = [
   { name: 'Home', href: '/', icon: '🏠' },
   { type: 'divider', label: 'Estrategias Swing' },
-  { name: 'Crypto Core', href: '/strategies/crypto-core', icon: '💎' },
-  { name: 'Crypto Aggressive', href: '/strategies/crypto-aggressive', icon: '⚡' },
+  { name: 'Crypto Swing', href: '/strategies/crypto-swing', icon: '🪙' },
   { name: 'Large Caps', href: '/strategies/large-caps', icon: '📈' },
   { name: 'Small Caps', href: '/strategies/small-caps', icon: '🎯' },
   { type: 'divider', label: 'Estrategias Intraday' },

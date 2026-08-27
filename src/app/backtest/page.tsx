@@ -202,7 +202,7 @@ function runBacktest(
 
 export default function BacktestPage() {
   const strategies = useTradingStore(state => state.strategies)
-  const [selectedStrategy, setSelectedStrategy] = useState(strategies[0]?.key || 'crypto_core')
+  const [selectedStrategy, setSelectedStrategy] = useState(strategies[0]?.key || 'crypto_swing')
   const [period, setPeriod] = useState('2y')
   const [customCapital, setCustomCapital] = useState<number | null>(null)
   const [customRisk, setCustomRisk] = useState<number | null>(null)

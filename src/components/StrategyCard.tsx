@@ -49,8 +49,7 @@ export function StrategyCard({ strategy }: StrategyCardProps) {
   const mode = getModeDisplay()
   
   const emoji = {
-    crypto_core: '💎',
-    crypto_aggressive: '⚡',
+    crypto_swing: '🪙',
     large_caps: '📈',
     small_caps: '🎯',
     intraday: '⚡',

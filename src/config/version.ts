@@ -20,9 +20,7 @@ export const STRATEGY_DESCRIPTIONS = {
   // como paso con "SL 1.8x ATR" o los filtros de ADX desactivados.
   // =====================================================
 
-  crypto_core: `Swing conservador sobre BTC y ETH. Régimen y momentum en gráfico diario (EMA20/EMA50), entrada en 1H sobre pullback a la EMA20. Gatekeeper: régimen de BTC.`,
-
-  crypto_aggressive: `Swing oportunista sobre altcoins líquidas (SOL, XRP, AVAX, LINK). Mismo motor que Crypto Core con umbrales más laxos. Gatekeeper: régimen de BTC.`,
+  crypto_swing: `Swing sobre BTC, ETH y altcoins líquidas. Régimen y momentum en gráfico diario (EMA20/EMA50), entrada en 1H sobre pullback a la EMA20. Gatekeeper: régimen de BTC.`,
 
   large_caps: `Swing sobre blue chips del S&P 500. Régimen y momentum en diario, entrada en 1H. Gatekeeper: régimen de SPY.`,
 

@@ -122,8 +122,7 @@ export function StrategyPage({ strategyKey }: StrategyPageProps) {
   const rrRatio = strategy.stops.tpAtrMult / strategy.stops.slAtrMult
   
   const emoji = {
-    crypto_core: '💎',
-    crypto_aggressive: '⚡',
+    crypto_swing: '🪙',
     large_caps: '📈',
     small_caps: '🎯'
   }[strategyKey] || '📊'
