@@ -44,11 +44,11 @@ function processPosition(p: any, category: string) {
     strategy: p.strategy || category,
     invested_amount: investedAmount,
     current_price: currentPrice,
-    unrealized_pnl: unrealizedPnl,
-    unrealized_pnl_percent: unrealizedPnlPercent,
     max_price: maxPrice,
     current_price_stale: !hasLivePrice,
     price_updated_at: p.price_updated_at || null,
+    unrealized_pnl: unrealizedPnl,
+    unrealized_pnl_percent: unrealizedPnlPercent,
     r_multiple: rMultiple,
     original_sl: originalSl,
     risk_per_unit: riskPerUnit,
@@ -136,7 +136,7 @@ export async function GET() {
             const processedPositions = positions.map(p => processPosition(p, cat))
             allPositions = [...allPositions, ...processedPositions]
           }
-        } catch {}
+        } catch (e) { console.error('[api/trading] JSON invalido en Redis:', e) }
       }
     }
     
@@ -149,7 +149,7 @@ export async function GET() {
         if (Array.isArray(rawTrades)) {
           trades = rawTrades.map(t => processTrade(t))
         }
-      } catch {}
+      } catch (e) { console.error('[api/trading] JSON invalido en Redis:', e) }
     }
     
     // === REGÍMENES ===
@@ -161,7 +161,7 @@ export async function GET() {
       try {
         const parsed = JSON.parse(cryptoRegimeRaw)
         cryptoRegime = parsed.regime || 'UNKNOWN'
-      } catch {}
+      } catch (e) { console.error('[api/trading] JSON invalido en Redis:', e) }
     }
     
     const stocksRegimeRaw = await redis.get('eleve:regime:stocks')
@@ -169,7 +169,7 @@ export async function GET() {
       try {
         const parsed = JSON.parse(stocksRegimeRaw)
         stocksRegime = parsed.regime || 'UNKNOWN'
-      } catch {}
+      } catch (e) { console.error('[api/trading] JSON invalido en Redis:', e) }
     }
     
     // === WORKER STATUS ===
@@ -178,7 +178,7 @@ export async function GET() {
     if (workerRaw) {
       try {
         workerStatus = JSON.parse(workerRaw)
-      } catch {}
+      } catch (e) { console.error('[api/trading] JSON invalido en Redis:', e) }
     }
     
     // === ESTADÍSTICAS ===
@@ -197,7 +197,7 @@ export async function GET() {
       try {
         intradayPositions = JSON.parse(intradayPosRaw)
         if (!Array.isArray(intradayPositions)) intradayPositions = []
-      } catch {}
+      } catch (e) { console.error('[api/trading] JSON invalido en Redis:', e) }
     }
     
     const intradayTradesRaw = await redis.get('eleve:intraday:trades')
@@ -205,7 +205,7 @@ export async function GET() {
       try {
         intradayTrades = JSON.parse(intradayTradesRaw)
         if (!Array.isArray(intradayTrades)) intradayTrades = []
-      } catch {}
+      } catch (e) { console.error('[api/trading] JSON invalido en Redis:', e) }
     }
     
     const today = new Date().toISOString().split('T')[0]
@@ -213,14 +213,14 @@ export async function GET() {
     if (intradayDailyRaw) {
       try {
         intradayDaily = JSON.parse(intradayDailyRaw)
-      } catch {}
+      } catch (e) { console.error('[api/trading] JSON invalido en Redis:', e) }
     }
     
     const intradayWorkerRaw = await redis.get('eleve:intraday:worker')
     if (intradayWorkerRaw) {
       try {
         intradayWorker = JSON.parse(intradayWorkerRaw)
-      } catch {}
+      } catch (e) { console.error('[api/trading] JSON invalido en Redis:', e) }
     }
     
     // === INTRADAY 1% DATA ===
@@ -235,7 +235,7 @@ export async function GET() {
       try {
         intraday1PctPositions = JSON.parse(i1PctPosRaw)
         if (!Array.isArray(intraday1PctPositions)) intraday1PctPositions = []
-      } catch {}
+      } catch (e) { console.error('[api/trading] JSON invalido en Redis:', e) }
     }
     
     const i1PctTradesRaw = await redis.get('eleve:intraday1pct:trades')
@@ -243,28 +243,28 @@ export async function GET() {
       try {
         intraday1PctTrades = JSON.parse(i1PctTradesRaw)
         if (!Array.isArray(intraday1PctTrades)) intraday1PctTrades = []
-      } catch {}
+      } catch (e) { console.error('[api/trading] JSON invalido en Redis:', e) }
     }
     
     const i1PctDailyRaw = await redis.get(`eleve:intraday1pct:daily:${today}`)
     if (i1PctDailyRaw) {
       try {
         intraday1PctDaily = JSON.parse(i1PctDailyRaw)
-      } catch {}
+      } catch (e) { console.error('[api/trading] JSON invalido en Redis:', e) }
     }
     
     const i1PctWorkerRaw = await redis.get('eleve:intraday1pct:worker')
     if (i1PctWorkerRaw) {
       try {
         intraday1PctWorker = JSON.parse(i1PctWorkerRaw)
-      } catch {}
+      } catch (e) { console.error('[api/trading] JSON invalido en Redis:', e) }
     }
     
     const i1PctSelectedRaw = await redis.get(`eleve:intraday1pct:selected:${today}`)
     if (i1PctSelectedRaw) {
       try {
         intraday1PctSelected = JSON.parse(i1PctSelectedRaw)
-      } catch {}
+      } catch (e) { console.error('[api/trading] JSON invalido en Redis:', e) }
     }
     
     let intraday1PctAnalysis: any = null
@@ -272,7 +272,7 @@ export async function GET() {
     if (i1PctAnalysisRaw) {
       try {
         intraday1PctAnalysis = JSON.parse(i1PctAnalysisRaw)
-      } catch {}
+      } catch (e) { console.error('[api/trading] JSON invalido en Redis:', e) }
     }
     
     await redis.quit()
