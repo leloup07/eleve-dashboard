@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server'
 import Redis from 'ioredis'
 
+// Datos en vivo desde Redis: Next 14 cachea por defecto los route handlers GET,
+// asi que sin esto la ruta se sirve como un snapshot congelado del momento del build.
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+
 const REDIS_KEY = 'eleve:intraday1pct:config'
 
 const getRedisClient = () => {
