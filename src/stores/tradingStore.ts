@@ -663,10 +663,29 @@ export const useTradingStore = create<TradingStore>()(
     }),
     {
       name: 'eleve-trading-store-v43',
+      version: 2,
+      // v2: positions/trades dejan de persistirse (son datos de mercado en vivo: cachearlos
+      // hacía que el dashboard siguiera mostrando posiciones ya cerradas o borradas de Redis,
+      // con su precio y su fecha congelados, cuando fallaba el fetch a /api/trading).
+      // Además se limpian capital/riskPerTrade/maxPositions guardados antes de que pasaran
+      // a venir exclusivamente de Redis.
+      migrate: (persisted: any, version: number) => {
+        if (!persisted) return persisted
+        const migrated = { ...persisted }
+        delete migrated.positions
+        delete migrated.trades
+        if (version < 2 && Array.isArray(migrated.strategies)) {
+          migrated.strategies = migrated.strategies.map((s: any) => ({
+            ...s,
+            capital: null,
+            riskPerTrade: null,
+            maxPositions: null
+          }))
+        }
+        return migrated
+      },
       partialize: (state) => ({
         strategies: state.strategies,
-        positions: state.positions,
-        trades: state.trades,
         intradayConfig: state.intradayConfig,
         intraday1PctConfig: state.intraday1PctConfig,
         irgConfig: state.irgConfig
