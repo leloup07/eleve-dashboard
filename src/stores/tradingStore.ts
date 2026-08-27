@@ -137,6 +137,7 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
       pullbackAtr: 1.0
     },
     expectedPerformance: {
+      // Sin evidencia todavía: se rellenarán con backtest OOS, paper y live.
       tradesPerMonth: '?',
       winRate: '?',
       riskReward: '?',
@@ -173,6 +174,7 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
       volumeMult: 1.2
     },
     expectedPerformance: {
+      // Sin evidencia todavía: se rellenarán con backtest OOS, paper y live.
       tradesPerMonth: '?',
       winRate: '?',
       riskReward: '?',
@@ -195,7 +197,8 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
     assetDescription: 'Magnificent 7 + Top S&P 500',
     horizon: 'SWING',
     gatekeeper: 'SPY_REGIME',
-    timeframes: { context: '1W', trend: '1D', entry: '4H' },
+    // Los que ejecuta worker.py: no hay análisis semanal ni de 4H en ninguna parte.
+    timeframes: { context: '1D', trend: '1D', entry: '1H' },
     stops: { slAtrMult: 1.5, tpAtrMult: 3.0, trailing: TRAILING_LABEL },
     entryFilters: {
       adxMin: 20,
@@ -207,11 +210,12 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
       pullbackAtr: 0.5
     },
     expectedPerformance: {
-      tradesPerMonth: '6-10',
-      winRate: '42-48%',
-      riskReward: '1.8:1',
-      annualReturn: '25-40%',
-      maxDrawdown: '-10%'
+      // Sin evidencia todavía: se rellenarán con backtest OOS, paper y live.
+      tradesPerMonth: '?',
+      winRate: '?',
+      riskReward: '?',
+      annualReturn: '?',
+      maxDrawdown: '?'
     }
   },
   {
@@ -229,7 +233,8 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
     assetDescription: 'Small caps momentum ($1B-$10B cap)',
     horizon: 'SWING',
     gatekeeper: 'SPY_REGIME',
-    timeframes: { context: '1W', trend: '1D', entry: '1H' },
+    // Los que ejecuta worker.py: no hay análisis semanal en ninguna parte.
+    timeframes: { context: '1D', trend: '1D', entry: '1H' },
     stops: { slAtrMult: 2.0, tpAtrMult: 5.0, trailing: TRAILING_LABEL },
     entryFilters: {
       adxMin: 25,
@@ -241,11 +246,12 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
       pullbackAtr: 0.5
     },
     expectedPerformance: {
-      tradesPerMonth: '4-8',
-      winRate: '35-40%',
-      riskReward: '2.5:1',
-      annualReturn: '40-70%',
-      maxDrawdown: '-20%'
+      // Sin evidencia todavía: se rellenarán con backtest OOS, paper y live.
+      tradesPerMonth: '?',
+      winRate: '?',
+      riskReward: '?',
+      annualReturn: '?',
+      maxDrawdown: '?'
     }
   },
   {
@@ -276,11 +282,12 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
       pullbackAtr: 0.3
     },
     expectedPerformance: {
-      tradesPerMonth: '40-60',
-      winRate: '45-50%',
-      riskReward: '1.25:1',
-      annualReturn: '20-35%',
-      maxDrawdown: '-8%'
+      // Sin evidencia todavía: se rellenarán con backtest OOS, paper y live.
+      tradesPerMonth: '?',
+      winRate: '?',
+      riskReward: '?',
+      annualReturn: '?',
+      maxDrawdown: '?'
     }
   },
   {
@@ -311,11 +318,12 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
       pullbackAtr: 0.2
     },
     expectedPerformance: {
-      tradesPerMonth: '60-100',
-      winRate: '40-45%',
-      riskReward: '2.0:1',
-      annualReturn: '35-60%',
-      maxDrawdown: '-10%'
+      // Sin evidencia todavía: se rellenarán con backtest OOS, paper y live.
+      tradesPerMonth: '?',
+      winRate: '?',
+      riskReward: '?',
+      annualReturn: '?',
+      maxDrawdown: '?'
     }
   }
 ]

@@ -141,11 +141,15 @@ export default function IntradayPage() {
                 : 'bg-red-500'
             )} />
             <span className="font-medium">
-              {workerStatus?.status === 'running' 
-                ? dailyStats?.locked 
+              {workerStatus?.status === 'running'
+                ? dailyStats?.locked
                   ? `🔒 ${dailyStats.lock_reason}`
                   : '✅ Worker Activo'
-                : '❌ Worker Inactivo'}
+                : workerStatus?.status === 'outside_hours' ? '🌙 Fuera de horario (opera 8:00-20:00 UTC)'
+                : workerStatus?.status === 'weekend' ? '🌴 Fin de semana'
+                : workerStatus?.status === 'paused' ? '⏸️ Estrategia pausada'
+                : !workerStatus ? '❓ Sin estado en Redis'
+                : `❌ Worker ${workerStatus.status}`}
             </span>
           </div>
           <div className="text-sm text-gray-600">

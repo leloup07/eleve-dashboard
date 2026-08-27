@@ -118,6 +118,18 @@ export default function StrategyLabPage() {
 
   return (
     <div className="space-y-6">
+      {/* Aviso obligatorio: esta página NO backtestea */}
+      <div className="p-4 rounded-lg border-2 border-red-300 bg-red-50">
+        <p className="font-bold text-red-800 mb-1">⚠️ Esto NO es un backtest</p>
+        <p className="text-sm text-red-700">
+          Esta página no lee ni un solo precio histórico. Genera operaciones aleatorias a
+          partir de un win rate supuesto (38-45% según la estrategia elegida) y de los multiplicadores de la ficha.
+          Sus resultados son función de esas hipótesis, no del mercado: <strong>no sirven
+          para decidir nada</strong>. Un backtest real necesita datos históricos,
+          universo point-in-time, costes y separación in-sample / out-of-sample.
+        </p>
+      </div>
+
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">🔬 Strategy Lab</h1>

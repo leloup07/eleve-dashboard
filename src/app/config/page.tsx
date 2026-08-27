@@ -274,7 +274,7 @@ function StrategyEditor({ strategy }: { strategy: StrategyConfig }) {
                   step="1000"
                 />
               ) : (
-                <p className="font-medium text-lg">{formatCurrency(strategy.capital)}</p>
+                <p className="font-medium text-lg">{strategy.capital == null ? <span className="text-gray-400 text-sm">Cargando…</span> : formatCurrency(strategy.capital)}</p>
               )}
             </div>
             
