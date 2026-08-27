@@ -12,6 +12,7 @@ const navigation = [
   { name: 'Home', href: '/', icon: '🏠' },
   { type: 'divider', label: 'Estrategias Swing' },
   { name: 'Crypto Swing', href: '/strategies/crypto-swing', icon: '🪙' },
+  { name: 'Crypto Breakout', href: '/strategies/crypto-breakout', icon: '🚀' },
   { name: 'Large Caps', href: '/strategies/large-caps', icon: '📈' },
   { name: 'Small Caps', href: '/strategies/small-caps', icon: '🎯' },
   { type: 'divider', label: 'Estrategias Intraday' },

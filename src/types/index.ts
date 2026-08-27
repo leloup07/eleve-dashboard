@@ -103,6 +103,9 @@ export interface StrategyConfig {
     emaMedium: number
     emaSlow: number
     pullbackAtr: number
+    /** Estrategias de ruptura: canal de Donchian y confirmación por volumen */
+    donchianPeriod?: number
+    volumeMult?: number
   }
   expectedPerformance: {
     tradesPerMonth: string

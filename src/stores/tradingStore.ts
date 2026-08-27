@@ -143,6 +143,42 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
     }
   },
   {
+    key: 'crypto_breakout',
+    name: 'Crypto Breakout',
+    version: APP_VERSION,
+    status: 'ACTIVE',
+    description: STRATEGY_DESCRIPTIONS.crypto_breakout,
+    capital: null,
+    riskPerTrade: null,
+    maxPositions: null,
+    mode: 'paper',
+    enabled: true,
+    assets: ['BTC', 'ETH', 'SOL', 'XRP', 'AVAX', 'LINK'],
+    assetDescription: 'Mismo universo que Crypto Swing',
+    horizon: 'SWING',
+    gatekeeper: 'BTC_REGIME',
+    timeframes: { context: '1D', trend: '1D', entry: '1D' },
+    stops: { slAtrMult: 1.5, tpAtrMult: 0, trailing: TRAILING_LABEL, atrTimeframe: '1d' },
+    entryFilters: {
+      adxMin: 0,
+      rsiMin: 0,
+      rsiMax: 100,
+      emaFast: 20,
+      emaMedium: 50,
+      emaSlow: 200,
+      pullbackAtr: 0,
+      donchianPeriod: 20,
+      volumeMult: 1.2
+    },
+    expectedPerformance: {
+      tradesPerMonth: '?',
+      winRate: '?',
+      riskReward: '?',
+      annualReturn: '?',
+      maxDrawdown: '?'
+    }
+  },
+  {
     key: 'large_caps',
     name: 'Large Caps',
     version: APP_VERSION,

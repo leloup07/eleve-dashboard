@@ -84,6 +84,7 @@ function StrategyEditor({ strategy }: { strategy: StrategyConfig }) {
   
   const emoji = {
     crypto_swing: '🪙',
+    crypto_breakout: '🚀',
     large_caps: '📈',
     small_caps: '🎯'
   }[strategy.key] || '📊'

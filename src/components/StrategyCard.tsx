@@ -50,6 +50,7 @@ export function StrategyCard({ strategy }: StrategyCardProps) {
   
   const emoji = {
     crypto_swing: '🪙',
+    crypto_breakout: '🚀',
     large_caps: '📈',
     small_caps: '🎯',
     intraday: '⚡',

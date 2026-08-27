@@ -20,7 +20,11 @@ export function buildStrategySpec(s: StrategyConfig): string[] {
   const f = s.entryFilters
   const stops = s.stops
 
-  if (f) {
+  if (f?.donchianPeriod) {
+    // Estrategia de ruptura: su disparador no son RSI/ADX sino el canal y el volumen
+    spec.push(`ruptura del máximo de ${f.donchianPeriod}d`)
+    spec.push(f.volumeMult ? `volumen ≥ ${num(f.volumeMult)}× media 20` : 'sin filtro de volumen')
+  } else if (f) {
     spec.push(f.rsiMin != null && f.rsiMax != null ? `RSI ${f.rsiMin}-${f.rsiMax}` : 'RSI sin filtro')
     spec.push(f.adxMin ? `ADX ≥ ${f.adxMin}` : 'sin filtro ADX')
     spec.push(

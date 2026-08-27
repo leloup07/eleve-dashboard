@@ -123,6 +123,7 @@ export function StrategyPage({ strategyKey }: StrategyPageProps) {
   
   const emoji = {
     crypto_swing: '🪙',
+    crypto_breakout: '🚀',
     large_caps: '📈',
     small_caps: '🎯'
   }[strategyKey] || '📊'
