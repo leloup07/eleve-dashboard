@@ -64,7 +64,23 @@ export async function POST(request: Request) {
     }
     
     redis = getRedisClient()
-    
+
+    // v5.1 P0-1: con un experimento activo, los parámetros están congelados.
+    try {
+      const exp = await redis.get('eleve:experiment')
+      const experimento = exp ? JSON.parse(exp) : null
+      if (experimento?.active) {
+        await redis.quit()
+        return NextResponse.json({
+          success: false,
+          error: 'Parámetros congelados',
+          detail: `El experimento «${experimento.name}» está activo. Crea una spec nueva en vez de editar la vigente.`,
+        }, { status: 423 })
+      }
+    } catch (e) {
+      console.error('[api/strategies-config] no se pudo comprobar el experimento:', e)
+    }
+
     // Leer config existente
     const raw = await redis.get(REDIS_KEY)
     let allConfigs: Record<string, any> = {}

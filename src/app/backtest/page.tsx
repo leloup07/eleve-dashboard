@@ -216,6 +216,10 @@ export default function BacktestPage() {
   const handleRunBacktest = () => {
     setIsRunning(true)
     
+    if (!tieneTP) {
+      setIsRunning(false)
+      return
+    }
     // Simulate processing delay
     setTimeout(() => {
       const backtestResult = runBacktest(
@@ -224,13 +228,21 @@ export default function BacktestPage() {
         customCapital || currentStrategy?.capital || 10000,
         customRisk || currentStrategy?.riskPerTrade || 1,
         customSL || currentStrategy?.stops?.slAtrMult || 1.5,
-        customTP || currentStrategy?.stops?.tpAtrMult || 3.0
+        // Sin default inventado: si la estrategia no tiene TP, no se le pone uno
+        customTP || currentStrategy?.stops?.tpAtrMult || 0
       )
       setResult(backtestResult)
       setIsRunning(false)
     }, 1500)
   }
   
+  // Este simulador modela ganancia media = TP/SL. Una estrategia sin TP fijo,
+  // gestionada 100% por trailing, no se puede representar así: su ganancia media
+  // la decide el recorrido del precio, no un múltiplo conocido de antemano.
+  const tieneTP = ((currentStrategy?.stops?.tpAtrMult ?? 0) > 0) ||
+                  ((currentStrategy?.stops?.tpPercent ?? 0) > 0) ||
+                  (customTP ?? 0) > 0
+
   // Stats by exit reason
   const exitStats = useMemo(() => {
     if (!result) return null
@@ -402,7 +414,7 @@ export default function BacktestPage() {
           Capital: ${(customCapital || currentStrategy?.capital || 10000).toLocaleString('es-ES')} | 
           Riesgo: {customRisk || currentStrategy?.riskPerTrade || 1}% | 
           SL: {customSL || currentStrategy?.stops?.slAtrMult || 1.5} ATR | 
-          TP: {customTP || currentStrategy?.stops?.tpAtrMult || 3.0} ATR | 
+          TP: {tieneTP ? `${customTP || currentStrategy?.stops?.tpAtrMult} ATR` : 'sin TP (trailing)'} | 
           Tickers: {currentStrategy?.assets?.length || 0}
         </div>
       </div>

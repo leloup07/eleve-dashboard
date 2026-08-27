@@ -21,6 +21,7 @@ import type {
   IRGConfig,
   IRGState,
   SyncStatus,
+  ExperimentState,
   ConfigUpdatePayload
 } from '@/types'
 import { APP_VERSION, STRATEGY_DESCRIPTIONS, TRAILING_LABEL } from '@/config/version'
@@ -368,6 +369,7 @@ interface TradingStore {
   irgState: IRGState
   positions: Position[]
   trades: Trade[]
+  experiment: ExperimentState | null
   btcRegime: MarketRegime
   spyRegime: MarketRegime
   botActive: boolean
@@ -402,6 +404,7 @@ interface TradingStore {
   setRedisConnected: (connected: boolean) => void
   setIntraday1PctConfig: (config: Intraday1PctConfig) => void
   setIntradayConfig: (config: IntradayConfig) => void
+  setExperiment: (e: ExperimentState | null) => void
   setPositions: (positions: Position[]) => void
   setTrades: (trades: Trade[]) => void
   refreshData: () => void
@@ -418,6 +421,7 @@ export const useTradingStore = create<TradingStore>()(
       irgState: INITIAL_IRG_STATE,
       positions: [],
       trades: [],
+      experiment: null,
       btcRegime: 'RANGE',
       spyRegime: 'BULL',
       botActive: true,
@@ -670,6 +674,8 @@ export const useTradingStore = create<TradingStore>()(
       setIntraday1PctConfig: (config) => set({ intraday1PctConfig: config }),
       setIntradayConfig: (config) => set({ intradayConfig: config }),
       
+      setExperiment: (experiment) => set({ experiment }),
+
       setPositions: (positions) => set({ positions, lastUpdate: new Date().toISOString() }),
       
       setTrades: (trades) => set({ trades, lastUpdate: new Date().toISOString() }),

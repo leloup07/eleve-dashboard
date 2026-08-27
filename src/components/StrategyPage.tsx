@@ -139,6 +139,9 @@ export function StrategyPage({ strategyKey }: StrategyPageProps) {
             <p className="text-gray-500">{strategy.version} • {strategy.description}</p>
             {/* Ficha tecnica derivada de la config real que lee el worker */}
             <p className="text-sm text-gray-400 mt-1">{buildStrategySpecLine(strategy)}</p>
+            {strategy.specId && (
+              <p className="text-xs text-gray-400 mt-1 font-mono">🔒 spec {strategy.specId}</p>
+            )}
           </div>
         </div>
         

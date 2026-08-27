@@ -121,6 +121,8 @@ export interface StrategyConfig {
     maxDrawdown: string
   }
   
+  /** Identidad inmutable bajo la que opera hoy (v5.1 P0-1) */
+  specId?: string | null
   // Metadatos de sincronización
   lastUpdated?: string
   updatedFrom?: 'dashboard' | 'backend' | 'manual'
@@ -291,6 +293,14 @@ export interface Intraday1PctConfig {
 // =====================================================
 // SINCRONIZACIÓN
 // =====================================================
+
+/** Experimento en curso: mientras está activo, los parámetros están congelados */
+export interface ExperimentState {
+  active: boolean
+  name: string
+  started_at: string
+  note?: string
+}
 
 export interface SyncStatus {
   lastSync: string | null

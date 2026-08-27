@@ -233,6 +233,17 @@ export function useRealTradingData(autoRefreshMs = 30000) {
         }
         mirrorIntraday('one_percent_spot', configJson.data?.intraday1pct)
         mirrorIntraday('vwap_reversion', configJson.data?.intraday)
+
+        // v5.1 P0-1: identidad de la spec activa y estado de congelación
+        if (configJson.data?.specs) {
+          useTradingStore.setState(state => ({
+            strategies: state.strategies.map(s => ({
+              ...s,
+              specId: configJson.data.specs[s.key] ?? null
+            }))
+          }))
+        }
+        useTradingStore.getState().setExperiment(configJson.data?.experiment ?? null)
         if (configJson.data?.intraday) {
           setIntradayConfig(configJson.data.intraday)
         }

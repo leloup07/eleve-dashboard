@@ -11,6 +11,8 @@ import { TRAILING_LABEL } from '@/config/version'
 import { buildStrategySpecLine, describeStop } from '@/lib/strategySpec'
 
 function StrategyEditor({ strategy }: { strategy: StrategyConfig }) {
+  // v5.1 P0-1: con un experimento en curso los parámetros no se tocan
+  const congelado = useTradingStore(state => state.experiment?.active ?? false)
   const updateStrategy = useTradingStore(state => state.updateStrategy)
   const [editing, setEditing] = useState(false)
   const [localConfig, setLocalConfig] = useState(strategy)
@@ -179,8 +181,14 @@ function StrategyEditor({ strategy }: { strategy: StrategyConfig }) {
               </button>
             </div>
           ) : (
-            <button onClick={() => setEditing(true)} className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
-              ✏️ Editar
+            <button
+              onClick={() => setEditing(true)}
+              disabled={congelado}
+              title={congelado ? 'Parámetros congelados por un experimento en curso' : undefined}
+              className={congelado
+                ? 'px-4 py-2 bg-gray-200 text-gray-500 rounded-lg cursor-not-allowed'
+                : 'px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600'}>
+              {congelado ? '🔒 Congelado' : '✏️ Editar'}
             </button>
           )}
         </div>
@@ -657,6 +665,8 @@ function StrategyEditor({ strategy }: { strategy: StrategyConfig }) {
 }
 
 function IntradayEditor() {
+  // v5.1 P0-1: con un experimento en curso los parámetros no se tocan
+  const congelado = useTradingStore(state => state.experiment?.active ?? false)
   const intradayConfig = useTradingStore(state => state.intradayConfig)
   const updateIntradayConfig = useTradingStore(state => state.updateIntradayConfig)
   const [editing, setEditing] = useState(false)
@@ -792,8 +802,8 @@ function IntradayEditor() {
               </button>
             </div>
           ) : (
-            <button onClick={() => setEditing(true)} className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600">
-              ✏️ Editar
+            <button onClick={() => setEditing(true)} disabled={congelado} title={congelado ? "Parámetros congelados por un experimento en curso" : undefined} className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600">
+              {congelado ? "🔒 Congelado" : "✏️ Editar"}
             </button>
           )}
         </div>
@@ -1018,6 +1028,8 @@ function IntradayEditor() {
 }
 
 function Intraday1PctEditor() {
+  // v5.1 P0-1: con un experimento en curso los parámetros no se tocan
+  const congelado = useTradingStore(state => state.experiment?.active ?? false)
   const config = useTradingStore(state => state.intraday1PctConfig)
   const updateConfig = useTradingStore(state => state.updateIntraday1PctConfig)
   const [editing, setEditing] = useState(false)
@@ -1147,8 +1159,8 @@ function Intraday1PctEditor() {
               </button>
             </div>
           ) : (
-            <button onClick={() => setEditing(true)} className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600">
-              ✏️ Editar
+            <button onClick={() => setEditing(true)} disabled={congelado} title={congelado ? "Parámetros congelados por un experimento en curso" : undefined} className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600">
+              {congelado ? "🔒 Congelado" : "✏️ Editar"}
             </button>
           )}
         </div>
@@ -1414,6 +1426,7 @@ function Intraday1PctEditor() {
 }
 
 export default function ConfigPage() {
+  const experiment = useTradingStore(state => state.experiment)
   useRealTradingData(0) // Carga de Redis al iniciar, sin auto-refresh
   const strategies = useTradingStore(state => state.strategies)
   
@@ -1426,12 +1439,26 @@ export default function ConfigPage() {
         </p>
       </div>
       
-      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-        <span className="text-green-800">
-          ✅ <strong>Sincronización automática:</strong> Los cambios guardados aquí se envían a Redis 
-          y el bot los aplica en el próximo scan (máx 5 minutos).
-        </span>
-      </div>
+      {experiment?.active ? (
+        <div className="bg-amber-50 border-2 border-amber-300 rounded-lg p-4">
+          <p className="text-amber-900 font-semibold mb-1">
+            🔒 Parámetros congelados — experimento «{experiment.name}» en curso
+          </p>
+          <p className="text-sm text-amber-800">
+            Desde {new Date(experiment.started_at).toLocaleString('es-ES')}. Ningún cambio de parámetro
+            puede llegar al worker mientras dure: editarlos invalidaría la evidencia que este experimento
+            está produciendo. Para cambiar una regla hay que crear una especificación nueva y activarla
+            de forma explícita.
+          </p>
+        </div>
+      ) : (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <span className="text-green-800">
+            ✅ <strong>Sincronización automática:</strong> Los cambios guardados aquí se envían a Redis
+            y el bot los aplica en el próximo scan (máx 5 minutos).
+          </span>
+        </div>
+      )}
       
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <span className="text-blue-800">

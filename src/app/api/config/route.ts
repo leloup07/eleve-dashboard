@@ -20,6 +20,21 @@ const getRedisClient = () => {
   return new Redis(redisUrl)
 }
 
+const ESTRATEGIAS = ['crypto_swing', 'crypto_breakout', 'large_caps', 'small_caps',
+                     'vwap_reversion', 'one_percent_spot']
+
+// v5.1 P0-1: mientras un experimento esté activo, los parámetros de trading están
+// congelados y ninguna escritura puede llegar al worker.
+async function experimentoActivo(redis: Redis) {
+  try {
+    const raw = await redis.get('eleve:experiment')
+    return raw ? JSON.parse(raw) : null
+  } catch (e) {
+    console.error('[api/config] no se pudo leer eleve:experiment:', e)
+    return null
+  }
+}
+
 const REDIS_KEYS = {
   strategies: 'eleve:config:strategies',
   intraday: 'eleve:intraday:config',
@@ -61,6 +76,15 @@ export async function GET(request: NextRequest) {
       redis.get(REDIS_KEYS.intraday1pct),
       redis.get(REDIS_KEYS.irg),
     ])
+
+    // Spec activa de cada estrategia: es la identidad bajo la que opera hoy
+    const specIds = await Promise.all(
+      ESTRATEGIAS.map(k => redis!.get(`eleve:spec:active:${k}`))
+    )
+    const specs: Record<string, string | null> = {}
+    ESTRATEGIAS.forEach((k, i) => { specs[k] = specIds[i] })
+    const experiment = await experimentoActivo(redis)
+
     await redis.quit()
     
     return NextResponse.json({
@@ -70,6 +94,8 @@ export async function GET(request: NextRequest) {
         intraday: intraday ? JSON.parse(intraday) : {},
         intraday1pct: intraday1pct ? JSON.parse(intraday1pct) : {},
         irg: irg ? JSON.parse(irg) : {},
+        specs,
+        experiment,
       },
       timestamp: new Date().toISOString(),
     })
@@ -85,6 +111,22 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { type, key, config, fullConfig } = body
     redis = getRedisClient()
+
+    // Parámetros congelados: una edición durante un experimento invalidaría la
+    // evidencia que ese experimento está produciendo. La vía correcta es crear
+    // una spec nueva y activarla explícitamente, no mutar la vigente.
+    const experimento = await experimentoActivo(redis)
+    if (experimento?.active) {
+      await redis.quit()
+      return NextResponse.json({
+        success: false,
+        error: 'Parámetros congelados',
+        detail: `El experimento «${experimento.name}» está activo desde ${experimento.started_at}. ` +
+                'Los parámetros de trading no pueden modificarse mientras dure. ' +
+                'Para cambiarlos hay que crear una spec nueva y activarla de forma explícita.',
+        experiment: experimento,
+      }, { status: 423 })
+    }
     
     if (type === 'strategy' && key && config) {
       const raw = await redis.get(REDIS_KEYS.strategies)

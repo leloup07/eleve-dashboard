@@ -91,6 +91,11 @@ export function StrategyCard({ strategy }: StrategyCardProps) {
       {strategy.description && (
         <p className="text-xs text-gray-500 mb-1 line-clamp-2">{strategy.description}</p>
       )}
+      {strategy.specId && (
+        <p className="text-[11px] text-gray-400 mb-1 font-mono" title="Identidad inmutable de la estrategia (v5.1)">
+          🔒 spec {strategy.specId}
+        </p>
+      )}
       <p className="text-[11px] text-gray-400 mb-3 line-clamp-2" title={buildStrategySpecLine(strategy)}>
         {buildStrategySpecLine(strategy)}
       </p>
