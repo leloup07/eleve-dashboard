@@ -94,6 +94,33 @@ function calcStochastic(highs: number[], lows: number[], closes: number[], perio
   return { k, d: calcEMA(k, smooth) }
 }
 
+function calcDonchian(highs: number[], lows: number[], period: number = 20) {
+  // Banda superior = máximo de las N velas PREVIAS (sin incluir la actual), que es
+  // exactamente contra lo que compara la estrategia de ruptura: así, cuando el
+  // precio cruza la línea en el gráfico, eso ES la señal.
+  const upper: (number | null)[] = []
+  const lower: (number | null)[] = []
+  for (let i = 0; i < highs.length; i++) {
+    if (i < period) { upper.push(null); lower.push(null); continue }
+    upper.push(Math.max(...highs.slice(i - period, i)))
+    lower.push(Math.min(...lows.slice(i - period, i)))
+  }
+  return { upper, lower }
+}
+
+function calcVolumeRatio(volumes: number[], period: number = 20) {
+  // Volumen relativo a su media: 1.0 = volumen normal, 2.0 = el doble de lo habitual.
+  const sma: (number | null)[] = []
+  const ratio: (number | null)[] = []
+  for (let i = 0; i < volumes.length; i++) {
+    if (i < period - 1) { sma.push(null); ratio.push(null); continue }
+    const media = volumes.slice(i - period + 1, i + 1).reduce((a, b) => a + b, 0) / period
+    sma.push(media)
+    ratio.push(media > 0 ? volumes[i] / media : null)
+  }
+  return { sma, ratio }
+}
+
 // Configuración de EMAs por estrategia
 const STRATEGY_EMAS: Record<string, { fast: number, mid: number, slow: number }> = {
   'crypto_swing': { fast: 20, mid: 50, slow: 200 },
@@ -152,6 +179,8 @@ export async function GET(request: NextRequest) {
     const { adx, plusDi, minusDi } = calcADX(highs, lows, closes)
     const { upper: bbUpper, middle: bbMiddle, lower: bbLower } = calcBollinger(closes)
     const { k: stochK, d: stochD } = calcStochastic(highs, lows, closes)
+    const { upper: donchianUpper, lower: donchianLower } = calcDonchian(highs, lows, 20)
+    const { sma: volumeSma, ratio: volumeRatio } = calcVolumeRatio(volumes, 20)
     
     const data = closes.map((close: number, i: number) => ({
       timestamp: new Date(timestamps[i] * 1000).toISOString(),
@@ -168,7 +197,10 @@ export async function GET(request: NextRequest) {
       macd: macd[i], macdSignal: signal[i], macdHist: hist[i], macdHistPrev: hist[i-1] || 0,
       bbUpper: bbUpper[i], bbMiddle: bbMiddle[i], bbLower: bbLower[i],
       atr: atr[i], adx: adx[i] || 20, plusDi: plusDi[i] || 20, minusDi: minusDi[i] || 20,
-      stochK: stochK[i], stochD: stochD[i], obv: 0
+      stochK: stochK[i], stochD: stochD[i], obv: 0,
+      // Canal de Donchian y volumen relativo: los dos indicadores de Crypto Breakout
+      donchianUpper: donchianUpper[i], donchianLower: donchianLower[i],
+      volumeSma: volumeSma[i], volumeRatio: volumeRatio[i]
     }))
     
     return NextResponse.json({ 

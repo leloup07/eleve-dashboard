@@ -26,6 +26,10 @@ interface OHLCData {
   bbLower: number
   atr: number
   adx: number
+  donchianUpper: number | null
+  donchianLower: number | null
+  volumeSma: number | null
+  volumeRatio: number | null
   plusDi: number
   minusDi: number
   stochK: number
@@ -218,74 +222,6 @@ function calcATR(data: OHLCData[], period: number = 14): number[] {
   return data.map((d, i) => d.close * 0.015 * (1 + Math.random() * 0.3))
 }
 
-// Generar datos demo
-function generateDemoData(ticker: string): OHLCData[] {
-  const isCrypto = ticker.includes('-USD')
-  let basePrice = ticker === 'BTC-USD' ? 95000 : ticker === 'ETH-USD' ? 3400 : ticker === 'SOL-USD' ? 180 : isCrypto ? 50 : ticker === 'NVDA' ? 140 : 150
-  const volatility = isCrypto ? 0.02 : 0.012
-  
-  const data: OHLCData[] = []
-  const closes: number[] = []
-  const now = new Date()
-  
-  // Generar precios con tendencia mixta
-  let price = basePrice
-  const trendBias = Math.random() > 0.5 ? 0.001 : -0.001
-  
-  for (let i = 99; i >= 0; i--) {
-    const change = (Math.random() - 0.48 + trendBias) * volatility
-    price = price * (1 + change)
-    closes.push(price)
-  }
-  
-  const ema20 = calcEMA(closes, 20)
-  const ema50 = calcEMA(closes, 50)
-  const ema200 = calcEMA(closes, 200).map((_, i) => closes[i] * (0.95 + Math.random() * 0.1)) // Simular EMA200
-  const rsi = calcRSI(closes)
-  const { macd, signal, hist } = calcMACD(closes)
-  
-  let obv = 0
-  for (let i = 0; i < 100; i++) {
-    const date = new Date(now.getTime() - (99 - i) * 60 * 60 * 1000)
-    const close = closes[i]
-    const e20 = ema20[i]
-    const e50 = ema50[i]
-    const e200 = ema200[i]
-    const std = close * 0.02
-    const vol = Math.floor(Math.random() * 1000000) + 100000
-    
-    if (i > 0) {
-      obv += closes[i] > closes[i-1] ? vol : -vol
-    }
-    
-    data.push({
-      timestamp: date.toISOString(),
-      close,
-      ema20: e20,
-      ema50: e50,
-      ema200: e200,
-      rsi: rsi[i + 1] || 50,
-      rsiPrev: rsi[i] || 50,
-      macd: macd[i],
-      macdSignal: signal[i],
-      macdHist: hist[i],
-      macdHistPrev: i > 0 ? hist[i-1] : hist[i],
-      bbUpper: close + std * 2,
-      bbMiddle: close,
-      bbLower: close - std * 2,
-      atr: close * (0.012 + Math.random() * 0.008),
-      adx: 15 + Math.random() * 30,
-      plusDi: 15 + Math.random() * 20,
-      minusDi: 12 + Math.random() * 18,
-      stochK: 20 + Math.random() * 60,
-      stochD: 25 + Math.random() * 50,
-      volume: vol,
-      obv
-    })
-  }
-  
-  return data
-}
 
 // ============================================
 // INTERPRETACIONES DETALLADAS Y EDUCATIVAS
@@ -884,7 +820,7 @@ export default function IndicatorsPage() {
   const [btcRegime, setBtcRegime] = useState<string>('UNKNOWN')
   const [spyRegime, setSpyRegime] = useState<string>('UNKNOWN')
   const [data, setData] = useState<OHLCData[]>([])
-  const [activeTab, setActiveTab] = useState<'ema' | 'rsi' | 'macd' | 'adx' | 'bb' | 'stoch' | 'hybrid' | 'strategy'>('ema')
+  const [activeTab, setActiveTab] = useState<'ema' | 'rsi' | 'macd' | 'adx' | 'bb' | 'stoch' | 'donchian' | 'volumen' | 'hybrid' | 'strategy'>('ema')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [emaConfig, setEmaConfig] = useState<{fast: number, mid: number, slow: number}>({fast: 20, mid: 50, slow: 200})
@@ -1067,6 +1003,8 @@ export default function IndicatorsPage() {
                 { key: 'adx', label: '💪 ADX' },
                 { key: 'bb', label: '📏 Bollinger' },
                 { key: 'stoch', label: '🎰 Stochastic' },
+                { key: 'donchian', label: '🚀 Donchian' },
+                { key: 'volumen', label: '🔊 Volumen rel.' },
                 { key: 'strategy', label: '🎯 Estrategia ELEVE' },
                 { key: 'hybrid', label: '📊 Hybrid (educativo)' },
               ].map(tab => (
@@ -1301,6 +1239,97 @@ export default function IndicatorsPage() {
                 </div>
               )}
               
+              {/* Donchian Tab — indicador de Crypto Breakout */}
+              {activeTab === 'donchian' && (() => {
+                const ultimo = data[data.length - 1]
+                const techo = ultimo?.donchianUpper ?? null
+                const rompe = techo != null && ultimo.close > techo
+                const dist = techo ? ((techo - ultimo.close) / techo) * 100 : null
+                return (
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-3">
+                      <span className="text-4xl">🚀</span>
+                      <div>
+                        <h3 className="text-xl font-bold text-gray-900">
+                          Canal de Donchian: {rompe ? 'RUPTURA' : dist != null ? `${dist.toFixed(1)}% bajo el máximo` : 'sin datos'}
+                        </h3>
+                        <p className="text-sm text-gray-500">Máximo y mínimo de las 20 velas previas · disparador de Crypto Breakout</p>
+                      </div>
+                    </div>
+
+                    <div className="h-64 bg-slate-900 rounded-lg p-4">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <ComposedChart data={data.slice(-60)}>
+                          <XAxis dataKey="timestamp" tickFormatter={(v) => new Date(v).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} stroke="#64748b" fontSize={10} />
+                          <YAxis domain={['auto', 'auto']} stroke="#64748b" fontSize={10} />
+                          <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }} />
+                          <Line type="stepAfter" dataKey="donchianUpper" stroke="#22c55e" dot={false} strokeWidth={1.5} name="Máximo 20" connectNulls />
+                          <Line type="stepAfter" dataKey="donchianLower" stroke="#ef4444" dot={false} strokeWidth={1.5} name="Mínimo 20" connectNulls />
+                          <Line type="monotone" dataKey="close" stroke="#fff" dot={false} strokeWidth={2} name="Precio" />
+                        </ComposedChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    <div className={`p-4 rounded-lg border ${rompe ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'}`}>
+                      <h4 className="font-semibold mb-2">📊 Lectura</h4>
+                      <p className="text-sm text-gray-700 whitespace-pre-line">
+                        {rompe
+                          ? 'El precio ha superado el máximo de las 20 velas previas. Es el disparador de Crypto Breakout, que además exige volumen por encima de 1,2× su media.'
+                          : `El precio está ${dist != null ? dist.toFixed(1) + '% ' : ''}por debajo del máximo de las 20 velas previas. Crypto Breakout no entra hasta que lo supere.`}
+                        {'\n\n'}La banda superior se calcula SIN incluir la vela actual, igual que en el worker: cuando el precio cruza la línea, eso es exactamente la señal.
+                      </p>
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {/* Volumen relativo Tab — segundo indicador de Crypto Breakout */}
+              {activeTab === 'volumen' && (() => {
+                const ultimo = data[data.length - 1]
+                const ratio = ultimo?.volumeRatio ?? null
+                const confirma = ratio != null && ratio >= 1.2
+                return (
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-3">
+                      <span className="text-4xl">🔊</span>
+                      <div>
+                        <h3 className="text-xl font-bold text-gray-900">
+                          Volumen relativo: {ratio != null ? `${ratio.toFixed(2)}×` : 'sin datos'}
+                        </h3>
+                        <p className="text-sm text-gray-500">Volumen de la vela frente a su media de 20 · confirmación de Crypto Breakout</p>
+                      </div>
+                    </div>
+
+                    <div className="h-64 bg-slate-900 rounded-lg p-4">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <ComposedChart data={data.slice(-60)}>
+                          <XAxis dataKey="timestamp" tickFormatter={(v) => new Date(v).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} stroke="#64748b" fontSize={10} />
+                          <YAxis stroke="#64748b" fontSize={10} tickFormatter={(v) => `${v.toFixed(1)}×`} />
+                          <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }} formatter={(v: any) => typeof v === 'number' ? `${v.toFixed(2)}×` : v} />
+                          <ReferenceLine y={1} stroke="#64748b" strokeDasharray="3 3" />
+                          <ReferenceLine y={1.2} stroke="#22c55e" strokeDasharray="5 5" label={{ value: 'umbral 1,2×', fill: '#22c55e', fontSize: 10 }} />
+                          <Bar dataKey="volumeRatio" name="Volumen / media 20">
+                            {data.slice(-60).map((d, i) => (
+                              <Cell key={i} fill={(d.volumeRatio ?? 0) >= 1.2 ? '#22c55e' : '#475569'} />
+                            ))}
+                          </Bar>
+                        </ComposedChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    <div className={`p-4 rounded-lg border ${confirma ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'}`}>
+                      <h4 className="font-semibold mb-2">📊 Lectura</h4>
+                      <p className="text-sm text-gray-700 whitespace-pre-line">
+                        {confirma
+                          ? `Volumen ${ratio!.toFixed(2)}× su media: hay participación real detrás del movimiento.`
+                          : `Volumen ${ratio != null ? ratio.toFixed(2) + '×' : 'sin dato'} su media, por debajo del umbral de 1,2×. Una ruptura con este volumen no la toma Crypto Breakout.`}
+                        {'\n\n'}Una ruptura sin volumen suele ser un amago: el precio supera el máximo pero no hay dinero nuevo detrás sosteniéndolo.
+                      </p>
+                    </div>
+                  </div>
+                )
+              })()}
+
               {/* Bollinger Tab */}
               {activeTab === 'bb' && bbContext && (
                 <div className="space-y-6">

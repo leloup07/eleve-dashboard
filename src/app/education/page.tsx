@@ -16,8 +16,9 @@ const educationContent = {
 - RSI 40-60: Zona neutral
 
 **Cómo lo usa ELEVE:**
-- Crypto Core: RSI 40-70 para entradas
+- Crypto Swing: RSI 30-75 para entradas
 - VWAP Reversion: RSI 20-80 (más amplio para intraday)
+- Crypto Breakout: no usa RSI (entra por ruptura, no por momentum)
 - 1% Spot: RSI 40-55 (más restrictivo)
 
 **Fórmula:**
@@ -56,10 +57,10 @@ ATR = Media móvil del True Range (típicamente 14 períodos)
 
 | Estrategia | SL (ATR) | TP (ATR) | Por qué |
 |------------|----------|----------|---------|
-| Crypto Core | 2.0x | 4.0x | Swing largo, necesita espacio |
-| Crypto Aggressive | 2.5x | 5.0x | Altcoins más volátiles |
-| Large Caps | 1.8x | 3.5x | Stocks menos volátiles |
-| Small Caps | 2.0x | 5.0x | Momentum, busca extensiones |
+| Crypto Swing | 1.5x ATR(1D) | sin TP | Diario: el ATR horario dejaba stops del 1,1% |
+| Crypto Breakout | 1.5x ATR(1D) | sin TP | Misma gestión que Crypto Swing |
+| Large Caps | 2.0x ATR(1H) | sin TP | Aguantan 4-5 días sin saltar |
+| Small Caps | 2.0x ATR(1H) | sin TP | Momentum, busca extensiones |
 | VWAP Reversion | 1.2x | 1.5x | Intraday, movimientos cortos |
 | 1% Spot | 0.5x | 1.0x | Scalping, stops muy ajustados |
 
@@ -79,6 +80,61 @@ Ejemplo:
 - Multiplicador SL: 2x
 - Distancia SL: $6,000
 - Cantidad = $500 / $6,000 = 0.0833 BTC`
+  },
+
+  donchian: {
+    title: "Canal de Donchian",
+    category: "Indicadores",
+    content: `El canal de Donchian es el máximo y el mínimo de las últimas N sesiones. Es el indicador más simple que existe: no promedia ni suaviza nada, solo pregunta "¿el precio de ahora es el más alto de las últimas N velas?".
+
+**Cómo se calcula:**
+- Banda superior = máximo de los máximos de las N velas previas
+- Banda inferior = mínimo de los mínimos de las N velas previas
+- N típico: 20 sesiones (aprox. un mes de mercado)
+
+**Por qué importa que sea "previas":**
+En ELEVE la banda superior se calcula SIN incluir la vela actual. Si la incluyeras, el precio nunca podría superar su propio máximo y la señal no existiría. Al excluirla, cuando el precio cruza la línea en el gráfico, eso ES la señal.
+
+**Qué significa una ruptura:**
+Un máximo de 20 sesiones quiere decir que nadie que haya comprado en el último mes está en pérdidas. No queda nadie esperando "salir cuando recupere", que es la oferta que frena las subidas. Por eso las rupturas tienden a extenderse.
+
+**Su punto débil:**
+Los amagos. El precio asoma la cabeza por encima del máximo, no aparece nadie detrás y vuelve al rango. Por eso ELEVE exige además volumen (ver Volumen relativo).
+
+**Uso en ELEVE:**
+- Crypto Breakout: ruptura del máximo de 20 sesiones + volumen ≥ 1,2× su media
+- Es el disparador OPUESTO al de Crypto Swing, que compra retrocesos a la EMA20
+
+**Por qué se eligió:**
+Medido sobre 6 meses de los seis activos crypto: 138 días con señal de pullback y 23 con señal de ruptura, con CERO coincidencias. Una exige que el precio esté cerca de su media; la otra, que esté en máximos. Son incompatibles por construcción, que es justamente lo que se busca al combinar estrategias: que no compren lo mismo el mismo día.`
+  },
+
+  volumen_relativo: {
+    title: "Volumen relativo",
+    category: "Indicadores",
+    content: `El volumen relativo compara el volumen de la vela actual con su propia media reciente. No mide cuánto se negocia en términos absolutos, sino si HOY se negocia más de lo habitual para ese activo.
+
+**Cómo se calcula:**
+Volumen relativo = volumen de la vela / media del volumen de las últimas 20 velas
+
+**Interpretación:**
+- 1,0×: volumen normal, un día cualquiera
+- 1,2× - 1,5×: hay interés por encima de lo habitual
+- 2,0× o más: algo está pasando (noticia, ruptura real, capitulación)
+- Por debajo de 0,7×: desinterés, movimientos poco fiables
+
+**Por qué es útil junto a la ruptura:**
+El precio dice QUÉ pasa; el volumen dice CUÁNTA gente está de acuerdo. Una ruptura con volumen bajo suele ser un amago: el precio supera el máximo porque no había vendedores en ese momento concreto, no porque haya entrado dinero nuevo. Cuando el volumen acompaña, hay convicción detrás.
+
+**Ojo con compararlo entre activos:**
+Es relativo a sí mismo a propósito. BTC mueve órdenes de magnitud más que AVAX en términos absolutos, así que el volumen bruto no sirve para comparar. El ratio sí: un 2× es un 2× en los dos.
+
+**Uso en ELEVE:**
+- Crypto Breakout: exige ≥ 1,2× para aceptar una ruptura
+- Se puede desactivar poniendo volumeMult a 0 en la configuración
+
+**Un apunte:**
+El volumen se calculaba y se guardaba en cada operación de ELEVE desde el principio, pero no filtraba nada. Crypto Breakout es la primera estrategia que lo usa para decidir.`
   },
 
   adx: {
@@ -103,7 +159,7 @@ Ejemplo:
 - ADX < 20: No operar tendencia (usar mean-reversion)
 
 **Uso en ELEVE:**
-- Crypto Core: ADX > 20 para confirmar tendencia
+- Crypto Swing: ADX ≥ 15 para confirmar tendencia
 - Small Caps: ADX > 25 (más exigente, busca momentum)
 - 1% Spot: ADX > 20 + (+DI > -DI) para confirmar dirección`
   },
