@@ -125,6 +125,8 @@ export interface Position {
   mode: TradingMode
   openDate: string
   currentPrice?: number
+  /** true si el worker aún no ha escrito un precio real para esta posición */
+  currentPriceStale?: boolean
   unrealizedPnL?: number
   unrealizedPnLPercent?: number
   maxPrice?: number

@@ -35,7 +35,9 @@ function PositionCard({ position }: { position: Position }) {
         </div>
         <div>
           <span className="text-xs text-gray-500">Actual</span>
-          <p className="font-semibold">{formatCurrency(position.currentPrice, 2)}</p>
+          <p className="font-semibold">
+            {position.currentPriceStale ? <span className="text-gray-400">Sin datos</span> : formatCurrency(position.currentPrice, 2)}
+          </p>
         </div>
         <div>
           <span className="text-xs text-gray-500">PnL</span>

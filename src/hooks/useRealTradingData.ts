@@ -58,14 +58,26 @@ export function useRealTradingData(autoRefreshMs = 30000) {
           investedAmount: (p.entry || 0) * (p.size || 0),
           mode: (p.mode || 'PAPER').toLowerCase(),
           openDate: p.timestamp || new Date().toISOString(),
-          currentPrice: p.max_price || p.entry || 0,
-          unrealizedPnL: ((p.max_price || p.entry) - p.entry) * (p.size || 0),
-          unrealizedPnLPercent: p.entry > 0 ? (((p.max_price || p.entry) - p.entry) / p.entry) * 100 : 0,
+          // El precio actual y el PnL vienen ya calculados del API sobre current_price
+          // (escrito por el worker). max_price se queda como "máximo alcanzado".
+          currentPrice: p.current_price || p.entry || 0,
+          currentPriceStale: p.current_price_stale ?? true,
+          unrealizedPnL: p.unrealized_pnl ?? 0,
+          unrealizedPnLPercent: p.unrealized_pnl_percent ?? 0,
           maxPrice: p.max_price || p.entry,
           partialTpTaken: p.partial_tp_taken || false,
           entryReason: p.reason || '',
           entryGrade: p.grade || 'B',
-          entryIndicators: { rsi: 50, macd: 0, adx: 25, ema20: 0, ema50: 0, atr: (p.entry - (p.original_sl || p.sl)) / 2, volume: 100 }
+          // Indicadores reales de la entrada (0 = sin dato, como en el resto del dashboard)
+          entryIndicators: {
+            rsi: p.rsi ?? 0,
+            macd: 0,
+            adx: p.adx ?? 0,
+            ema20: p.ema20 ?? 0,
+            ema50: p.ema50 ?? 0,
+            atr: p.atr ?? (p.entry - (p.original_sl || p.sl)) / 2,
+            volume: p.volume ?? 0
+          }
         }))
         
         // Transformar trades
@@ -89,11 +101,20 @@ export function useRealTradingData(autoRefreshMs = 30000) {
             mode: (t.mode || 'PAPER').toLowerCase(),
             openDate: t.timestamp || new Date().toISOString(),
             closeDate: t.exit_time || new Date().toISOString(),
-            holdingDays: 1,
+            holdingDays: t.holding_days ?? 1,
             rMultiple: rMultiple,
             entryReason: t.reason || '',
             entryGrade: t.grade || 'B',
-            entryIndicators: { rsi: 50, macd: 0, adx: 25, ema20: 0, ema50: 0, atr: riskPerShare, volume: 100 },
+            // Indicadores reales de la entrada (0 = sin dato)
+            entryIndicators: {
+              rsi: t.rsi ?? 0,
+              macd: 0,
+              adx: t.adx ?? 0,
+              ema20: t.ema20 ?? 0,
+              ema50: t.ema50 ?? 0,
+              atr: t.atr ?? riskPerShare,
+              volume: t.volume ?? 0
+            },
             exitReason: t.result === 'SL' ? 'Stop Loss alcanzado' 
               : t.result === 'TP1' ? `Take Profit 1 (50%) - Régimen: ${t.exit_regime || 'N/A'}` 
               : t.result === 'TP2' ? 'Take Profit 2 (estrategia antigua)' 

@@ -15,9 +15,13 @@ function processPosition(p: any, category: string) {
   const size = p.size || 0
   const sl = p.sl || 0
   const tp = p.tp || 0
+  // max_price es solo el máximo alcanzado desde la apertura: por definición nunca baja
+  // de entry, así que NO sirve como precio actual (haría imposible mostrar pérdidas).
+  // El precio real lo escribe el worker en cada ciclo de check_exits (current_price).
   const maxPrice = p.max_price || entry
-  const currentPrice = maxPrice // Usamos max_price como proxy de precio actual
-  
+  const hasLivePrice = typeof p.current_price === 'number' && p.current_price > 0
+  const currentPrice = hasLivePrice ? p.current_price : entry
+
   // Calcular invested_amount
   const investedAmount = entry * size
   
@@ -40,6 +44,9 @@ function processPosition(p: any, category: string) {
     current_price: currentPrice,
     unrealized_pnl: unrealizedPnl,
     unrealized_pnl_percent: unrealizedPnlPercent,
+    max_price: maxPrice,
+    current_price_stale: !hasLivePrice,
+    price_updated_at: p.price_updated_at || null,
     r_multiple: rMultiple,
     original_sl: originalSl,
     risk_per_unit: riskPerUnit,
