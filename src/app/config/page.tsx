@@ -539,8 +539,10 @@ function StrategyEditor({ strategy }: { strategy: StrategyConfig }) {
       {activeTab === 'performance' && (
         <div className="space-y-6">
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm">
-            <strong>📊 Rendimiento Esperado:</strong> Métricas estimadas basadas en backtests y análisis histórico.
-            Estos valores son orientativos y pueden variar según condiciones de mercado.
+            <strong>📊 Rendimiento esperado:</strong> estas casillas están vacías a propósito.
+            No hay ninguna cifra esperada porque todavía no hay evidencia que la sostenga:
+            los primeros resultados reales están en <a href="/backtest" className="underline">Backtesting</a>,
+            y son de un solo camino histórico.
           </div>
           
           <div className="grid grid-cols-2 gap-6">

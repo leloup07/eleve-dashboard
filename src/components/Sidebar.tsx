@@ -20,7 +20,6 @@ const navigation = [
   { name: '1% Spot', href: '/strategies/intraday-1pct', icon: '💯' },
   { type: 'divider', label: 'Análisis' },
   { name: 'Indicadores', href: '/indicators', icon: '📊' },
-  { name: 'Strategy Lab', href: '/strategy-lab', icon: '🔬' },
   { name: 'Backtesting', href: '/backtest', icon: '📈' },
   { name: 'Proyecciones', href: '/projections', icon: '🔮' },
   { name: 'Noticias', href: '/news', icon: '📰' },
