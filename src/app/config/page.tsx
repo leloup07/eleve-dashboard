@@ -1473,12 +1473,17 @@ export default function ConfigPage() {
         </div>
       )}
       
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <span className="text-blue-800">
-          💡 <strong>Tip:</strong> Usa la pestaña <strong>Filtros de Entrada</strong> para ajustar ADX, RSI y EMAs.
-          Valores más bajos = más trades (agresivo). Valores más altos = menos trades (conservador).
-        </span>
-      </div>
+      {/* Con el experimento en curso, invitar a "ajustar ADX, RSI y EMAs" justo
+          debajo del aviso de congelado es contradictorio: esos campos no se
+          pueden guardar (el API devuelve 423). */}
+      {!experiment?.active && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <span className="text-blue-800">
+            💡 <strong>Tip:</strong> Usa la pestaña <strong>Filtros de Entrada</strong> para ajustar ADX, RSI y EMAs.
+            Valores más bajos = más trades (agresivo). Valores más altos = menos trades (conservador).
+          </span>
+        </div>
+      )}
       
       {/* Estrategias Intraday */}
       <div>
