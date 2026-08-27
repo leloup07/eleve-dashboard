@@ -50,7 +50,7 @@ export function useRealTradingData(autoRefreshMs = 30000) {
         const positions = (data.positions || []).map((p: any, idx: number) => ({
           id: p.ticker + '-' + idx,
           ticker: p.ticker || 'UNKNOWN',
-          strategy: p.category || 'small_caps',
+          strategy: p.strategy || p.category || 'unknown',
           entry: p.entry || 0,
           sl: p.sl || 0,
           tp: p.tp || 0,
@@ -88,7 +88,7 @@ export function useRealTradingData(autoRefreshMs = 30000) {
           return {
             id: t.ticker + '-' + idx,
             ticker: t.ticker || 'UNKNOWN',
-            strategy: t.category || 'small_caps',
+            strategy: t.strategy || t.category || 'unknown',
             entry: t.entry || 0,
             exit: t.exit || 0,
             sl: t.original_sl || t.sl || 0,
