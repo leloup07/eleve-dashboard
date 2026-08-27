@@ -5,12 +5,18 @@ export type TradingMode = 'live' | 'paper'
 export type MarketRegime = 'BULL' | 'BEAR' | 'RANGE' | 'UNKNOWN'
 export type TradeResult = 'TP' | 'TP1' | 'TP2' | 'SL' | 'BE' | 'TRAIL'
 export type StrategyHorizon = 'SWING' | 'INTRADAY'
-export type GatekeeperType = 'BTC_REGIME' | 'IRG' | 'NONE'
+export type GatekeeperType = 'BTC_REGIME' | 'SPY_REGIME' | 'IRG' | 'NONE'
 
 // =====================================================
 // INTRADAY RISK GUARD (IRG) - NUEVO v4.3
 // =====================================================
 
+/**
+ * ⚠️ NO IMPLEMENTADO. El Intraday Risk Guard se diseñó en la v4.3 y nunca llegó
+ * al código: no hay una sola referencia en los workers ni claves eleve:irg:* en
+ * Redis, y nadie escribe IRGState. Estos tipos son un plano, no una función que
+ * exista. Antes de usarlos para algo, hay que implementarlo o borrarlos.
+ */
 export interface IRGConfig {
   enabled: boolean
   

@@ -29,6 +29,8 @@ import { APP_VERSION, STRATEGY_DESCRIPTIONS, TRAILING_LABEL } from '@/config/ver
 // CONFIGURACIÓN INICIAL IRG (v5.0)
 // =====================================================
 
+// ⚠️ NO IMPLEMENTADO: ver el aviso en types/index.ts. Este estado no lo actualiza
+// nadie; se conserva como plano de un guardia de riesgo intradía que está por hacer.
 const INITIAL_IRG_CONFIG: IRGConfig = {
   enabled: true,
   evaluationIntervalMinutes: 15,
@@ -192,7 +194,7 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
     assets: ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOGL', 'META', 'TSLA'],
     assetDescription: 'Magnificent 7 + Top S&P 500',
     horizon: 'SWING',
-    gatekeeper: 'BTC_REGIME', // Para stocks sería SPY_REGIME
+    gatekeeper: 'SPY_REGIME',
     timeframes: { context: '1W', trend: '1D', entry: '4H' },
     stops: { slAtrMult: 1.5, tpAtrMult: 3.0, trailing: TRAILING_LABEL },
     entryFilters: {
@@ -226,7 +228,7 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
     assets: ['BROS', 'HIMS', 'OSCR', 'DOCS', 'FIVE', 'WING', 'ANF', 'PGNY'],
     assetDescription: 'Small caps momentum ($1B-$10B cap)',
     horizon: 'SWING',
-    gatekeeper: 'BTC_REGIME',
+    gatekeeper: 'SPY_REGIME',
     timeframes: { context: '1W', trend: '1D', entry: '1H' },
     stops: { slAtrMult: 2.0, tpAtrMult: 5.0, trailing: TRAILING_LABEL },
     entryFilters: {
@@ -251,7 +253,7 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
     name: 'VWAP Reversion',
     version: 'v5.0',
     status: 'ACTIVE',
-    description: 'Estrategia intraday mean-reversion. Opera fake breaks del rango asiático (00:00-08:00 UTC) que revierten al VWAP. Busca sobre-extensiones de más de 1 ATR respecto al VWAP en BTC y ETH. SL a 1.2x ATR, TP a 1.5x ATR. Límites diarios: -1% pérdida máxima, +1.5% target. Sin trailing, filosofía cobrar y fuera. USA IRG COMO GATEKEEPER.',
+    description: 'Estrategia intraday mean-reversion. Opera fake breaks del rango asiático (00:00-08:00 UTC) que revierten al VWAP. Busca sobre-extensiones de más de 1 ATR respecto al VWAP en BTC y ETH. SL a 1.2x ATR, TP a 1.5x ATR. Límites diarios: -1% pérdida máxima, +1.5% target. Sin trailing, filosofía cobrar y fuera. Sin gatekeeper de régimen: sus únicas puertas son el horario (8:00-20:00 UTC), el veto por RSI extremo y los límites diarios.',
     capital: null,
     riskPerTrade: null,
     maxPositions: null,
@@ -260,7 +262,8 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
     assets: ['BTC-USD', 'ETH-USD'],
     assetDescription: 'BTC y ETH (sesión asiática)',
     horizon: 'INTRADAY',
-    gatekeeper: 'IRG', // v5.0: Intraday usa IRG
+    // El IRG nunca llegó a implementarse: VWAP no tiene puerta de régimen.
+    gatekeeper: 'NONE',
     timeframes: { context: '15m', trend: '5m', entry: '5m' },
     stops: { slAtrMult: 1.2, tpAtrMult: 1.5 },
     entryFilters: {
@@ -285,7 +288,7 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
     name: '1% Spot',
     version: 'v5.0',
     status: 'ACTIVE',
-    description: 'Estrategia intraday trend-following. Busca +1% rápidos en altcoins con momentum limpio. Filtros: market cap >$300M, volumen 24h >$50M, ratio vol/mcap >0.15, ADX >20, RSI 40-55. TP fijo +1%, SL -0.5% (R:R 2:1). Mueve a BE en +0.6%. Límites diarios: -1.5% pérdida, +3% target. USA IRG COMO GATEKEEPER.',
+    description: 'Estrategia intraday trend-following. Busca +1% rápidos en altcoins con momentum limpio. Filtros: market cap >$300M, volumen 24h >$50M, ratio vol/mcap >0.15, ADX >20, RSI 40-55. TP fijo +1%, SL -0.5% (R:R 2:1). Mueve a BE en +0.6%. Límites diarios: -1.5% pérdida, +3% target. Gatekeeper real: ADX de BTC en 1H por encima del umbral configurado.',
     capital: null,
     riskPerTrade: null,
     maxPositions: null,
@@ -294,7 +297,8 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
     assets: ['SOL-USD', 'XRP-USD', 'AVAX-USD', 'LINK-USD', 'DOT-USD'],
     assetDescription: 'Altcoins >$300M market cap',
     horizon: 'INTRADAY',
-    gatekeeper: 'IRG', // v5.0: Intraday usa IRG
+    // El IRG nunca llegó a implementarse: su puerta real es el ADX de BTC.
+    gatekeeper: 'BTC_REGIME',
     timeframes: { context: '1H', trend: '15m', entry: '5m' },
     stops: { slAtrMult: 0.5, tpAtrMult: 1.0 },
     entryFilters: {

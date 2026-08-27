@@ -8,7 +8,7 @@ import { formatCurrency, formatPercent, formatNumber, formatRatio } from '@/lib/
 import { clsx } from 'clsx'
 import type { StrategyConfig } from '@/types'
 import { TRAILING_LABEL } from '@/config/version'
-import { buildStrategySpecLine } from '@/lib/strategySpec'
+import { buildStrategySpecLine, describeStop } from '@/lib/strategySpec'
 
 function StrategyEditor({ strategy }: { strategy: StrategyConfig }) {
   const updateStrategy = useTradingStore(state => state.updateStrategy)
@@ -335,7 +335,7 @@ function StrategyEditor({ strategy }: { strategy: StrategyConfig }) {
                     max="5"
                   />
                 ) : (
-                  <p className="font-medium">{formatNumber(strategy.stops.slAtrMult, 1)}x ATR</p>
+                  <p className="font-medium">{describeStop(strategy)}</p>
                 )}
               </div>
               

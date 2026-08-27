@@ -15,6 +15,26 @@ const pct = (v: number, dec = 2) =>
 
 const num = (v: number) => String(v).replace('.', ',')
 
+/**
+ * Cómo se describe el stop de una estrategia. Único sitio donde se decide, para
+ * que la ficha, la página de estrategia y /config no puedan contradecirse: el
+ * 1% Spot tiene stops en porcentaje fijo y se estaba pintando como "0,5× ATR".
+ */
+export function describeStop(s: StrategyConfig): string {
+  const st = s.stops
+  if (st?.slPercent) return `−${pct(st.slPercent)}${st.tpPercent ? ` · TP +${pct(st.tpPercent)}` : ''}`
+  if (st?.slAtrMult) return `${num(st.slAtrMult)}× ATR(${(st.atrTimeframe ?? '1h').toUpperCase()})`
+  return 'sin definir'
+}
+
+/** Salida de la estrategia: R:R solo tiene sentido si existe un TP. */
+export function describeExit(s: StrategyConfig): string {
+  const st = s.stops
+  if (st?.tpPercent && st?.slPercent) return `R:R ${num(Number((st.tpPercent / st.slPercent).toFixed(2)))}:1`
+  if (st?.tpAtrMult && st?.slAtrMult) return `R:R ${num(Number((st.tpAtrMult / st.slAtrMult).toFixed(2)))}:1`
+  return st?.trailing ?? 'Trailing (n−1)R desde +2R'
+}
+
 export function buildStrategySpec(s: StrategyConfig): string[] {
   const spec: string[] = []
   const f = s.entryFilters

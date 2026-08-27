@@ -4,7 +4,7 @@ import { useTradingStore } from '@/stores/tradingStore'
 import { formatCurrency, formatPercent, formatNumber, formatRatio, getValueColorClass } from '@/lib/formatters'
 import { clsx } from 'clsx'
 import type { Position, Trade } from '@/types'
-import { buildStrategySpecLine } from '@/lib/strategySpec'
+import { buildStrategySpecLine, describeStop, describeExit } from '@/lib/strategySpec'
 
 interface StrategyPageProps {
   strategyKey: string
@@ -119,7 +119,7 @@ export function StrategyPage({ strategyKey }: StrategyPageProps) {
   const isCrypto = strategyKey.includes('crypto')
   const relevantRegime = isCrypto ? btcRegime : spyRegime
   const isBlocked = relevantRegime !== 'BULL'
-  const rrRatio = strategy.stops.tpAtrMult / strategy.stops.slAtrMult
+  const salida = describeExit(strategy)
   
   const emoji = {
     crypto_swing: '🪙',
@@ -190,8 +190,8 @@ export function StrategyPage({ strategyKey }: StrategyPageProps) {
           <p className="text-2xl font-bold">{performance.trades}</p>
         </div>
         <div className="card">
-          <span className="text-xs text-gray-500 uppercase">R:R</span>
-          <p className="text-2xl font-bold">{formatRatio(rrRatio)}</p>
+          <span className="text-xs text-gray-500 uppercase">Salida</span>
+          <p className="text-2xl font-bold">{salida}</p>
         </div>
       </div>
       
@@ -266,8 +266,8 @@ export function StrategyPage({ strategyKey }: StrategyPageProps) {
           <div>
             <h4 className="font-semibold text-gray-700 mb-3">🎯 Stops</h4>
             <div className="space-y-2 text-sm">
-              <p><span className="text-gray-500">Stop Loss:</span> {strategy.stops.slAtrMult}x ATR</p>
-              <p><span className="text-gray-500">Trailing:</span> +2R → (n-1)R</p>
+              <p><span className="text-gray-500">Stop Loss:</span> {describeStop(strategy)}</p>
+              <p><span className="text-gray-500">Salida:</span> {salida}</p>
               <p><span className="text-gray-500">Riesgo/Trade:</span> {formatPercent((strategy.riskPerTrade ?? 0) * 100, 2)}</p>
             </div>
           </div>
