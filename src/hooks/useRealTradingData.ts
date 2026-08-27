@@ -160,16 +160,38 @@ export function useRealTradingData(autoRefreshMs = 30000) {
         }
         if (configJson.data?.strategies) {
           Object.entries(configJson.data.strategies).forEach(([key, config]: [string, any]) => {
+            // Las estrategias intraday tienen su capital/riesgo en su propia clave de Redis
+            // (eleve:intraday:config / eleve:intraday1pct:config), que es la que lee el worker.
+            // Lo que haya en eleve:config:strategies para ellas puede estar desfasado.
+            if (key === 'vwap_reversion' || key === 'one_percent_spot') return
+
             const updates: any = {}
             if (config.capital !== undefined) updates.capital = config.capital
             if (config.riskPerTrade !== undefined) updates.riskPerTrade = config.riskPerTrade
             if (config.maxPositions !== undefined) updates.maxPositions = config.maxPositions
             if (Object.keys(updates).length > 0) {
-              const store = useTradingStore.getState()
-              store.updateStrategy(key, updates)
+              // Hidratación local: NO usar updateStrategy(), que hace POST de vuelta a Redis
+              // y convierte cada refresco en un ciclo lectura→escritura.
+              useTradingStore.setState(state => ({
+                strategies: state.strategies.map(s => s.key === key ? { ...s, ...updates } : s)
+              }))
             }
           })
         }
+        // Las dos intraday toman sus cifras de la clave que realmente lee su worker
+        const mirrorIntraday = (strategyKey: string, cfg: any) => {
+          if (!cfg) return
+          useTradingStore.setState(state => ({
+            strategies: state.strategies.map(s => s.key === strategyKey ? {
+              ...s,
+              capital: cfg.capital ?? s.capital,
+              riskPerTrade: cfg.riskPerTrade ?? s.riskPerTrade,
+              maxPositions: cfg.maxPositions ?? s.maxPositions
+            } : s)
+          }))
+        }
+        mirrorIntraday('one_percent_spot', configJson.data?.intraday1pct)
+        mirrorIntraday('vwap_reversion', configJson.data?.intraday)
         if (configJson.data?.intraday) {
           setIntradayConfig(configJson.data.intraday)
         }

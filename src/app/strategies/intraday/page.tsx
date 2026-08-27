@@ -100,7 +100,8 @@ export default function IntradayPage() {
 
   useRealTradingData(0)
   const intradayConfig = useTradingStore(state => state.intradayConfig)
-  const capital = intradayConfig?.capital || 10000
+  // Sin fallback inventado: el capital viene de eleve:intraday:config (Redis)
+  const capital = intradayConfig?.capital ?? null
 
   return (
     <div className="space-y-6">
@@ -159,7 +160,7 @@ export default function IntradayPage() {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div className="card">
           <span className="text-sm text-gray-500">Capital</span>
-          <p className="text-2xl font-bold">{formatCurrency(capital)}</p>
+          <p className="text-2xl font-bold">{capital === null ? 'Cargando...' : formatCurrency(capital)}</p>
         </div>
         <div className="card">
           <span className="text-sm text-gray-500">PnL Hoy</span>
@@ -170,7 +171,7 @@ export default function IntradayPage() {
             {formatCurrency(dailyStats?.pnl || 0)}
           </p>
           <span className="text-xs text-gray-400">
-            {formatPercent(((dailyStats?.pnl || 0) / capital) * 100)}
+            {capital ? formatPercent(((dailyStats?.pnl || 0) / capital) * 100) : '—'}
           </span>
         </div>
         <div className="card">
@@ -186,7 +187,7 @@ export default function IntradayPage() {
         </div>
         <div className="card">
           <span className="text-sm text-gray-500">Posiciones</span>
-          <p className="text-2xl font-bold">{positions.length}/{intradayConfig?.maxPositions || 2}</p>
+          <p className="text-2xl font-bold">{positions.length}/{intradayConfig?.maxPositions ?? '—'}</p>
         </div>
       </div>
 
@@ -248,11 +249,11 @@ export default function IntradayPage() {
             </div>
             <div className="flex justify-between py-2 border-b">
               <span className="text-gray-600">Riesgo/Trade</span>
-              <span className="font-mono">{(intradayConfig?.riskPerTrade || 0.003) * 100}%</span>
+              <span className="font-mono">{intradayConfig?.riskPerTrade != null ? `${intradayConfig.riskPerTrade * 100}%` : '—'}</span>
             </div>
             <div className="flex justify-between py-2 border-b">
               <span className="text-gray-600">Max Posiciones</span>
-              <span className="font-mono">{intradayConfig?.maxPositions || 2}</span>
+              <span className="font-mono">{intradayConfig?.maxPositions ?? '—'}</span>
             </div>
             <div className="flex justify-between py-2 border-b">
               <span className="text-gray-600">SL (ATR)</span>
