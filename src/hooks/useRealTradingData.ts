@@ -201,7 +201,10 @@ export function useRealTradingData(autoRefreshMs = 30000) {
         if (configJson.data?.intraday) {
           setIntradayConfig(configJson.data.intraday)
         }
-        setWorker(data.worker || null)
+        // Se adjunta la frescura calculada en el API: el worker nunca escribe
+        // "parado" al morir, así que sin esto un proceso caído seguiría saliendo
+        // como activo para siempre.
+        setWorker(data.worker ? { ...data.worker, stale: data.workerStale, staleMinutes: data.workerStaleMinutes } : null)
         
         // Set intraday data
         setIntraday({

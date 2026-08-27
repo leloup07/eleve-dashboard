@@ -187,6 +187,18 @@ export async function GET() {
       } catch (e) { console.error('[api/trading] JSON invalido en Redis:', e) }
     }
     
+    // === ¿SIGUE VIVO EL WORKER? ===
+    // El worker escribe status: "running" y nunca lo borra: si el proceso muere,
+    // esa clave se queda en "running" para siempre y el dashboard mostraría el bot
+    // como activo indefinidamente. El escaneo es cada 5 min, así que más de 15 min
+    // sin last_scan (3 ciclos perdidos) se considera caído.
+    const WORKER_STALE_MINUTES = 15
+    const lastScanMs = workerStatus.last_scan ? new Date(workerStatus.last_scan).getTime() : null
+    const workerStaleMinutes = lastScanMs && !isNaN(lastScanMs)
+      ? (Date.now() - lastScanMs) / 60000
+      : null
+    const workerStale = workerStaleMinutes === null || workerStaleMinutes > WORKER_STALE_MINUTES
+
     // === ESTADÍSTICAS ===
     const totalTradesRaw = await redis.get('eleve:stats:total_trades')
     const totalPnlRaw = await redis.get('eleve:stats:total_pnl')
@@ -290,7 +302,9 @@ export async function GET() {
         trades,
         btcRegime: cryptoRegime,
         spyRegime: stocksRegime,
-        botActive: workerStatus.status === 'running',
+        botActive: workerStatus.status === 'running' && !workerStale,
+        workerStale,
+        workerStaleMinutes,
         redisConnected: true,
         lastUpdate: new Date().toISOString(),
         worker: workerStatus,

@@ -217,7 +217,9 @@ export default function HomePage() {
       {worker && (
         <div className="bg-gray-50 border rounded-lg p-3 text-sm text-gray-600 flex items-center justify-between">
           <div>
-            <strong>Bot:</strong> {worker.status === 'running' ? '🟢 Ejecutando' : '🔴 Parado'} | 
+            <strong>Bot:</strong> {worker.stale
+              ? `🔴 Sin señal${worker.staleMinutes ? ` (${Math.round(worker.staleMinutes)} min)` : ''}`
+              : worker.status === 'running' ? '🟢 Ejecutando' : '🔴 Parado'} |
             <strong> Modo:</strong> {worker.mode || 'PAPER'} |
             <strong> Última actualización:</strong> {lastFetch?.toLocaleTimeString('es-ES') || '-'}
           </div>
