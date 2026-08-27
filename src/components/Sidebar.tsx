@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { clsx } from 'clsx'
@@ -38,6 +38,35 @@ export function Sidebar() {
   const intradayConfig = useTradingStore(state => state.intradayConfig)
   const intraday1PctConfig = useTradingStore(state => state.intraday1PctConfig)
   
+  // El capital de cada estrategia vive en Redis, no en el código. La barra
+  // lateral se pinta en TODAS las páginas, pero el hook que hidrata la
+  // configuración solo corre en ocho de ellas: en /backtest, /journal o
+  // /indicators las cifras salían a 0 porque nadie las había traído todavía.
+  // Es una hidratación local, sin POST de vuelta: la config está congelada.
+  useEffect(() => {
+    let vivo = true
+    fetch('/api/config')
+      .then((r) => r.json())
+      .then((json) => {
+        if (!vivo || !json?.data?.strategies) return
+        useTradingStore.setState((state) => ({
+          strategies: state.strategies.map((s) => {
+            const cfg = json.data.strategies[s.key]
+            if (!cfg) return s
+            return {
+              ...s,
+              capital: cfg.capital ?? s.capital,
+              riskPerTrade: cfg.riskPerTrade ?? s.riskPerTrade,
+              maxPositions: cfg.maxPositions ?? s.maxPositions,
+              enabled: cfg.enabled ?? s.enabled,
+            }
+          }),
+        }))
+      })
+      .catch((e) => console.error('[Sidebar] no se pudo leer la config:', e))
+    return () => { vivo = false }
+  }, [])
+
   const cryptoCapital = (intradayConfig?.capital || 0) + (intraday1PctConfig?.capital || 0) + strategies
     .filter(s => s.key.includes('crypto'))
     .reduce((sum, s) => sum + (s.capital || 0), 0)
