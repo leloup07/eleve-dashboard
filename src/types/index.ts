@@ -84,6 +84,16 @@ export interface StrategyConfig {
   stops: {
     slAtrMult: number
     tpAtrMult: number; trailing?: string
+    /** Timeframe del ATR con el que se calibra el SL: '1h' | '1d' */
+    atrTimeframe?: string
+    /** Estrategias con TP/SL fijos en % (1% Spot) en vez de múltiplos de ATR */
+    slPercent?: number
+    tpPercent?: number
+  }
+  /** Costes de operativa por lado, sobre el nocional (0.0026 = 0,26%) */
+  costs?: {
+    commissionPct?: number
+    slippagePct?: number
   }
   entryFilters: {
     adxMin: number

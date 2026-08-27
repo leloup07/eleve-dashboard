@@ -4,6 +4,7 @@ import { useTradingStore } from '@/stores/tradingStore'
 import { formatCurrency, formatRatio, formatNumber, getValueColorClass } from '@/lib/formatters'
 import { clsx } from 'clsx'
 import type { StrategyConfig } from '@/types'
+import { buildStrategySpecLine } from '@/lib/strategySpec'
 
 interface StrategyCardProps {
   strategy: StrategyConfig
@@ -81,10 +82,13 @@ export function StrategyCard({ strategy }: StrategyCardProps) {
         <span className={clsx('text-sm font-medium', status.color)}>{status.text}</span>
       </div>
       
-      {/* Description */}
+      {/* Description: tesis cualitativa + ficha tecnica generada desde la config */}
       {strategy.description && (
-        <p className="text-xs text-gray-500 mb-3 line-clamp-2">{strategy.description}</p>
+        <p className="text-xs text-gray-500 mb-1 line-clamp-2">{strategy.description}</p>
       )}
+      <p className="text-[11px] text-gray-400 mb-3 line-clamp-2" title={buildStrategySpecLine(strategy)}>
+        {buildStrategySpecLine(strategy)}
+      </p>
       
       {/* Equity actual (capital + ganancias) */}
       <div className="mb-4 p-3 bg-gray-50 rounded-lg">

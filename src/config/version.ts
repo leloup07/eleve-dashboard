@@ -13,23 +13,28 @@ export const TRAILING_LABEL = 'Trailing: activo desde +2R → SL = (n−1)R'
 export const STRATEGY_DESCRIPTIONS = {
   // =====================================================
   // ESTRATEGIAS SWING - Usan trailing (n-1)R
+  //
+  // IMPORTANTE: aqui va SOLO la tesis cualitativa. Ningun umbral, stop ni
+  // porcentaje: esos los genera buildStrategySpec() a partir de la config real
+  // que lee el worker, para que la ficha no pueda desincronizarse del codigo
+  // como paso con "SL 1.8x ATR" o los filtros de ADX desactivados.
   // =====================================================
 
-  crypto_core: `Estrategia swing conservadora para BTC y ETH. Análisis multi-timeframe: contexto semanal (1W), tendencia diaria (1D), entrada en 4H. Opera pullbacks hasta 1.0× ATR a EMA20/EMA50. RSI 35-70. SL inicial: 2.0× ATR. Sin TP. Gestión 100% por SL dinámico (n−1)R desde +2R. Gatekeeper: BTC regime.`,
+  crypto_core: `Swing conservador sobre BTC y ETH. Régimen y momentum en gráfico diario (EMA20/EMA50), entrada en 1H sobre pullback a la EMA20. Gatekeeper: régimen de BTC.`,
 
-  crypto_aggressive: `Estrategia swing oportunista para altcoins (SOL, AVAX, LINK, XRP). Contexto en 1D, tendencia 4H, entrada 1H. Pullbacks hasta 1.0× ATR. RSI 30-75. SL inicial: 2.0× ATR. Sin TP. Gestión 100% por SL dinámico (n−1)R desde +2R. Gatekeeper: BTC regime.`,
+  crypto_aggressive: `Swing oportunista sobre altcoins líquidas (SOL, XRP, AVAX, LINK). Mismo motor que Crypto Core con umbrales más laxos. Gatekeeper: régimen de BTC.`,
 
-  large_caps: `Estrategia swing para blue chips S&P 500 (market cap >100B). Filtro macro: SPY alcista semanal. Entrada en 1H con RSI 30-70, sin filtro ADX ni de pullback. SL inicial: 2.0× ATR. Sin TP. Gestión 100% por SL dinámico (n−1)R desde +2R. Gatekeeper: BTC regime.`,
+  large_caps: `Swing sobre blue chips del S&P 500. Régimen y momentum en diario, entrada en 1H. Gatekeeper: régimen de SPY.`,
 
-  small_caps: `Estrategia swing momentum para small caps Russell 2000 (market cap 1B-10B). Filtros: RSI 30-70, sin filtro ADX ni de pullback. Filtro macro: IWM alcista. SL inicial: 2.0× ATR. Sin TP. Gestión 100% por SL dinámico (n−1)R desde +2R. Gatekeeper: BTC regime.`,
+  small_caps: `Swing de momentum sobre small caps del Russell 2000. Régimen y momentum en diario, entrada en 1H. Gatekeeper: régimen de SPY.`,
 
   // =====================================================
   // ESTRATEGIAS INTRADAY - NO usan trailing por R
   // =====================================================
 
-  vwap_reversion: `Mean-reversion tras fake breaks del rango asiático. Opera de 8:00 a 20:00 UTC. SL: 1.2× ATR, TP: 1.5× ATR. Esta estrategia NO usa trailing por R (n−1). Cobrar y fuera.`,
+  vwap_reversion: `Mean-reversion tras fake breaks del rango asiático (00:00-08:00 UTC), operando de 8:00 a 20:00 UTC. Sin trailing: cobrar y fuera.`,
 
-  intraday_1pct: `Spot momentum con filtros estrictos de liquidez. Objetivo: +1% diario. SL: -0.5%, TP: +1.0%, Break-even a +0.6%. Esta estrategia NO usa trailing por R (n−1). Max 5 posiciones/día.`
+  intraday_1pct: `Spot momentum sobre altcoins con filtros estrictos de liquidez y TP/SL fijos. Mueve el stop a breakeven cuando el trade avanza. Sin trailing por R.`
 } as const
 
 // Para TypeScript

@@ -192,7 +192,26 @@ export function useRealTradingData(autoRefreshMs = 30000) {
               ...s,
               capital: cfg.capital ?? s.capital,
               riskPerTrade: cfg.riskPerTrade ?? s.riskPerTrade,
-              maxPositions: cfg.maxPositions ?? s.maxPositions
+              maxPositions: cfg.maxPositions ?? s.maxPositions,
+              // Stops, filtros y costes reales: su worker lee esta clave, no
+              // eleve:config:strategies, asi que la ficha tiene que salir de aqui.
+              stops: {
+                ...s.stops,
+                ...(cfg.slAtrMult != null ? { slAtrMult: cfg.slAtrMult } : {}),
+                ...(cfg.tpAtrMult != null ? { tpAtrMult: cfg.tpAtrMult } : {}),
+                ...(cfg.slPercent != null ? { slPercent: cfg.slPercent } : {}),
+                ...(cfg.tpPercent != null ? { tpPercent: cfg.tpPercent } : {})
+              },
+              entryFilters: {
+                ...s.entryFilters,
+                ...(cfg.rsiMin != null ? { rsiMin: cfg.rsiMin } : {}),
+                ...(cfg.rsiMax != null ? { rsiMax: cfg.rsiMax } : {}),
+                ...(cfg.minAdx != null ? { adxMin: cfg.minAdx } : {})
+              },
+              costs: {
+                commissionPct: cfg.commissionPct ?? 0,
+                slippagePct: cfg.slippagePct ?? 0
+              }
             } : s)
           }))
         }

@@ -8,6 +8,7 @@ import { formatCurrency, formatPercent, formatNumber, formatRatio } from '@/lib/
 import { clsx } from 'clsx'
 import type { StrategyConfig } from '@/types'
 import { TRAILING_LABEL } from '@/config/version'
+import { buildStrategySpecLine } from '@/lib/strategySpec'
 
 function StrategyEditor({ strategy }: { strategy: StrategyConfig }) {
   const updateStrategy = useTradingStore(state => state.updateStrategy)
@@ -126,6 +127,7 @@ function StrategyEditor({ strategy }: { strategy: StrategyConfig }) {
             <h3 className="text-xl font-bold">{strategy.name}</h3>
             <p className="text-sm text-gray-500">
               {strategy.version} • {strategy.description}
+              <span className="block text-xs text-gray-400 mt-0.5">{buildStrategySpecLine(strategy)}</span>
               {syncStatus === 'success' && <span className="ml-2 text-green-600">✅ Sincronizado</span>}
               {syncStatus === 'error' && <span className="ml-2 text-red-600">❌ Error</span>}
             </p>
