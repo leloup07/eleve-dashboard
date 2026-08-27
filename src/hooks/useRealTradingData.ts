@@ -174,7 +174,14 @@ export function useRealTradingData(autoRefreshMs = 30000) {
             // que no coincidian con lo que realmente se ejecuta.
             if (config.entryFilters !== undefined) updates.entryFilters = config.entryFilters
             if (config.stops !== undefined) updates.stops = config.stops
+            if (config.costs !== undefined) updates.costs = config.costs
             if (config.description !== undefined) updates.description = config.description
+            // Editable desde /config: como la lista ya no se cachea en el navegador,
+            // esto tiene que venir de Redis o se perdería al recargar.
+            if (config.mode !== undefined) updates.mode = config.mode
+            if (config.enabled !== undefined) updates.enabled = config.enabled
+            if (config.assets !== undefined) updates.assets = config.assets
+            if (config.version !== undefined) updates.version = config.version
             if (Object.keys(updates).length > 0) {
               // Hidratación local: NO usar updateStrategy(), que hace POST de vuelta a Redis
               // y convierte cada refresco en un ciclo lectura→escritura.

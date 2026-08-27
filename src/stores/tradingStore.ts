@@ -666,29 +666,26 @@ export const useTradingStore = create<TradingStore>()(
     }),
     {
       name: 'eleve-trading-store-v43',
-      version: 2,
+      version: 3,
       // v2: positions/trades dejan de persistirse (son datos de mercado en vivo: cachearlos
       // hacía que el dashboard siguiera mostrando posiciones ya cerradas o borradas de Redis,
       // con su precio y su fecha congelados, cuando fallaba el fetch a /api/trading).
       // Además se limpian capital/riskPerTrade/maxPositions guardados antes de que pasaran
       // a venir exclusivamente de Redis.
+      // v3: la LISTA de estrategias deja de persistirse. Al fusionar Crypto Core y
+      // Crypto Aggressive en Crypto Swing, los navegadores con la lista antigua
+      // cacheada seguían mostrando dos estrategias que ya no existen, con datos
+      // congelados, mientras el menú y las posiciones sí mostraban las nuevas.
+      // Qué estrategias hay es cosa del código y de Redis, nunca del navegador.
       migrate: (persisted: any, version: number) => {
         if (!persisted) return persisted
         const migrated = { ...persisted }
         delete migrated.positions
         delete migrated.trades
-        if (version < 2 && Array.isArray(migrated.strategies)) {
-          migrated.strategies = migrated.strategies.map((s: any) => ({
-            ...s,
-            capital: null,
-            riskPerTrade: null,
-            maxPositions: null
-          }))
-        }
+        if (version < 3) delete migrated.strategies
         return migrated
       },
       partialize: (state) => ({
-        strategies: state.strategies,
         intradayConfig: state.intradayConfig,
         intraday1PctConfig: state.intraday1PctConfig,
         irgConfig: state.irgConfig

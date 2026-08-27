@@ -19,7 +19,12 @@ export function StrategyCard({ strategy }: StrategyCardProps) {
   const relevantRegime = isCrypto ? stats.btcRegime : stats.spyRegime
   const isBlocked = relevantRegime !== 'BULL'
   
-  const rrRatio = strategy.stops.tpAtrMult / strategy.stops.slAtrMult
+  // Las estrategias swing no tienen TP desde la v5.0 (gestión por trailing), así
+  // que su "R:R" era una división por cero disfrazada de 0:1.
+  const tieneTP = (strategy.stops.tpAtrMult || 0) > 0 || (strategy.stops.tpPercent || 0) > 0
+  const rrRatio = tieneTP && strategy.stops.slAtrMult
+    ? strategy.stops.tpAtrMult / strategy.stops.slAtrMult
+    : null
   
   // Calcular equity: capital inicial + PnL realizado
   const currentEquity = performance.currentEquity
@@ -138,8 +143,8 @@ export function StrategyCard({ strategy }: StrategyCardProps) {
           <p className="text-sm font-bold text-gray-900">{strategy.maxPositions ?? '...'}</p>
         </div>
         <div>
-          <span className="text-[10px] text-gray-500 uppercase block">R:R</span>
-          <p className="text-sm font-bold text-gray-900">{formatRatio(rrRatio)}</p>
+          <span className="text-[10px] text-gray-500 uppercase block">{rrRatio ? 'R:R' : 'Salida'}</span>
+          <p className="text-sm font-bold text-gray-900">{rrRatio ? formatRatio(rrRatio) : 'Trailing'}</p>
         </div>
         <div>
           <span className="text-[10px] text-gray-500 uppercase block">Pos</span>
