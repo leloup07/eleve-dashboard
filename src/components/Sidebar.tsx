@@ -21,6 +21,7 @@ const navigation = [
   { type: 'divider', label: 'Análisis' },
   { name: 'Indicadores', href: '/indicators', icon: '📊' },
   { name: 'Backtesting', href: '/backtest', icon: '📈' },
+  { name: 'Riesgo', href: '/riesgo', icon: '🛡️' },
   { name: 'Proyecciones', href: '/projections', icon: '🔮' },
   { name: 'Noticias', href: '/news', icon: '📰' },
   { type: 'divider', label: 'Herramientas' },
