@@ -16,9 +16,6 @@ const navigation = [
   { name: 'Crypto Breakout', href: '/strategies/crypto-breakout', icon: '🚀' },
   { name: 'Large Caps', href: '/strategies/large-caps', icon: '📈' },
   { name: 'Small Caps', href: '/strategies/small-caps', icon: '🎯' },
-  { type: 'divider', label: 'Estrategias Intraday' },
-  { name: 'VWAP Reversion', href: '/strategies/intraday', icon: '⚡' },
-  { name: '1% Spot', href: '/strategies/intraday-1pct', icon: '💯' },
   { type: 'divider', label: 'Análisis' },
   { name: 'Indicadores', href: '/indicators', icon: '📊' },
   { name: 'Backtesting', href: '/backtest', icon: '📈' },
@@ -29,6 +26,9 @@ const navigation = [
   { name: 'Educación', href: '/education', icon: '📚' },
   { name: 'Trading Journal', href: '/journal', icon: '📔' },
   { name: 'Configuración', href: '/config', icon: '⚙️' },
+  { type: 'divider', label: 'Research cerrado / Archivado' },
+  { name: 'VWAP Reversion', href: '/strategies/intraday', icon: '⚡' },
+  { name: '1% Spot', href: '/strategies/intraday-1pct', icon: '💯' },
 ]
 
 export function Sidebar() {
@@ -88,9 +88,10 @@ export function Sidebar() {
         {/* La identidad del sistema es el commit que ejecutan los workers, no una
             etiqueta escrita a mano: "v5.0" no cambiaba al cambiar el código. */}
         <h1 className="text-xl font-bold">🚀 ELEVE</h1>
-        {/* "Activas" sin matizar es justo lo que ocultaba el modo sombra de
-            VWAP y 1% Spot: el estado real de cada una está en su propia ficha. */}
-        <p className="text-xs text-white/60 mt-1">6 Estrategias</p>
+        {/* Cuenta solo las operativas. VWAP y 1% Spot tienen su research
+            cerrado (RESEARCH_CLOSED/NO_EDGE_EVIDENCE): no ejecutan, así que
+            no cuentan aquí — están en su propia sección más abajo. */}
+        <p className="text-xs text-white/60 mt-1">4 Estrategias</p>
       </div>
       
       {/* Navegación */}
