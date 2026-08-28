@@ -764,7 +764,7 @@ export default function ConfigPage() {
           para ellas es lo que producía $0, 0.0% y NaN. Solo lectura, con
           acceso a su histórico y provenance intactos. */}
       <div>
-        <h2 className="text-xl font-bold text-gray-800 mb-4">🗄️ Research cerrado / Archivado</h2>
+        <h2 className="text-xl font-bold text-gray-800 mb-4">🗄️ Research Archive</h2>
         <div className="space-y-4">
           {(() => {
             const vwap = strategies.find(s => s.key === "vwap_reversion")

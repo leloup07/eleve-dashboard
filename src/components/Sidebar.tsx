@@ -26,7 +26,7 @@ const navigation = [
   { name: 'Educación', href: '/education', icon: '📚' },
   { name: 'Trading Journal', href: '/journal', icon: '📔' },
   { name: 'Configuración', href: '/config', icon: '⚙️' },
-  { type: 'divider', label: 'Research cerrado / Archivado' },
+  { type: 'divider', label: 'Research Archive' },
   { name: 'VWAP Reversion', href: '/strategies/intraday', icon: '⚡' },
   { name: '1% Spot', href: '/strategies/intraday-1pct', icon: '💯' },
 ]

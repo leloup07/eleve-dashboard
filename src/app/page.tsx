@@ -6,7 +6,6 @@ import { useTradingStore } from '@/stores/tradingStore'
 import { useRealTradingData } from '@/hooks/useRealTradingData'
 import { MetricCard } from '@/components/MetricCard'
 import { StrategyCard } from '@/components/StrategyCard'
-import { ArchivedResearchCard } from '@/components/ArchivedResearchCard'
 import { OpenPositions } from '@/components/OpenPositions'
 import { formatCurrency, formatPercent, formatNumber } from '@/lib/formatters'
 import { clsx } from 'clsx'
@@ -310,35 +309,6 @@ export default function HomePage() {
           {strategies.filter(s => s.key !== 'vwap_reversion' && s.key !== 'one_percent_spot').map(strategy => (
             <StrategyCard key={strategy.key} strategy={strategy} />
           ))}
-        </div>
-      </div>
-
-      {/* Research cerrado: mismo tratamiento de solo lectura que /config. */}
-      <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">🗄️ Research cerrado / Archivado</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {(() => {
-            const vwap = strategies.find(s => s.key === 'vwap_reversion')
-            const onePct = strategies.find(s => s.key === 'one_percent_spot')
-            return (
-              <>
-                <ArchivedResearchCard
-                  name="VWAP Reversion"
-                  icon="⚡"
-                  href="/strategies/intraday"
-                  specId={vwap?.specId}
-                  reason={vwap?.executionDisabledReason}
-                />
-                <ArchivedResearchCard
-                  name="1% Spot"
-                  icon="💯"
-                  href="/strategies/intraday-1pct"
-                  specId={onePct?.specId}
-                  reason={onePct?.executionDisabledReason}
-                />
-              </>
-            )
-          })()}
         </div>
       </div>
 
