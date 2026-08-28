@@ -33,6 +33,7 @@ interface Metricas {
 
 interface Trade {
   ticker: string
+  hueco?: boolean
   entrada: number
   salida: number
   abierta: string
@@ -48,6 +49,7 @@ interface Trade {
 interface Resultado {
   estrategia: string
   spec_id: string
+  modelo?: string
   desde: string
   hasta: string
   generado: string
@@ -151,6 +153,7 @@ export default function BacktestPage() {
           )}
 
           <Metricas m={actual.metricas} />
+          <Huecos trades={actual.trades} />
 
           {actual.equity.length > 0 && (
             <div className="mt-6 bg-gray-900 border border-gray-800 rounded-lg p-5">
@@ -220,6 +223,31 @@ function Metricas({ m }: { m: Metricas }) {
   )
 }
 
+function Huecos({ trades }: { trades: Trade[] }) {
+  if (!trades?.length) return null
+  const conHueco = trades.filter((t) => t.hueco)
+  const pct = Math.round((100 * conHueco.length) / trades.length)
+  // Un stop salta justo cuando el precio va en contra, que es cuando más
+  // probable es que haya hueco. Suponer que siempre se ejecuta al precio pedido
+  // no es "un poco optimista": regala el coste de los peores días.
+  return (
+    <div className="mt-6 bg-gray-900 border border-gray-800 rounded-lg p-5">
+      <h2 className="text-white font-semibold">Salidas con hueco de apertura</h2>
+      <p className="text-sm text-gray-400 mt-2">
+        <strong className="text-white">{conHueco.length} de {trades.length}</strong> stops
+        ({pct}%) saltaron con el mercado ya abierto al otro lado. En esos casos la orden se
+        ejecuta en la apertura, peor que el stop.
+      </p>
+      <p className="text-xs text-gray-500 mt-2">
+        Hasta v5.0 el backtest suponía que un stop siempre se rellena a su precio exacto. No
+        es un detalle: un stop se toca justo cuando el precio va en contra, que es cuando hay
+        huecos, así que esa suposición regalaba el coste de los peores días.
+        {pct === 0 && ' Aquí no cambia nada porque el activo cotiza sin interrupción.'}
+      </p>
+    </div>
+  )
+}
+
 function Rechazos({ rechazos }: { rechazos: Record<string, number> }) {
   const filas = Object.entries(rechazos || {}).sort((a, b) => b[1] - a[1])
   if (!filas.length) return null
@@ -276,6 +304,12 @@ function Operaciones({ trades }: { trades: Trade[] }) {
                 <td className="py-2 text-gray-200">
                   {t.ticker}
                   {t.trailing && <span className="ml-2 text-xs text-blue-400">trailing</span>}
+                  {t.hueco && (
+                    <span className="ml-2 text-xs text-amber-400"
+                          title="El mercado abrió al otro lado del stop: la orden se rellenó en la apertura">
+                      hueco
+                    </span>
+                  )}
                 </td>
                 <td className="py-2 text-right text-gray-400 tabular-nums">{formatCurrency(t.entrada)}</td>
                 <td className="py-2 text-right text-gray-400 tabular-nums">{formatCurrency(t.salida)}</td>
