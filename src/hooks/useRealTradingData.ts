@@ -216,12 +216,14 @@ export function useRealTradingData(autoRefreshMs = 30000) {
               // worker VWAP no mira ADX ni pullback, y el del 1% tampoco usa
               // un pullback configurable. Anunciar filtros que no se aplican
               // es el mismo problema que teníamos con el IRG.
+              // null, no 0: "no configurado" y "configurado a cero" son cosas
+              // distintas, y un 0 se muestra como un umbral real.
               entryFilters: {
                 ...s.entryFilters,
-                rsiMin: cfg.rsiMin ?? 0,
-                rsiMax: cfg.rsiMax ?? 100,
-                adxMin: cfg.minAdx ?? 0,
-                pullbackAtr: 0
+                rsiMin: cfg.rsiMin ?? null,
+                rsiMax: cfg.rsiMax ?? null,
+                adxMin: cfg.minAdx ?? null,
+                pullbackAtr: null
               },
               costs: {
                 commissionPct: cfg.commissionPct ?? 0,

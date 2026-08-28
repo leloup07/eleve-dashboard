@@ -756,7 +756,7 @@ function IntradayEditor() {
           <div>
             <h3 className="text-xl font-bold">VWAP Reversion (Intraday)</h3>
             <p className="text-sm text-gray-500">
-              v2.1 • Mean-reversion tras fake breaks del rango asiático
+              <SpecChip specId={useTradingStore.getState().strategies.find(e => e.key === 'vwap_reversion')?.specId} /> • Mean-reversion tras fake breaks del rango asiático
               {syncStatus === 'success' && <span className="ml-2 text-green-600">✅ Sincronizado</span>}
               {syncStatus === 'error' && <span className="ml-2 text-red-600">❌ Error</span>}
             </p>
@@ -1117,7 +1117,7 @@ function Intraday1PctEditor() {
           <div>
             <h3 className="text-xl font-bold">Estrategia 1% (Intraday)</h3>
             <p className="text-sm text-gray-500">
-              v1.0 • Spot momentum con filtros estrictos de liquidez
+              <SpecChip specId={useTradingStore.getState().strategies.find(e => e.key === 'one_percent_spot')?.specId} /> • Spot momentum con filtros estrictos de liquidez
               {syncStatus === 'success' && <span className="ml-2 text-green-600">✅ Sincronizado</span>}
               {syncStatus === 'error' && <span className="ml-2 text-red-600">❌ Error</span>}
             </p>

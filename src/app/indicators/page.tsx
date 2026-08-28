@@ -1,6 +1,8 @@
 'use client'
 
 import { useTradingStore } from '@/stores/tradingStore'
+import { useRealTradingData } from '@/hooks/useRealTradingData'
+import type { StrategyConfig } from '@/types'
 
 import { useState, useEffect, useMemo } from 'react'
 import { 
@@ -50,7 +52,7 @@ interface StrategyInfo {
   name: string
   type: StrategyType
   timeframe: string
-  capital: number
+  capital: number | null
   description: string
   conditions: { name: string; check: (data: OHLCData) => boolean; desc: string }[]
 }
@@ -59,122 +61,78 @@ interface StrategyInfo {
 // para que ningún par cripto que muestre la página caiga en la rama de acciones.
 const CRYPTO_SWING_TICKERS = CRYPTO_PAIRS
 
-function getApplicableStrategy(ticker: string, btcRegime: string = 'UNKNOWN', spyRegime: string = 'UNKNOWN'): StrategyInfo {
-  if (CRYPTO_SWING_TICKERS.includes(ticker)) {
-    return {
-      name: "Crypto Swing",
-      type: "crypto_swing",
-      timeframe: "1D / 1H",
-      capital: 30000,
-      description: "Swing sobre BTC, ETH y altcoins líquidas. Régimen y momentum en diario, entrada en 1H sobre pullback a la EMA20.",
-      conditions: [
-        { name: "Régimen BTC ≠ BEAR", check: () => btcRegime !== "BEAR", desc: "Gatekeeper: régimen de BTC" },
-        { name: "EMA20 > EMA50 (1D)", check: (d) => d.ema20 > d.ema50, desc: "Tendencia alcista en diario" },
-        { name: "RSI 30-75", check: (d) => d.rsi >= 30 && d.rsi <= 75, desc: "Fuera de extremos" },
-        { name: "ADX ≥ 15", check: (d) => d.adx >= 15, desc: "Tendencia presente" },
-        { name: "Pullback ≤ 1× ATR", check: (d) => Math.abs(d.close - d.ema20) / d.atr <= 1.0, desc: "Cerca de la EMA20 medido en ATR" }
-      ]
+/**
+ * Las condiciones de cada estrategia salen de su SPEC, no del código (P0-7).
+ *
+ * Antes estaban escritas a mano aquí, duplicadas en dos funciones, y ya habían
+ * caducado: Large Caps figuraba con 15.000 de capital y RSI 40-65 cuando opera
+ * con 7.500 y RSI 30-70, y Small Caps con 10.000 y ADX > 25. Una pantalla que
+ * dice qué busca la estrategia y no lo lee de la estrategia acaba describiendo
+ * otra distinta.
+ */
+function construirEstrategia(cfg: StrategyConfig | undefined, btcRegime: string,
+                             spyRegime: string): StrategyInfo | null {
+  if (!cfg) return null
+  const f = cfg.entryFilters || {}
+  const condiciones: StrategyInfo['conditions'] = []
+
+  if (cfg.gatekeeper === 'BTC_REGIME') {
+    condiciones.push({ name: 'Régimen BTC ≠ BEAR', check: () => btcRegime !== 'BEAR',
+                       desc: 'Puerta de régimen: BTC' })
+  } else if (cfg.gatekeeper === 'SPY_REGIME') {
+    condiciones.push({ name: 'Régimen SPY = BULL', check: () => spyRegime === 'BULL',
+                       desc: 'Puerta de régimen: SPY' })
+  }
+
+  if (f.donchianPeriod != null) {
+    // Motor de ruptura: no mira RSI ni ADX, y decirlo importa tanto como el resto.
+    condiciones.push({
+      name: `Cierre > máximo de ${f.donchianPeriod}d`,
+      check: (d) => d.donchianUpper != null && d.close > d.donchianUpper,
+      desc: 'Ruptura del canal de Donchian',
+    })
+    if (f.volumeMult != null) {
+      condiciones.push({
+        name: `Volumen ≥ ${String(f.volumeMult).replace('.', ',')}× media`,
+        check: (d) => (d.volumeRatio ?? 0) >= (f.volumeMult ?? 0),
+        desc: 'El volumen confirma la ruptura',
+      })
     }
+    return { name: cfg.name, type: cfg.key as StrategyType,
+             timeframe: `${cfg.timeframes?.trend ?? '?'} / ${cfg.timeframes?.entry ?? '?'}`,
+             capital: cfg.capital, description: cfg.description, conditions: condiciones }
   }
-  if (LARGE_CAPS.includes(ticker)) {
-    return {
-      name: "Large Caps",
-      type: "large_caps",
-      timeframe: "1D / 4H",
-      capital: 15000,
-      description: "Estrategia swing para blue chips S&P 500. Filtro macro SPY, pullbacks a zona de valor.",
-      conditions: [
-        { name: "Régimen SPY = BULL", check: () => spyRegime === "BULL", desc: "Régimen global de SPY" },
-        { name: "EMA20 > EMA50", check: (d) => d.ema20 > d.ema50, desc: "Estructura alcista 1D" },
-        { name: "RSI 40-65", check: (d) => d.rsi >= 40 && d.rsi <= 65, desc: "Sin extremos" },
-        { name: "ADX > 20", check: (d) => d.adx > 20, desc: "Tendencia presente" },
-        { name: "Pullback a EMA20", check: (d) => Math.abs(d.close - d.ema20) / d.close < 0.015, desc: "Precio cerca de EMA20" },
-        { name: "Volumen >= media", check: (d) => d.volume > 0, desc: "Volumen confirma" }
-      ]
-    }
+
+  condiciones.push({ name: 'EMA20 > EMA50', check: (d) => d.ema20 > d.ema50,
+                     desc: 'Tendencia alcista en el gráfico de contexto' })
+  if (f.rsiMin != null && f.rsiMax != null) {
+    condiciones.push({ name: `RSI ${f.rsiMin}-${f.rsiMax}`,
+                       check: (d) => d.rsi >= (f.rsiMin ?? 0) && d.rsi <= (f.rsiMax ?? 100),
+                       desc: 'Fuera de extremos' })
   }
-  return {
-    name: "Small Caps",
-    type: "small_caps",
-    timeframe: "1D / 4H",
-    capital: 10000,
-    description: "Estrategia momentum para Russell 2000. ADX alto, impulsos parabólicos.",
-    conditions: [
-      { name: "Régimen IWM = BULL", check: () => spyRegime === "BULL", desc: "Régimen global de IWM/SPY" },
-      { name: "ADX > 25", check: (d) => d.adx > 25, desc: "Tendencia fuerte requerida" },
-      { name: "RSI 40-65", check: (d) => d.rsi >= 40 && d.rsi <= 65, desc: "Momentum sin extremo" },
-      { name: "+DI > -DI", check: (d) => d.plusDi > d.minusDi, desc: "Dirección alcista" },
-      { name: "Pullback corto", check: (d) => Math.abs(d.close - d.ema20) / d.close < 0.025, desc: "Retroceso < 0.5 ATR" },
-      { name: "Volumen explosivo", check: (d) => d.volume > 0, desc: "Volumen > 150% media" }
-    ]
+  if (f.adxMin != null) {
+    condiciones.push({ name: `ADX ≥ ${f.adxMin}`, check: (d) => d.adx >= (f.adxMin ?? 0),
+                       desc: 'Tendencia presente' })
   }
+  if (f.pullbackAtr != null) {
+    condiciones.push({
+      name: `Pullback ≤ ${String(f.pullbackAtr).replace('.', ',')}× ATR`,
+      check: (d) => d.atr > 0 && Math.abs(d.close - d.ema20) / d.atr <= (f.pullbackAtr ?? 0),
+      desc: 'Cerca de la EMA20, medido en ATR',
+    })
+  }
+
+  return { name: cfg.name, type: cfg.key as StrategyType,
+           timeframe: `${cfg.timeframes?.trend ?? '?'} / ${cfg.timeframes?.entry ?? '?'}`,
+           capital: cfg.capital, description: cfg.description, conditions: condiciones }
 }
 
-function getStrategyByType(type: string, btcRegime: string = 'UNKNOWN', spyRegime: string = 'UNKNOWN'): StrategyInfo {
-  const strategies: Record<string, StrategyInfo> = {
-    crypto_swing: {
-      name: "Crypto Swing",
-      type: "crypto_swing",
-      timeframe: "1D / 1H",
-      capital: 30000,
-      description: "Swing sobre BTC, ETH y altcoins líquidas. Régimen y momentum en diario, entrada en 1H sobre pullback a la EMA20.",
-      conditions: [
-        { name: "Régimen BTC ≠ BEAR", check: () => btcRegime !== "BEAR", desc: "Gatekeeper: régimen de BTC" },
-        { name: "EMA20 > EMA50 (1D)", check: (d) => d.ema20 > d.ema50, desc: "Tendencia alcista en diario" },
-        { name: "RSI 30-75", check: (d) => d.rsi >= 30 && d.rsi <= 75, desc: "Fuera de extremos" },
-        { name: "ADX ≥ 15", check: (d) => d.adx >= 15, desc: "Tendencia presente" },
-        { name: "Pullback ≤ 1× ATR", check: (d) => Math.abs(d.close - d.ema20) / d.atr <= 1.0, desc: "Cerca de la EMA20 medido en ATR" }
-      ]
-    },
-    large_caps: {
-      name: "Large Caps",
-      type: "large_caps",
-      timeframe: "1D / 4H",
-      capital: 15000,
-      description: "Estrategia swing para blue chips S&P 500. Filtro macro SPY, pullbacks a zona de valor.",
-      conditions: [
-        { name: "Régimen SPY = BULL", check: () => spyRegime === "BULL", desc: "Régimen global de SPY" },
-        { name: "EMA20 > EMA50", check: (d) => d.ema20 > d.ema50, desc: "Estructura alcista 1D" },
-        { name: "RSI 40-65", check: (d) => d.rsi >= 40 && d.rsi <= 65, desc: "Sin extremos" },
-        { name: "ADX > 20", check: (d) => d.adx > 20, desc: "Tendencia presente" },
-        { name: "Pullback a EMA20", check: (d) => Math.abs(d.close - d.ema20) / d.close < 0.015, desc: "Precio cerca de EMA20" },
-        { name: "Volumen >= media", check: (d) => d.volume > 0, desc: "Volumen confirma" }
-      ]
-    },
-    small_caps: {
-      name: "Small Caps",
-      type: "small_caps",
-      timeframe: "1D / 4H",
-      capital: 10000,
-      description: "Estrategia momentum para Russell 2000. ADX alto, impulsos parabólicos.",
-      conditions: [
-        { name: "Régimen IWM = BULL", check: () => spyRegime === "BULL", desc: "Régimen global de IWM/SPY" },
-        { name: "ADX > 25", check: (d) => d.adx > 25, desc: "Tendencia fuerte requerida" },
-        { name: "RSI 40-65", check: (d) => d.rsi >= 40 && d.rsi <= 65, desc: "Momentum sin extremo" },
-        { name: "+DI > -DI", check: (d) => d.plusDi > d.minusDi, desc: "Dirección alcista" },
-        { name: "Pullback corto", check: (d) => Math.abs(d.close - d.ema20) / d.close < 0.025, desc: "Retroceso < 0.5 ATR" },
-        { name: "Volumen explosivo", check: (d) => d.volume > 0, desc: "Volumen > 150% media" }
-      ]
-    },
-    intraday_1pct: {
-      name: "Intraday 1% Spot",
-      type: "small_caps" as StrategyType,
-      timeframe: "1H / 15min",
-      capital: 10000,
-      description: "Intraday trend-following. Busca +1% rápidos en altcoins con momentum limpio.",
-      conditions: [
-        { name: "Market Cap > $300M", check: () => true, desc: "Liquidez mínima" },
-        { name: "Vol 24h > $50M", check: (d) => d.volume > 0, desc: "Volumen suficiente" },
-        { name: "ADX > 20", check: (d) => d.adx > 20, desc: "Tendencia presente" },
-        { name: "RSI 40-55", check: (d) => d.rsi >= 40 && d.rsi <= 55, desc: "Sin sobrecompra, momentum limpio" },
-        { name: "+DI > -DI", check: (d) => d.plusDi > d.minusDi, desc: "Dirección alcista" },
-        { name: "Vol/MCap > 0.15", check: () => true, desc: "Ratio liquidez OK" }
-      ]
-    }
-  }
-  return strategies[type] || strategies.crypto_swing
+/** La estrategia que opera ese activo, según el universo de cada spec. */
+function estrategiaDelTicker(ticker: string, estrategias: StrategyConfig[],
+                             btcRegime: string, spyRegime: string): StrategyInfo | null {
+  const cfg = estrategias.find((e) => (e.assets || []).includes(ticker))
+  return construirEstrategia(cfg, btcRegime, spyRegime)
 }
-
 // Funciones de cálculo
 function calcEMA(data: number[], period: number): number[] {
   const k = 2 / (period + 1)
@@ -251,7 +209,6 @@ Esto indica que los compradores tienen control total. Las instituciones están a
 4. Stop Loss: Debajo de EMA50 o -1.5 ATR desde entrada
 
 ⚠️ NO perseguir el precio. Si ya subió mucho, espera el pullback.`,
-      hybrid: '✅ Hybrid v2.1 ACTIVO - Régimen BULL permite operar con riesgo completo (1% por trade)',
       color: 'green'
     }
   }
@@ -277,7 +234,6 @@ Qué buscar para entrar:
 1. Vela con mecha inferior larga tocando EMA20/50
 2. RSI bajando a zona 40-50 (pullback saludable)
 3. Volumen decreciente durante la caída (sin pánico)`,
-      hybrid: '✅ Hybrid v2.1 busca ESTAS entradas - Pullbacks en BULL son la mejor oportunidad',
       color: 'yellow'
     }
   }
@@ -305,7 +261,6 @@ Qué esperar para cambiar a BULL:
 2. Precio se establezca SOBRE EMA20
 3. Formación de Higher Lows (mínimos crecientes)
 4. Esto puede tomar semanas o meses`,
-      hybrid: '❌ Hybrid v2.1 NO OPERA - En régimen BEAR permanece 100% en efectivo',
       color: 'red'
     }
   }
@@ -331,7 +286,6 @@ Si operas en rango:
 • Comprar en la parte baja del rango
 • Vender en la parte alta
 • Tamaño de posición REDUCIDO a la mitad`,
-    hybrid: '⚠️ Hybrid v2.1 reduce riesgo a 0.7% por trade en régimen lateral',
     color: 'blue'
   }
 }
@@ -369,7 +323,6 @@ Si YA tienes posición:
 • Deja correr el resto con trailing stop
 
 Nivel de corrección esperado: $${(price - atr*2).toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})} - $${(price - atr*3).toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
-      hybrid: '❌ Hybrid v2.1 NUNCA entra con RSI > 70 - Riesgo de corrección demasiado alto',
       color: 'red'
     }
   }
@@ -400,7 +353,6 @@ Si quieres entrar de todos modos:
 Mejor estrategia:
 • Espera pullback a zona RSI 45-55
 • El precio ideal de entrada sería alrededor de $${(price - atr*1.5).toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
-      hybrid: '⚠️ Hybrid v2.1 prefiere esperar - Zona límite superior (ideal: 40-65)',
       color: 'orange'
     }
   }
@@ -449,7 +401,6 @@ Señales de entrada:
 3. Divergencia alcista (precio hace mínimo, RSI no)
 
 Riesgo: Si RSI cae bajo 40, el pullback puede convertirse en cambio de tendencia`,
-      hybrid: '✅ Hybrid v2.1 BUSCA entradas aquí - Zona óptima 40-65',
       color: 'green'
     }
   }
@@ -485,7 +436,6 @@ Para considerar entrada:
 Si eres muy agresivo:
 • Posición muy pequeña (25% del tamaño normal)
 • Stop loss estricto bajo el mínimo reciente`,
-      hybrid: '⚠️ Hybrid v2.1 espera RSI > 40 para confirmar recuperación de fuerza',
       color: 'blue'
     }
   }
@@ -517,7 +467,6 @@ Señales de reversión a buscar:
 Si hay reversión confirmada:
 • Entrada pequeña, añadir si confirma
 • Stop bajo el mínimo del pánico`,
-    hybrid: '⚠️ Hybrid v2.1 espera confirmación - Sobreventa no es señal de compra automática',
     color: 'purple'
   }
 }
@@ -553,7 +502,6 @@ Aunque MACD sigue alcista, el histograma decrece:
 • Posible corrección en camino
 • NO es momento de abrir posiciones nuevas
 • Considerar tomar ganancias parciales`,
-      hybrid: histGrowing ? '✅ Hybrid v2.1: MACD > Signal ✓' : '⚠️ Hybrid v2.1: MACD > Signal ✓ pero perdiendo fuerza',
       color: 'green'
     }
   }
@@ -582,7 +530,6 @@ Para confirmar entrada:
 3. Precio confirme con ruptura de resistencia
 
 Riesgo: Muchos cruces alcistas bajo cero fallan y vuelven a caer`,
-      hybrid: '⚠️ Hybrid v2.1: MACD > Signal ✓ pero espera cruce sobre cero para máxima confianza',
       color: 'yellow'
     }
   }
@@ -611,7 +558,6 @@ El cruce bajista sobre cero sugiere corrección:
 Escenarios posibles:
 1. Corrección menor → rebota y continúa alcista
 2. Corrección profunda → MACD cruza bajo cero = bear`,
-      hybrid: '❌ Hybrid v2.1: MACD < Signal = no entrar nuevas posiciones',
       color: 'orange'
     }
   }
@@ -640,7 +586,6 @@ Qué esperar para cambio:
 3. MACD cruce sobre cero (confirmación)
 
 Esto puede tomar varias semanas. Paciencia.`,
-    hybrid: '❌ Hybrid v2.1: NO OPERA con MACD bajista',
     color: 'red'
   }
 }
@@ -671,7 +616,6 @@ Con ADX > 25 y +DI > -DI:
 • Dejar correr las ganancias
 
 El ADX alto significa que los movimientos direccionales son sostenibles.`,
-      hybrid: '✅ Hybrid v2.1: ADX > 25 ✓ y +DI > -DI ✓',
       color: 'green'
     }
   }
@@ -699,7 +643,6 @@ Con ADX > 25 y -DI > +DI:
 Esperar para cambio:
 • +DI cruce sobre -DI
 • ADX empiece a caer (tendencia se agota)`,
-      hybrid: '❌ Hybrid v2.1: +DI < -DI = tendencia en contra',
       color: 'red'
     }
   }
@@ -729,7 +672,6 @@ Alternativas:
 • Esperar que ADX suba > 25 con dirección clara
 • Operar rango (comprar bajo, vender alto)
 • Reducir tamaño de posición`,
-    hybrid: `⚠️ Hybrid v2.1: ADX ${adx.toFixed(1)} < 25 = señal débil, esperar fuerza`,
     color: 'yellow'
   }
 }
@@ -813,6 +755,8 @@ El precio está en el rango medio. Sin extremos.`,
 }
 
 export default function IndicatorsPage() {
+  const estrategias = useTradingStore((st) => st.strategies)
+  useRealTradingData(0)
   const strategies = useTradingStore(state => state.strategies)
   const intraday1PctConfig = useTradingStore(state => state.intraday1PctConfig)
   const [selectedTicker, setSelectedTicker] = useState('BTC-USD')
@@ -820,7 +764,7 @@ export default function IndicatorsPage() {
   const [btcRegime, setBtcRegime] = useState<string>('UNKNOWN')
   const [spyRegime, setSpyRegime] = useState<string>('UNKNOWN')
   const [data, setData] = useState<OHLCData[]>([])
-  const [activeTab, setActiveTab] = useState<'ema' | 'rsi' | 'macd' | 'adx' | 'bb' | 'stoch' | 'donchian' | 'volumen' | 'hybrid' | 'strategy'>('ema')
+  const [activeTab, setActiveTab] = useState<'ema' | 'rsi' | 'macd' | 'adx' | 'bb' | 'stoch' | 'donchian' | 'volumen' | 'strategy'>('ema')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [emaConfig, setEmaConfig] = useState<{fast: number, mid: number, slow: number}>({fast: 20, mid: 50, slow: 200})
@@ -847,8 +791,8 @@ export default function IndicatorsPage() {
       setLoading(true)
       setError(null)
       try {
-        const strategy = manualStrategy ? getStrategyByType(manualStrategy, btcRegime, spyRegime) : getApplicableStrategy(selectedTicker, btcRegime, spyRegime)
-        const response = await fetch(`/api/indicators?ticker=${selectedTicker}&interval=1h&range=7d&strategy=${strategy.type}`)
+        const strategy = manualStrategy ? construirEstrategia(estrategias.find(e => e.key === manualStrategy), btcRegime, spyRegime) : estrategiaDelTicker(selectedTicker, estrategias, btcRegime, spyRegime)
+        const response = await fetch(`/api/indicators?ticker=${selectedTicker}&interval=1h&range=7d&strategy=${strategy?.type}`)
         const json = await response.json()
         if (json.success && json.data && json.data.length > 0) {
           setData(json.data)
@@ -879,19 +823,8 @@ export default function IndicatorsPage() {
   const bbContext = useMemo(() => latest ? getBollingerContext(latest.close, latest.bbUpper, latest.bbMiddle, latest.bbLower) : null, [latest])
   const stochContext = useMemo(() => latest ? getStochasticContext(latest.stochK, latest.stochD) : null, [latest])
   
-  // Hybrid v2.1 conditions
-  const hybridConditions = latest ? [
-    { name: 'Régimen BULL', met: emaContext?.regime.includes('BULL') || false, desc: 'EMAs alineadas al alza' },
-    { name: 'RSI 40-65', met: latest.rsi >= 40 && latest.rsi <= 65, desc: `RSI actual: ${latest.rsi.toFixed(1)}` },
-    { name: 'MACD > Signal', met: latest.macd > latest.macdSignal, desc: `MACD: ${latest.macd.toFixed(2)} vs Signal: ${latest.macdSignal.toFixed(2)}` },
-    { name: 'ADX > 25', met: latest.adx > 25, desc: `ADX actual: ${latest.adx.toFixed(1)}` },
-    { name: 'Precio > EMA20', met: latest.close > latest.ema20, desc: `Precio: $${latest.close.toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})} vs EMA20: $${latest.ema20.toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` },
-    { name: '+DI > -DI', met: latest.plusDi > latest.minusDi, desc: `+DI: ${latest.plusDi.toFixed(1)} vs -DI: ${latest.minusDi.toFixed(1)}` },
-  ] : []
-  
-  const conditionsMet = hybridConditions.filter(c => c.met).length
 
-  const strategy = manualStrategy ? getStrategyByType(manualStrategy, btcRegime, spyRegime) : getApplicableStrategy(selectedTicker, btcRegime, spyRegime)
+  const strategy = manualStrategy ? construirEstrategia(estrategias.find(e => e.key === manualStrategy), btcRegime, spyRegime) : estrategiaDelTicker(selectedTicker, estrategias, btcRegime, spyRegime)
   const strategyConditionsMet = latest && strategy ? strategy.conditions.filter(c => c.check(latest)).length : 0
 
   return (
@@ -987,10 +920,6 @@ export default function IndicatorsPage() {
               <p className="text-[10px] text-gray-500 uppercase">ATR</p>
               <p className="text-lg font-bold">${latest.atr.toFixed(0)}</p>
             </div>
-            <div className={`rounded-lg border p-3 ${conditionsMet >= 5 ? 'bg-green-50' : conditionsMet >= 3 ? 'bg-yellow-50' : 'bg-red-50'}`}>
-              <p className="text-[10px] text-gray-500 uppercase">Hybrid</p>
-              <p className="text-lg font-bold">{conditionsMet}/6</p>
-            </div>
           </div>
           
           {/* Tabs de indicadores */}
@@ -1006,7 +935,6 @@ export default function IndicatorsPage() {
                 { key: 'donchian', label: '🚀 Donchian' },
                 { key: 'volumen', label: '🔊 Volumen rel.' },
                 { key: 'strategy', label: '🎯 Estrategia ELEVE' },
-                { key: 'hybrid', label: '📊 Hybrid (educativo)' },
               ].map(tab => (
                 <button
                   key={tab.key}
@@ -1062,7 +990,6 @@ export default function IndicatorsPage() {
                   </div>
                   
                   <div className={`p-3 rounded-lg text-sm font-medium ${emaContext.color === 'green' ? 'bg-green-100 text-green-800' : emaContext.color === 'red' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                    {emaContext.hybrid}
                   </div>
                 </div>
               )}
@@ -1114,7 +1041,6 @@ export default function IndicatorsPage() {
                   </div>
                   
                   <div className={`p-3 rounded-lg text-sm font-medium ${rsiContext.color === 'green' ? 'bg-green-100 text-green-800' : rsiContext.color === 'red' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                    {rsiContext.hybrid}
                   </div>
                 </div>
               )}
@@ -1175,7 +1101,6 @@ export default function IndicatorsPage() {
                   </div>
                   
                   <div className={`p-3 rounded-lg text-sm font-medium ${macdContext.color === 'green' ? 'bg-green-100 text-green-800' : macdContext.color === 'red' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                    {macdContext.hybrid}
                   </div>
                 </div>
               )}
@@ -1234,7 +1159,6 @@ export default function IndicatorsPage() {
                   </div>
                   
                   <div className={`p-3 rounded-lg text-sm font-medium ${adxContext.color === 'green' ? 'bg-green-100 text-green-800' : adxContext.color === 'red' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                    {adxContext.hybrid}
                   </div>
                 </div>
               )}
@@ -1420,84 +1344,20 @@ export default function IndicatorsPage() {
                 </div>
               )}
               
-              {/* Hybrid v2.1 Tab */}
-              {activeTab === 'hybrid' && (
-                <div className="space-y-6">
-                  <div className="flex items-center gap-3">
-                    <span className="text-4xl">🎯</span>
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-900">Checklist Hybrid v2.1 - {selectedTicker}</h3>
-                      <p className="text-sm text-gray-500">Sistema de 6 condiciones para entradas de alta probabilidad</p>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Condiciones */}
-                    <div className="space-y-2">
-                      {hybridConditions.map((cond, i) => (
-                        <div key={i} className={`flex items-start gap-3 p-3 rounded-lg ${cond.met ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
-                          <span className="text-xl mt-0.5">{cond.met ? '✅' : '❌'}</span>
-                          <div>
-                            <span className={`font-medium ${cond.met ? 'text-green-700' : 'text-red-700'}`}>{cond.name}</span>
-                            <p className="text-xs text-gray-600 mt-0.5">{cond.desc}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    
-                    {/* Resultado */}
-                    <div className={`p-6 rounded-xl border-2 ${
-                      conditionsMet >= 5 ? 'bg-green-50 border-green-500' :
-                      conditionsMet >= 3 ? 'bg-yellow-50 border-yellow-500' :
-                      'bg-red-50 border-red-500'
-                    }`}>
-                      <div className="text-center mb-4">
-                        <span className="text-5xl font-bold">{conditionsMet}/6</span>
-                        <p className="text-gray-600 mt-1">Condiciones cumplidas</p>
-                      </div>
-                      
-                      {conditionsMet >= 5 ? (
-                        <div>
-                          <h4 className="text-xl font-bold text-green-600 mb-3">🟢 SETUP VÁLIDO</h4>
-                          <p className="text-gray-700 mb-4">Buscar trigger de entrada (vela de confirmación)</p>
-                          <div className="text-sm text-gray-600 space-y-2 bg-white/50 p-3 rounded">
-                            <p><strong>Stop Loss:</strong> ${(latest.close - latest.atr * 1.5).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (-1.5 ATR)</p>
-                            <p><strong>Take Profit 1:</strong> ${(latest.close + latest.atr * 2.5).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (+2.5 ATR) - 70%</p>
-                            <p><strong>Take Profit 2:</strong> Trailing stop para 30% restante</p>
-                            <p><strong>Riesgo:</strong> 1% del capital</p>
-                          </div>
-                        </div>
-                      ) : conditionsMet >= 3 ? (
-                        <div>
-                          <h4 className="text-xl font-bold text-yellow-600 mb-3">🟡 SETUP PARCIAL</h4>
-                          <p className="text-gray-700">Esperar mejora de condiciones antes de entrar.</p>
-                          <p className="text-sm text-gray-500 mt-2">Faltan {6 - conditionsMet} condiciones para setup válido.</p>
-                        </div>
-                      ) : (
-                        <div>
-                          <h4 className="text-xl font-bold text-red-600 mb-3">🔴 NO HAY SETUP</h4>
-                          <p className="text-gray-700">No operar. Esperar cambio de condiciones del mercado.</p>
-                          <p className="text-sm text-gray-500 mt-2">Solo {conditionsMet} de 6 condiciones cumplidas.</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <h4 className="font-semibold mb-2">📚 ¿Qué es Hybrid v2.1?</h4>
-                    <p className="text-sm text-gray-700">
-                      El sistema Hybrid v2.1 combina análisis de tendencia (EMAs), momentum (RSI, MACD), y fuerza direccional (ADX) 
-                      para identificar setups de alta probabilidad. Requiere al menos 5 de 6 condiciones para considerar una entrada válida. 
-                      Este enfoque multi-indicador filtra señales falsas y aumenta la tasa de acierto.
-                    </p>
-                  </div>
-                </div>
-              )}
               {/* Estrategia ELEVE Tab */}
               {activeTab === 'strategy' && latest && (
                 (() => {
-                  const strategy = manualStrategy ? getStrategyByType(manualStrategy, btcRegime, spyRegime) : getApplicableStrategy(selectedTicker, btcRegime, spyRegime)
-                  const results = strategy.conditions.map(c => ({ ...c, met: c.check(latest) }))
+                  const strategy = manualStrategy ? construirEstrategia(estrategias.find(e => e.key === manualStrategy), btcRegime, spyRegime) : estrategiaDelTicker(selectedTicker, estrategias, btcRegime, spyRegime)
+                  if (!strategy) {
+                    return (
+                      <p className="text-gray-500">
+                        Ninguna estrategia activa incluye {selectedTicker} en su universo.
+                      </p>
+                    )
+                  }
+                  // Un activo puede no pertenecer al universo de ninguna spec: en
+                  // ese caso no hay checklist que enseñar, y decirlo es lo correcto.
+                  const results = strategy?.conditions.map(c => ({ ...c, met: c.check(latest) })) ?? []
                   const metCount = results.filter(r => r.met).length
                   const isValid = metCount >= 5
                   const isPartial = metCount >= 3 && metCount < 5
@@ -1508,19 +1368,21 @@ export default function IndicatorsPage() {
                         <div className="flex items-center gap-3">
                           <span className="text-4xl">🎯</span>
                           <div>
-                            <h3 className="text-xl font-bold text-gray-900">Estrategia: {strategy.name}</h3>
-                            <p className="text-sm text-gray-500">{strategy.description}</p>
+                            <h3 className="text-xl font-bold text-gray-900">Estrategia: {strategy?.name}</h3>
+                            <p className="text-sm text-gray-500">{strategy?.description}</p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm text-gray-500">Timeframe: {strategy.timeframe}</p>
-                          <p className="text-sm text-gray-500">Capital: {(strategies.find(s => s.key === strategy.type)?.capital || intraday1PctConfig?.capital || strategy.capital).toLocaleString()}</p>
+                          <p className="text-sm text-gray-500">Timeframe: {strategy?.timeframe}</p>
+                          <p className="text-sm text-gray-500">Capital: {
+                            (strategies.find(s => s.key === strategy?.type)?.capital
+                              ?? strategy?.capital)?.toLocaleString('es-ES') ?? '—'}</p>
                         </div>
                       </div>
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                          <h4 className="font-semibold text-gray-700 mb-3">Checklist {strategy.name}</h4>
+                          <h4 className="font-semibold text-gray-700 mb-3">Checklist {strategy?.name}</h4>
                           {results.map((cond, i) => (
                             <div key={i} className={`flex items-start gap-3 p-3 rounded-lg ${cond.met ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
                               <span className="text-xl mt-0.5">{cond.met ? '✅' : '❌'}</span>
@@ -1541,7 +1403,7 @@ export default function IndicatorsPage() {
                           {isValid ? (
                             <div>
                               <h4 className="text-xl font-bold text-green-600 mb-3">✅ SETUP VÁLIDO - Operable</h4>
-                              <p className="text-gray-700 mb-4">El sistema {strategy.name} autoriza entrada.</p>
+                              <p className="text-gray-700 mb-4">El sistema {strategy?.name} autoriza entrada.</p>
                               <div className="text-sm text-gray-600 space-y-2 bg-white/50 p-3 rounded">
                                 <p><strong>Stop Loss:</strong> ${(latest.close - latest.atr * 1.5).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                                 <p><strong>Take Profit:</strong> ${(latest.close + latest.atr * 2.5).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
@@ -1555,7 +1417,7 @@ export default function IndicatorsPage() {
                           ) : (
                             <div>
                               <h4 className="text-xl font-bold text-red-600 mb-3">❌ NO OPERABLE - Bloqueado</h4>
-                              <p className="text-gray-700">El sistema {strategy.name} NO autoriza entrada.</p>
+                              <p className="text-gray-700">El sistema {strategy?.name} NO autoriza entrada.</p>
                             </div>
                           )}
                         </div>
@@ -1565,7 +1427,6 @@ export default function IndicatorsPage() {
                         <h4 className="font-semibold mb-2">⚠️ Importante</h4>
                         <p className="text-sm text-gray-700">
                           Esta es la <strong>única evaluación válida</strong> para decidir si operar {selectedTicker}. 
-                          La pestaña Hybrid es solo educativa.
                         </p>
                       </div>
                     </div>
