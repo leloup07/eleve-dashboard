@@ -85,15 +85,26 @@ export async function GET(request: NextRequest) {
     ESTRATEGIAS.forEach((k, i) => { specs[k] = specIds[i] })
     const experiment = await experimentoActivo(redis)
 
-    // Commit que ejecutan los workers. Es la otra mitad de la identidad: la spec
-    // dice qué parámetros se aplican y el commit qué código los interpreta.
-    let commit: string | null = null
-    try {
-      const w = await redis.get('eleve:worker')
-      commit = w ? (JSON.parse(w).commit ?? null) : null
-    } catch (e) {
-      console.error('[api/config] no se pudo leer el commit del worker:', e)
+    // Commits que ejecutan los workers. Es la otra mitad de la identidad: la
+    // spec dice qué parámetros se aplican y el commit qué código los interpreta.
+    // Se leen los TRES por separado a propósito: cada servicio de Railway
+    // redespliega por su cuenta, así que pueden convivir versiones distintas
+    // durante minutos y eso tiene que verse, no quedar promediado en un número.
+    const workerCommits: Record<string, string | null> = {}
+    for (const [nombre, clave] of [
+      ['swing', 'eleve:worker'],
+      ['vwap_reversion', 'eleve:intraday:worker'],
+      ['one_percent_spot', 'eleve:intraday1pct:worker'],
+    ]) {
+      try {
+        const w = await redis.get(clave)
+        workerCommits[nombre] = w ? (JSON.parse(w).commit ?? null) : null
+      } catch (e) {
+        console.error(`[api/config] no se pudo leer el commit de ${nombre}:`, e)
+        workerCommits[nombre] = null
+      }
     }
+    const commit = workerCommits.swing
 
     await redis.quit()
     
@@ -106,6 +117,11 @@ export async function GET(request: NextRequest) {
         irg: irg ? JSON.parse(irg) : {},
         specs,
         commit,
+        workerCommits,
+        // Inlineado en tiempo de build por next.config.js: identifica el
+        // artefacto que sirve esta página, no el entorno que la ejecuta.
+        dashboardCommit: process.env.ELEVE_DASHBOARD_COMMIT || null,
+        buildTime: process.env.ELEVE_BUILD_TIME || null,
         experiment,
       },
       timestamp: new Date().toISOString(),
