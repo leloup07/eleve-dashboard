@@ -123,6 +123,18 @@ export default function IntradayPage() {
         </div>
       </div>
 
+      {/* Research cerrado: el worker ya no escanea (enabled=false desde el
+          cierre), así que el banner de abajo pasará a "pausada" — sin esto,
+          pausada se lee como una incidencia, no como una decisión tomada. */}
+      {intradayConfig?.executionDisabledReason?.startsWith('RESEARCH_CLOSED') && (
+        <div className="p-4 rounded-lg border bg-slate-100 border-slate-300">
+          <p className="font-medium text-slate-700">🗄️ RESEARCH_CLOSED / NO_EDGE_EVIDENCE</p>
+          <p className="text-sm text-slate-600 mt-1">
+            El worker ha dejado de escanear y no genera señales. Esta página es histórico de solo lectura.
+          </p>
+        </div>
+      )}
+
       {/* Status Banner */}
       <div className={clsx(
         'p-4 rounded-lg border',

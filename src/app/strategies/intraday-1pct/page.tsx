@@ -270,14 +270,28 @@ export default function Intraday1PctPage() {
               filtrando en 18. */}
           <p className="text-gray-500 text-sm">{describeOnePercent(config)}</p>
         </div>
-        <div className={clsx(
-          'px-3 py-1.5 rounded-lg font-medium text-sm',
-          config.mode === 'live' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
-        )}>
-          {config.mode === 'live' ? '🔴 LIVE' : '📝 PAPER'}
-        </div>
+        {config.executionDisabledReason?.startsWith('RESEARCH_CLOSED') ? (
+          <span className="px-3 py-1.5 rounded-lg font-medium text-sm bg-slate-200 text-slate-700">
+            🗄️ RESEARCH_CLOSED / NO_EDGE_EVIDENCE
+          </span>
+        ) : (
+          <div className={clsx(
+            'px-3 py-1.5 rounded-lg font-medium text-sm',
+            config.mode === 'live' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+          )}>
+            {config.mode === 'live' ? '🔴 LIVE' : '📝 PAPER'}
+          </div>
+        )}
       </div>
-      
+
+      {/* Research cerrado: el worker ya no escanea (enabled=false desde el
+          cierre); esta página es histórico de solo lectura. */}
+      {config.executionDisabledReason?.startsWith('RESEARCH_CLOSED') && (
+        <div className="p-4 rounded-lg border bg-slate-100 border-slate-300 text-sm text-slate-600">
+          El worker ha dejado de escanear y no genera señales. Esta página es histórico de solo lectura.
+        </div>
+      )}
+
       {/* Worker Status */}
       {worker ? (
         <div className={clsx(
