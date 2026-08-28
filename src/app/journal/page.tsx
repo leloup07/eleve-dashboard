@@ -235,6 +235,101 @@ ${isWin
   }
 }
 
+interface DiaDeDiario {
+  fecha: string
+  porEstrategia: Record<string, {
+    evaluaciones: number
+    senales: number
+    abiertas: number
+    cerradas: number
+    regimen_bloqueado: number
+    motivos: Record<string, number>
+  }>
+}
+
+const NOMBRE_ESTRATEGIA: Record<string, string> = {
+  crypto_swing: 'Crypto Swing',
+  crypto_breakout: 'Crypto Breakout',
+  large_caps: 'Large Caps',
+  small_caps: 'Small Caps',
+}
+
+/**
+ * Por qué el sistema no operó (v5.1 · P0-6).
+ *
+ * El journal registraba lo que se OPERÓ, y la mayoría de los días no se opera.
+ * Sin esto, "hoy no hubo trades" es indistinguible de "hoy el worker no miró",
+ * de "hubo señales y algo las frenó" y de "el régimen tenía la estrategia
+ * apagada". Durante una validación, esa distinción es justo la información.
+ */
+function Decisiones({ dias }: { dias: DiaDeDiario[] }) {
+  if (!dias.length) {
+    return (
+      <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
+        <p className="text-gray-400">
+          Todavía no hay días registrados. El diario empieza a llenarse con el próximo ciclo
+          del worker.
+        </p>
+      </div>
+    )
+  }
+  return (
+    <div className="space-y-4">
+      {dias.map((dia) => {
+        const estrategias = Object.entries(dia.porEstrategia)
+        const totalSenales = estrategias.reduce((a, [, d]) => a + d.senales, 0)
+        const totalAbiertas = estrategias.reduce((a, [, d]) => a + d.abiertas, 0)
+        return (
+          <div key={dia.fecha} className="bg-gray-900 rounded-xl p-5 border border-gray-800">
+            <div className="flex items-baseline justify-between mb-3">
+              <h3 className="font-semibold">
+                {new Date(dia.fecha + 'T00:00:00Z').toLocaleDateString('es-ES', {
+                  weekday: 'long', day: 'numeric', month: 'long',
+                })}
+              </h3>
+              <span className="text-sm text-gray-400 tabular-nums">
+                {totalSenales} {totalSenales === 1 ? 'señal' : 'señales'} · {totalAbiertas}{' '}
+                {totalAbiertas === 1 ? 'posición abierta' : 'posiciones abiertas'}
+              </span>
+            </div>
+            <div className="space-y-3">
+              {estrategias.map(([clave, d]) => (
+                <div key={clave} className="border-t border-gray-800 pt-3">
+                  <div className="flex items-baseline justify-between text-sm">
+                    <span className="text-gray-200 font-medium">
+                      {NOMBRE_ESTRATEGIA[clave] || clave}
+                    </span>
+                    <span className="text-gray-500 tabular-nums text-xs">
+                      {d.evaluaciones} evaluaciones · {d.senales} señales · {d.abiertas} abiertas
+                      {d.cerradas > 0 && ` · ${d.cerradas} cerradas`}
+                    </span>
+                  </div>
+                  {d.regimen_bloqueado > 0 && (
+                    <p className="text-xs text-amber-400/90 mt-1">
+                      La puerta de régimen tuvo la estrategia apagada en {d.regimen_bloqueado}{' '}
+                      {d.regimen_bloqueado === 1 ? 'ciclo' : 'ciclos'}: no es que no hubiera
+                      señales, es que no se llegó a mirar.
+                    </p>
+                  )}
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5">
+                    {Object.entries(d.motivos)
+                      .sort((a, b) => b[1] - a[1])
+                      .map(([motivo, n]) => (
+                        <span key={motivo} className="text-xs text-gray-500">
+                          {motivo} <span className="text-gray-400 tabular-nums">{n}</span>
+                        </span>
+                      ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 export default function JournalPage() {
   const [positions, setPositions] = useState<Position[]>([])
   const [trades, setTrades] = useState<ClosedTrade[]>([])
@@ -242,7 +337,8 @@ export default function JournalPage() {
   const [error, setError] = useState<string | null>(null)
   
   // Estado de UI
-  const [activeTab, setActiveTab] = useState<'open' | 'closed'>('closed')
+  const [activeTab, setActiveTab] = useState<'open' | 'closed' | 'decisiones'>('closed')
+  const [diario, setDiario] = useState<DiaDeDiario[]>([])
   const [selectedPosition, setSelectedPosition] = useState<Position | null>(null)
   const [selectedTrade, setSelectedTrade] = useState<ClosedTrade | null>(null)
   
@@ -261,6 +357,14 @@ export default function JournalPage() {
         setLoading(true)
         const response = await fetch('/api/trading')
         const data = await response.json()
+
+        // Diario de decisiones: lo que se evaluó y por qué no se operó
+        try {
+          const dj = await (await fetch('/api/journal')).json()
+          if (dj.success) setDiario(dj.dias || [])
+        } catch (e) {
+          console.error('[journal] no se pudo leer el diario de decisiones:', e)
+        }
         
         if (data.success !== false) {
           // NORMALIZAR posiciones
@@ -474,7 +578,18 @@ export default function JournalPage() {
           >
             Posiciones Abiertas ({positions.length})
           </button>
+          <button
+            onClick={() => { setActiveTab('decisiones'); setSelectedTrade(null); setSelectedPosition(null) }}
+            className={clsx(
+              'px-4 py-2 rounded-lg font-medium transition-colors',
+              activeTab === 'decisiones' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+            )}
+          >
+            Por qué no se operó
+          </button>
         </div>
+
+        {activeTab === 'decisiones' && <Decisiones dias={diario} />}
         
         {/* Filtros - Solo para trades cerrados */}
         {activeTab === 'closed' && (
@@ -592,6 +707,7 @@ export default function JournalPage() {
         )}
         
         {/* Main content */}
+        {activeTab !== 'decisiones' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Lista de trades/posiciones */}
           <div className="lg:col-span-1 bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
@@ -887,6 +1003,7 @@ export default function JournalPage() {
             )}
           </div>
         </div>
+        )}
       </div>
     </div>
   )

@@ -90,3 +90,74 @@ export function buildStrategySpec(s: StrategyConfig): string[] {
 export function buildStrategySpecLine(s: StrategyConfig): string {
   return buildStrategySpec(s).join(' · ')
 }
+
+// ---------------------------------------------------------------- estado del worker
+
+/**
+ * Cómo se lee el estado que publica un worker (v5.1 · P0-7).
+ *
+ * "Pausado" y "fuera de horario" no son lo mismo y la ficha del 1% Spot los
+ * pintaba igual: cualquier estado que no fuera running ni weekend salía como
+ * "⏸️ Pausado". Un worker sano y dormido a las tres de la mañana se leía como
+ * una estrategia que alguien había desactivado.
+ */
+export function describeWorkerStatus(status?: string): { texto: string; tono: string } {
+  switch (status) {
+    case 'running':
+      return { texto: '✅ Activo', tono: 'verde' }
+    case 'outside_hours':
+      return { texto: '🌙 Fuera de horario', tono: 'gris' }
+    case 'weekend':
+      return { texto: '🌴 Fin de semana', tono: 'gris' }
+    case 'paused':
+      return { texto: '⏸️ Pausado', tono: 'ambar' }
+    default:
+      return { texto: status ? `⚠️ ${status}` : '⚠️ Sin estado', tono: 'ambar' }
+  }
+}
+
+interface ConfigIntraday {
+  minAdx?: number
+  btcMinAdx?: number
+  rsiMin?: number
+  rsiMax?: number
+  minMarketCap?: number
+  minVolume24h?: number
+  minVolMcRatio?: number
+  tpPercent?: number
+  slPercent?: number
+  bePercent?: number
+  maxDailyLoss?: number
+  maxDailyProfit?: number
+  spreadPct?: number
+  commissionPct?: number
+  slippagePct?: number
+}
+
+const porcentaje = (v?: number, decimales = 1) =>
+  v == null ? '?' : `${(v * 100).toFixed(decimales).replace('.', ',')}%`
+
+const millones = (v?: number) => (v == null ? '?' : `$${Math.round(v / 1_000_000)}M`)
+
+/**
+ * Descripción del 1% Spot generada desde la configuración que el worker LEE.
+ *
+ * Estaba escrita a mano en la página y ya había divergido: anunciaba "ADX > 20"
+ * cuando el worker filtra con 18. Un texto que describe la estrategia y no sale
+ * de ella acaba describiendo otra, y no hay forma de notarlo mirando la pantalla.
+ */
+export function describeOnePercent(c: ConfigIntraday): string {
+  if (!c) return 'Configuración no disponible.'
+  const costeIdaVuelta =
+    ((c.commissionPct || 0) + (c.spreadPct || 0) / 2 + (c.slippagePct || 0)) * 2
+  return [
+    'Estrategia intraday de momentum en spot: busca subidas rápidas de en torno al 1% en altcoins con tendencia limpia.',
+    `Filtros de liquidez: capitalización > ${millones(c.minMarketCap)}, volumen 24h > ${millones(c.minVolume24h)}, ratio volumen/capitalización > ${c.minVolMcRatio ?? '?'}.`,
+    `Filtros de entrada: ADX ≥ ${c.minAdx ?? '?'}, RSI entre ${c.rsiMin ?? '?'} y ${c.rsiMax ?? '?'}, con BTC en tendencia (ADX ≥ ${c.btcMinAdx ?? '?'}).`,
+    `Salida: TP +${porcentaje(c.tpPercent)} y SL −${porcentaje(c.slPercent)}, con breakeven al +${porcentaje(c.bePercent)}.`,
+    `Límites diarios: parar en −${porcentaje(c.maxDailyLoss)} o en +${porcentaje(c.maxDailyProfit)}.`,
+    `Coste modelado de ida y vuelta: ${porcentaje(costeIdaVuelta, 2)} — sobre un objetivo del ${porcentaje(c.tpPercent)}, se lleva ${
+      c.tpPercent ? Math.round((costeIdaVuelta / c.tpPercent) * 100) : '?'
+    }% de la ventaja bruta.`,
+  ].join(' ')
+}

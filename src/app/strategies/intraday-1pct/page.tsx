@@ -1,6 +1,7 @@
 'use client'
 
 import { useRealTradingData } from '@/hooks/useRealTradingData'
+import { describeOnePercent, describeWorkerStatus } from '@/lib/strategySpec'
 
 import { useEffect, useState } from 'react'
 import { useTradingStore } from '@/stores/tradingStore'
@@ -264,7 +265,10 @@ export default function Intraday1PctPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">💯 Estrategia 1%</h1>
-          <p className="text-gray-500 text-sm">Estrategia intraday trend-following. Busca +1% rápidos en altcoins con momentum limpio. Filtros estrictos: market cap {">"}$300M, volumen 24h {">"}$50M, ratio vol/mcap {">"}0.15, ADX {">"}20, RSI 40-55. TP fijo +1%, SL -0.5% (R:R 2:1). Mueve a breakeven en +0.6%. Límites diarios: -1.5% pérdida, +3% target.</p>
+          {/* Generada desde la config que el worker LEE. Antes estaba escrita a
+              mano y ya había divergido: anunciaba "ADX > 20" con el worker
+              filtrando en 18. */}
+          <p className="text-gray-500 text-sm">{describeOnePercent(config)}</p>
         </div>
         <div className={clsx(
           'px-3 py-1.5 rounded-lg font-medium text-sm',
@@ -278,12 +282,17 @@ export default function Intraday1PctPage() {
       {worker ? (
         <div className={clsx(
           'p-3 rounded-lg text-sm',
-          worker.status === 'running' ? 'bg-green-50 border border-green-200' : 'bg-yellow-50 border border-yellow-200'
+          worker.status === 'running' ? 'bg-green-50 border border-green-200'
+            : describeWorkerStatus(worker.status).tono === 'gris' ? 'bg-gray-50 border border-gray-200'
+            : 'bg-yellow-50 border border-yellow-200'
         )}>
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
-              <span className={worker.status === 'running' ? 'text-green-600' : 'text-yellow-600'}>
-                {worker.status === 'running' ? '✅ Activo' : worker.status === 'weekend' ? '🌴 Weekend' : '⏸️ Pausado'}
+              <span className={
+              worker.status === 'running' ? 'text-green-600'
+                : describeWorkerStatus(worker.status).tono === 'gris' ? 'text-gray-600'
+                : 'text-yellow-600'}>
+                {describeWorkerStatus(worker.status).texto}
               </span>
               <span className="text-gray-500 text-xs">
                 {new Date(worker.last_scan).toLocaleTimeString()}

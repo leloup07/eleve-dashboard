@@ -45,6 +45,14 @@ interface PuntoEquity {
   precios_obsoletos: number
 }
 
+interface ProblemaDatos {
+  ticker: string
+  intervalo: string
+  visto: string
+  utilizable: boolean
+  problemas: { codigo: string; mensaje: string; grave: boolean }[]
+}
+
 interface Rechazo {
   fecha: string
   ticker: string
@@ -59,6 +67,7 @@ export default function RiesgoPage() {
   const [calor, setCalor] = useState<CalorCartera | null>(null)
   const [rechazos, setRechazos] = useState<Rechazo[]>([])
   const [equity, setEquity] = useState<PuntoEquity[]>([])
+  const [datos, setDatos] = useState<ProblemaDatos[]>([])
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -71,6 +80,7 @@ export default function RiesgoPage() {
           setCalor(d.calor)
           setRechazos(d.rechazos || [])
           setEquity(d.equity || [])
+          setDatos(d.datos || [])
           setError(null)
         })
         .catch((e) => setError(e.message))
@@ -123,6 +133,7 @@ export default function RiesgoPage() {
           <Factores calor={calor} />
           <Limites calor={calor} />
           <Rechazados rechazos={rechazos} />
+          <SaludDatos datos={datos} />
 
           <p className="text-xs text-gray-600 mt-6">
             Actualizado {new Date(calor.actualizado).toLocaleString('es-ES')}
@@ -291,6 +302,45 @@ function Limites({ calor }: { calor: CalorCartera }) {
           <span className="text-gray-400 tabular-nums">{valor}</span>
         </div>
       ))}
+    </div>
+  )
+}
+
+function SaludDatos({ datos }: { datos: ProblemaDatos[] }) {
+  if (!datos?.length) return null
+  const graves = datos.filter((d) => !d.utilizable)
+  const avisos = datos.filter((d) => d.utilizable)
+  return (
+    <div className="mt-6 bg-gray-900 border border-gray-800 rounded-lg p-5">
+      <h2 className="text-white font-semibold">Salud de los datos de mercado</h2>
+      <p className="text-xs text-gray-500 mt-1 mb-3">
+        Series descartadas antes de decidir con ellas. Las averías que hacen daño no producen
+        datos absurdos sino plausibles: velas duplicadas, una serie desordenada, o un feed que
+        repite la misma vela. Los indicadores se calculan igual y devuelven otro número.
+      </p>
+      {graves.length > 0 && (
+        <div className="space-y-1 mb-3">
+          {graves.map((d) => (
+            <div key={`${d.ticker}|${d.intervalo}`}
+                 className="flex justify-between text-sm border-b border-gray-800/70 py-1.5">
+              <span className="text-gray-300">
+                {d.ticker} <span className="text-gray-600">· {d.intervalo}</span>
+              </span>
+              <span className="text-red-400 text-right text-xs">
+                {d.problemas.map((p) => p.mensaje).join('; ')}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+      {avisos.length > 0 && (
+        <p className="text-xs text-gray-500">
+          Y {avisos.length} serie(s) con avisos que no impiden operar.
+        </p>
+      )}
+      {!graves.length && (
+        <p className="text-sm text-gray-500">Ninguna serie descartada.</p>
+      )}
     </div>
   )
 }

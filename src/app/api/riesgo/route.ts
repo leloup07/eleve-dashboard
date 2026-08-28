@@ -16,11 +16,23 @@ export async function GET() {
   let redis: Redis | null = null
   try {
     redis = new Redis(redisUrl)
-    const [calorRaw, rechazosRaw, fechas] = await Promise.all([
+    const [calorRaw, rechazosRaw, fechas, datosRaw] = await Promise.all([
       redis.get('eleve:riesgo:calor'),
       redis.lrange('eleve:riesgo:rechazos', 0, 49),
       redis.smembers('eleve:equity:fechas'),
+      redis.hgetall('eleve:datos:problemas'),
     ])
+
+    // Salud del feed de mercado (P0-8). Un activo muerto es indistinguible de un
+    // activo sin señal si nadie lo cuenta.
+    const datos: any[] = []
+    for (const valor of Object.values(datosRaw || {})) {
+      try {
+        datos.push(JSON.parse(valor as string))
+      } catch (e) {
+        console.error('[api/riesgo] problema de datos ilegible:', e)
+      }
+    }
 
     // Curva de equity (P0-5). Un punto por día: capital + realizado + las
     // posiciones abiertas marcadas a mercado.
@@ -56,7 +68,7 @@ export async function GET() {
       }
     }
 
-    return NextResponse.json({ success: true, calor, rechazos, equity })
+    return NextResponse.json({ success: true, calor, rechazos, equity, datos })
   } catch (error) {
     if (redis) { try { await redis.quit() } catch {} }
     console.error('[api/riesgo] error leyendo el riesgo de cartera:', error)
