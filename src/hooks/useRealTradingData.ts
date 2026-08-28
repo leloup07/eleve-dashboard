@@ -202,6 +202,11 @@ export function useRealTradingData(autoRefreshMs = 30000) {
               capital: cfg.capital ?? s.capital,
               riskPerTrade: cfg.riskPerTrade ?? s.riskPerTrade,
               maxPositions: cfg.maxPositions ?? s.maxPositions,
+              // Modo sombra (P0-4): la ficha no puede seguir diciendo «Activa»
+              // sin matices después de que ese estado ocultara un defecto real
+              // de sizing y de cobertura del motor de riesgo.
+              executionEnabled: cfg.executionEnabled ?? null,
+              executionDisabledReason: cfg.executionDisabledReason ?? null,
               // Stops, filtros y costes reales: su worker lee esta clave, no
               // eleve:config:strategies, asi que la ficha tiene que salir de aqui.
               stops: {

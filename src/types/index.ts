@@ -68,6 +68,13 @@ export interface StrategyConfig {
   name: string
   key: string
   status: StrategyStatus
+  /**
+   * v5.1 · P0-4. Solo se rellena en VWAP y 1% Spot: modo sombra mientras se
+   * demuestran corregidos el control de capital y la cobertura del motor de
+   * riesgo. null = las demás estrategias, para las que este campo no aplica.
+   */
+  executionEnabled?: boolean | null
+  executionDisabledReason?: string | null
   description: string
   capital: number | null
   riskPerTrade: number | null
@@ -269,6 +276,15 @@ export interface StrategyPerformance {
 
 export interface IntradayConfig {
   enabled: boolean
+  /**
+   * v5.1 · P0-4. Modo sombra: la estrategia genera y REGISTRA sus señales
+   * igual, pero no abre posiciones. Distinto de `enabled`: pausar no es lo
+   * mismo que estar bloqueada para ejecutar por un defecto de infraestructura
+   * que aún no se ha demostrado corregido (control de capital, cobertura del
+   * motor de riesgo). null/undefined = no se sabe todavía (aún sin hidratar).
+   */
+  executionEnabled?: boolean | null
+  executionDisabledReason?: string | null
   mode: 'paper' | 'live'
   capital: number | null
   riskPerTrade: number | null
@@ -288,6 +304,8 @@ export interface IntradayConfig {
 
 export interface Intraday1PctConfig {
   enabled: boolean
+  executionEnabled?: boolean | null
+  executionDisabledReason?: string | null
   mode: 'paper' | 'live'
   capital: number | null
   riskPerTrade: number | null

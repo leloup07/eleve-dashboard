@@ -88,7 +88,9 @@ export function Sidebar() {
         {/* La identidad del sistema es el commit que ejecutan los workers, no una
             etiqueta escrita a mano: "v5.0" no cambiaba al cambiar el código. */}
         <h1 className="text-xl font-bold">🚀 ELEVE</h1>
-        <p className="text-xs text-white/60 mt-1">6 Estrategias Activas</p>
+        {/* "Activas" sin matizar es justo lo que ocultaba el modo sombra de
+            VWAP y 1% Spot: el estado real de cada una está en su propia ficha. */}
+        <p className="text-xs text-white/60 mt-1">6 Estrategias</p>
       </div>
       
       {/* Navegación */}

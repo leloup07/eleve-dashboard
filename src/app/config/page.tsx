@@ -1,7 +1,7 @@
 'use client'
 
 import { useRealTradingData } from '@/hooks/useRealTradingData'
-import { SpecChip } from '@/components/SpecChip'
+import { SpecChip, ShadowBadge } from '@/components/SpecChip'
 
 import { useState, useEffect } from 'react'
 import { useTradingStore } from '@/stores/tradingStore'
@@ -762,6 +762,7 @@ function IntradayEditor() {
             <h3 className="text-xl font-bold">VWAP Reversion (Intraday)</h3>
             <p className="text-sm text-gray-500">
               <SpecChip specId={useTradingStore.getState().strategies.find(e => e.key === 'vwap_reversion')?.specId} cargando={!useTradingStore.getState().configCargada} /> • Mean-reversion tras fake breaks del rango asiático
+              <ShadowBadge executionEnabled={intradayConfig.executionEnabled} reason={intradayConfig.executionDisabledReason} />
               {syncStatus === 'success' && <span className="ml-2 text-green-600">✅ Sincronizado</span>}
               {syncStatus === 'error' && <span className="ml-2 text-red-600">❌ Error</span>}
             </p>
@@ -1124,6 +1125,7 @@ function Intraday1PctEditor() {
             <h3 className="text-xl font-bold">Estrategia 1% (Intraday)</h3>
             <p className="text-sm text-gray-500">
               <SpecChip specId={useTradingStore.getState().strategies.find(e => e.key === 'one_percent_spot')?.specId} cargando={!useTradingStore.getState().configCargada} /> • Spot momentum con filtros estrictos de liquidez
+              <ShadowBadge executionEnabled={config.executionEnabled} reason={config.executionDisabledReason} />
               {syncStatus === 'success' && <span className="ml-2 text-green-600">✅ Sincronizado</span>}
               {syncStatus === 'error' && <span className="ml-2 text-red-600">❌ Error</span>}
             </p>

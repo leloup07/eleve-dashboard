@@ -38,6 +38,14 @@ export function StrategyCard({ strategy }: StrategyCardProps) {
     if (!strategy.enabled) {
       return { text: 'Desactivada', color: 'text-gray-500', bg: 'bg-gray-100', dot: 'bg-gray-400' }
     }
+    // Modo sombra (v5.1 · P0-4): sigue generando y registrando señales, pero no
+    // ejecuta. «Activa» sin matizar es justo lo que ocultaba el defecto de
+    // sizing y la falta de cobertura del motor de riesgo — no debe volver a
+    // decir eso hasta que A y B estén demostrados.
+    if (strategy.executionEnabled === false) {
+      return { text: 'SHADOW · señales sí · ejecución bloqueada',
+               color: 'text-amber-600', bg: 'bg-amber-50', dot: 'bg-amber-500' }
+    }
     if (isBlocked) {
       return { text: `Bloqueada (${relevantRegime})`, color: 'text-red-600', bg: 'bg-red-50', dot: 'bg-red-500' }
     }

@@ -34,3 +34,23 @@ export function SpecChip({ specId, className, cargando = false }:
     </span>
   )
 }
+
+/**
+ * Modo sombra de una estrategia (v5.1 · P0-4).
+ *
+ * Distinto del toggle Activa/Pausada: `enabled` es si la estrategia se observa,
+ * `executionEnabled` es si puede abrir posiciones. Las dos intraday quedaron en
+ * modo sombra tras encontrarse dos defectos de infraestructura —el 1% Spot
+ * podía comprometer más capital del que tenía, y el motor de riesgo no las
+ * veía—, y "Activa" sin matizar habría vuelto a esconder exactamente eso.
+ */
+export function ShadowBadge({ executionEnabled, reason }:
+                            { executionEnabled?: boolean | null; reason?: string | null }) {
+  if (executionEnabled !== false) return null
+  return (
+    <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full ml-2"
+          title={reason || 'Modo sombra: genera y registra señales, no ejecuta'}>
+      🟡 SHADOW · señales sí · ejecución bloqueada
+    </span>
+  )
+}
