@@ -16,10 +16,28 @@ export async function GET() {
   let redis: Redis | null = null
   try {
     redis = new Redis(redisUrl)
-    const [calorRaw, rechazosRaw] = await Promise.all([
+    const [calorRaw, rechazosRaw, fechas] = await Promise.all([
       redis.get('eleve:riesgo:calor'),
       redis.lrange('eleve:riesgo:rechazos', 0, 49),
+      redis.smembers('eleve:equity:fechas'),
     ])
+
+    // Curva de equity (P0-5). Un punto por día: capital + realizado + las
+    // posiciones abiertas marcadas a mercado.
+    const equity: any[] = []
+    const ordenadas = (fechas || []).sort().slice(-400)
+    if (ordenadas.length) {
+      const puntos = await redis.mget(ordenadas.map((f) => `eleve:equity:${f}`))
+      for (const punto of puntos) {
+        if (!punto) continue
+        try {
+          equity.push(JSON.parse(punto))
+        } catch (e) {
+          console.error('[api/riesgo] punto de equity ilegible:', e)
+        }
+      }
+    }
+
     await redis.quit()
 
     let calor = null
@@ -38,7 +56,7 @@ export async function GET() {
       }
     }
 
-    return NextResponse.json({ success: true, calor, rechazos })
+    return NextResponse.json({ success: true, calor, rechazos, equity })
   } catch (error) {
     if (redis) { try { await redis.quit() } catch {} }
     console.error('[api/riesgo] error leyendo el riesgo de cartera:', error)

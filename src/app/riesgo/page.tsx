@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 import { formatCurrency, formatNumber } from '@/lib/formatters'
 
 // Riesgo de CARTERA (v5.1 · P0-4). Hasta ahora cada estrategia vigilaba su
@@ -34,6 +35,16 @@ interface CalorCartera {
   motivo_detencion: string | null
 }
 
+interface PuntoEquity {
+  fecha: string
+  equity: number
+  capital: number
+  realizado: number
+  no_realizado: number
+  posiciones_abiertas: number
+  precios_obsoletos: number
+}
+
 interface Rechazo {
   fecha: string
   ticker: string
@@ -47,6 +58,7 @@ const NOMBRE_FACTOR: Record<string, string> = { crypto: 'Crypto', equity: 'Accio
 export default function RiesgoPage() {
   const [calor, setCalor] = useState<CalorCartera | null>(null)
   const [rechazos, setRechazos] = useState<Rechazo[]>([])
+  const [equity, setEquity] = useState<PuntoEquity[]>([])
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -58,6 +70,7 @@ export default function RiesgoPage() {
           if (!d.success) throw new Error(d.error || 'No se pudo leer el riesgo')
           setCalor(d.calor)
           setRechazos(d.rechazos || [])
+          setEquity(d.equity || [])
           setError(null)
         })
         .catch((e) => setError(e.message))
@@ -106,6 +119,7 @@ export default function RiesgoPage() {
           )}
 
           <Resumen calor={calor} />
+          <CurvaEquity puntos={equity} />
           <Factores calor={calor} />
           <Limites calor={calor} />
           <Rechazados rechazos={rechazos} />
@@ -147,6 +161,61 @@ function Resumen({ calor }: { calor: CalorCartera }) {
         pasa en un tercio de las salidas.
       </p>
     </>
+  )
+}
+
+function CurvaEquity({ puntos }: { puntos: PuntoEquity[] }) {
+  if (!puntos?.length) return null
+  const ultimo = puntos[puntos.length - 1]
+  const capital = ultimo.capital || 0
+  const obsoletos = puntos.filter((p) => p.precios_obsoletos > 0).length
+  return (
+    <div className="mt-6 bg-gray-900 border border-gray-800 rounded-lg p-5">
+      <div className="flex items-baseline justify-between">
+        <h2 className="text-white font-semibold">Curva de equity</h2>
+        <span className="text-sm text-gray-400 tabular-nums">
+          {formatCurrency(ultimo.equity)}{' '}
+          <span className={ultimo.equity >= capital ? 'text-green-400' : 'text-red-400'}>
+            ({ultimo.equity >= capital ? '+' : ''}
+            {formatNumber(((ultimo.equity - capital) / capital) * 100, 2)}%)
+          </span>
+        </span>
+      </div>
+      <p className="text-xs text-gray-500 mt-1 mb-4">
+        Capital + resultado realizado + posiciones abiertas marcadas a mercado, ya descontados
+        los costes que tendría cerrarlas. Un punto por día; el de hoy se actualiza cada ciclo.
+      </p>
+      {puntos.length === 1 ? (
+        <p className="text-sm text-gray-500">
+          Solo hay un punto todavía. La curva empieza a tener forma con varios días.
+        </p>
+      ) : (
+        <ResponsiveContainer width="100%" height={240}>
+          <AreaChart data={puntos}>
+            <XAxis dataKey="fecha" stroke="#6b7280" fontSize={11} minTickGap={50} />
+            <YAxis stroke="#6b7280" fontSize={11} domain={['auto', 'auto']}
+                   tickFormatter={(v) => formatCurrency(v as number)} />
+            <Tooltip
+              contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }}
+              formatter={(v) => [formatCurrency(v as number), 'Equity']}
+            />
+            <ReferenceLine y={capital} stroke="#4b5563" strokeDasharray="3 3" />
+            <Area type="monotone" dataKey="equity" stroke="#3b82f6"
+                  fill="#3b82f6" fillOpacity={0.12} strokeWidth={2} />
+          </AreaChart>
+        </ResponsiveContainer>
+      )}
+      <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-gray-500 mt-3">
+        <span>realizado <span className="text-gray-300">{formatCurrency(ultimo.realizado)}</span></span>
+        <span>abierto <span className="text-gray-300">{formatCurrency(ultimo.no_realizado)}</span></span>
+        <span>la línea gris es el capital de partida</span>
+        {obsoletos > 0 && (
+          <span className="text-amber-400">
+            {obsoletos} {obsoletos === 1 ? 'día calculado' : 'días calculados'} con precios sin actualizar
+          </span>
+        )}
+      </div>
+    </div>
   )
 }
 

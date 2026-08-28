@@ -200,9 +200,18 @@ export async function GET() {
     const workerStale = workerStaleMinutes === null || workerStaleMinutes > WORKER_STALE_MINUTES
 
     // === ESTADÍSTICAS ===
-    const totalTradesRaw = await redis.get('eleve:stats:total_trades')
-    const totalPnlRaw = await redis.get('eleve:stats:total_pnl')
-    const winningTradesRaw = await redis.get('eleve:stats:winning_trades')
+    // Se DERIVAN de los trades, que es la lista que realmente existe. Antes
+    // salían de tres contadores (eleve:stats:total_trades, total_pnl,
+    // winning_trades) que no escribía nadie: ni una sola referencia en todo el
+    // código del worker. El dashboard llevaba mostrando 0 trades y 0 de PnL
+    // teniendo trades cerrados con resultado. Un contador que se lleva aparte
+    // de la lista puede desincronizarse; uno derivado de ella, no.
+    const pnls = trades.map((t: any) => Number(t?.pnl) || 0)
+    const estadisticas = {
+      totalTrades: trades.length,
+      totalPnl: pnls.reduce((a: number, b: number) => a + b, 0),
+      winningTrades: pnls.filter((p: number) => p > 0).length,
+    }
     
     // === INTRADAY DATA ===
     let intradayPositions: any[] = []
@@ -308,11 +317,7 @@ export async function GET() {
         redisConnected: true,
         lastUpdate: new Date().toISOString(),
         worker: workerStatus,
-        stats: {
-          totalTrades: parseInt(totalTradesRaw || '0'),
-          totalPnl: parseFloat(totalPnlRaw || '0'),
-          winningTrades: parseInt(winningTradesRaw || '0')
-        },
+        stats: estadisticas,
         intradayPositions,
         intradayTrades,
         intradayDaily,
