@@ -1452,9 +1452,11 @@ export default function ConfigPage() {
             están congelados. Desde fuera, una página que se contradice consigo
             misma es indistinguible de una que no ha congelado nada. */}
         <p className="text-gray-500 mt-1">
-          {experiment?.active
-            ? 'Parámetros de cada estrategia, en solo lectura mientras dure el experimento.'
-            : 'Parámetros de cada estrategia. Los cambios se guardan en Redis y el bot los aplica en el próximo ciclo.'}
+          {/* Neutro a propósito: durante un experimento activo, anunciar que los
+              cambios llegan al bot sobra, y la frase se lee justo encima del
+              aviso de congelado. */}
+          Configuración activa de las seis estrategias. Durante un experimento
+          activo, los parámetros permanecen congelados.
         </p>
       </div>
       
