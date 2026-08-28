@@ -184,7 +184,6 @@ export function useRealTradingData(autoRefreshMs = 30000) {
             if (config.mode !== undefined) updates.mode = config.mode
             if (config.enabled !== undefined) updates.enabled = config.enabled
             if (config.assets !== undefined) updates.assets = config.assets
-            if (config.version !== undefined) updates.version = config.version
             if (Object.keys(updates).length > 0) {
               // Hidratación local: NO usar updateStrategy(), que hace POST de vuelta a Redis
               // y convierte cada refresco en un ciclo lectura→escritura.

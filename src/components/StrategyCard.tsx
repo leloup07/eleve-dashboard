@@ -1,6 +1,7 @@
 'use client'
 
 import { useTradingStore } from '@/stores/tradingStore'
+import { SpecChip } from '@/components/SpecChip'
 import { formatCurrency, formatRatio, formatNumber, getValueColorClass } from '@/lib/formatters'
 import { clsx } from 'clsx'
 import type { StrategyConfig } from '@/types'
@@ -22,7 +23,7 @@ export function StrategyCard({ strategy }: StrategyCardProps) {
   // Las estrategias swing no tienen TP desde la v5.0 (gestión por trailing), así
   // que su "R:R" era una división por cero disfrazada de 0:1.
   const tieneTP = (strategy.stops.tpAtrMult || 0) > 0 || (strategy.stops.tpPercent || 0) > 0
-  const rrRatio = tieneTP && strategy.stops.slAtrMult
+  const rrRatio = tieneTP && strategy.stops.slAtrMult && strategy.stops.tpAtrMult
     ? strategy.stops.tpAtrMult / strategy.stops.slAtrMult
     : null
   
@@ -73,7 +74,7 @@ export function StrategyCard({ strategy }: StrategyCardProps) {
           <span className="text-2xl">{emoji}</span>
           <div>
             <h3 className="font-semibold text-gray-900">{strategy.name}</h3>
-            <span className="text-xs text-gray-500">{strategy.version}</span>
+            <SpecChip specId={strategy.specId} />
           </div>
         </div>
         <span className={clsx('px-2 py-1 rounded text-xs font-medium', mode.bg, mode.color)}>

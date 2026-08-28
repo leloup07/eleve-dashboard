@@ -85,6 +85,16 @@ export async function GET(request: NextRequest) {
     ESTRATEGIAS.forEach((k, i) => { specs[k] = specIds[i] })
     const experiment = await experimentoActivo(redis)
 
+    // Commit que ejecutan los workers. Es la otra mitad de la identidad: la spec
+    // dice qué parámetros se aplican y el commit qué código los interpreta.
+    let commit: string | null = null
+    try {
+      const w = await redis.get('eleve:worker')
+      commit = w ? (JSON.parse(w).commit ?? null) : null
+    } catch (e) {
+      console.error('[api/config] no se pudo leer el commit del worker:', e)
+    }
+
     await redis.quit()
     
     return NextResponse.json({
@@ -95,6 +105,7 @@ export async function GET(request: NextRequest) {
         intraday1pct: intraday1pct ? JSON.parse(intraday1pct) : {},
         irg: irg ? JSON.parse(irg) : {},
         specs,
+        commit,
         experiment,
       },
       timestamp: new Date().toISOString(),

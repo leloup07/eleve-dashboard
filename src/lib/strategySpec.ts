@@ -117,27 +117,27 @@ export function describeWorkerStatus(status?: string): { texto: string; tono: st
 }
 
 interface ConfigIntraday {
-  minAdx?: number
-  btcMinAdx?: number
-  rsiMin?: number
-  rsiMax?: number
-  minMarketCap?: number
-  minVolume24h?: number
-  minVolMcRatio?: number
-  tpPercent?: number
-  slPercent?: number
-  bePercent?: number
-  maxDailyLoss?: number
-  maxDailyProfit?: number
-  spreadPct?: number
-  commissionPct?: number
-  slippagePct?: number
+  minAdx?: number | null
+  btcMinAdx?: number | null
+  rsiMin?: number | null
+  rsiMax?: number | null
+  minMarketCap?: number | null
+  minVolume24h?: number | null
+  minVolMcRatio?: number | null
+  tpPercent?: number | null
+  slPercent?: number | null
+  bePercent?: number | null
+  maxDailyLoss?: number | null
+  maxDailyProfit?: number | null
+  spreadPct?: number | null
+  commissionPct?: number | null
+  slippagePct?: number | null
 }
 
-const porcentaje = (v?: number, decimales = 1) =>
+const porcentaje = (v?: number | null, decimales = 1) =>
   v == null ? '?' : `${(v * 100).toFixed(decimales).replace('.', ',')}%`
 
-const millones = (v?: number) => (v == null ? '?' : `$${Math.round(v / 1_000_000)}M`)
+const millones = (v?: number | null) => (v == null ? '?' : `$${Math.round(v / 1_000_000)}M`)
 
 /**
  * Descripción del 1% Spot generada desde la configuración que el worker LEE.

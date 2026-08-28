@@ -67,7 +67,6 @@ export interface IRGState {
 export interface StrategyConfig {
   name: string
   key: string
-  version: string
   status: StrategyStatus
   description: string
   capital: number | null
@@ -87,31 +86,43 @@ export interface StrategyConfig {
     trend: string
     entry: string
   }
+  /**
+   * Parámetros de stop. TODOS pueden ser null: son valores que vienen de la
+   * spec activa en Redis y no existen hasta que se hidratan. Antes tenían
+   * valores escritos a mano que además ya no coincidían con la spec (large_caps
+   * figuraba con 1,5× ATR y TP 3× ATR cuando opera a 2,0× ATR y sin TP), así
+   * que un fallo de hidratación no se veía: se veía un número plausible y falso.
+   */
   stops: {
-    slAtrMult: number
-    tpAtrMult: number; trailing?: string
+    slAtrMult: number | null
+    tpAtrMult: number | null; trailing?: string
     /** Timeframe del ATR con el que se calibra el SL: '1h' | '1d' */
     atrTimeframe?: string
     /** Estrategias con TP/SL fijos en % (1% Spot) en vez de múltiplos de ATR */
-    slPercent?: number
-    tpPercent?: number
+    slPercent?: number | null
+    tpPercent?: number | null
   }
   /** Costes de operativa por lado, sobre el nocional (0.0026 = 0,26%) */
   costs?: {
     commissionPct?: number
     slippagePct?: number
   }
+  /**
+   * Filtros de entrada. Todos pueden ser null por el mismo motivo que los
+   * stops: salen de la spec activa y no existen hasta hidratarse. Un número
+   * escrito a mano aquí se muestra igual que uno real.
+   */
   entryFilters: {
-    adxMin: number
-    rsiMin: number
-    rsiMax: number
-    emaFast: number
-    emaMedium: number
-    emaSlow: number
-    pullbackAtr: number
+    adxMin: number | null
+    rsiMin: number | null
+    rsiMax: number | null
+    emaFast: number | null
+    emaMedium: number | null
+    emaSlow: number | null
+    pullbackAtr: number | null
     /** Estrategias de ruptura: canal de Donchian y confirmación por volumen */
-    donchianPeriod?: number
-    volumeMult?: number
+    donchianPeriod?: number | null
+    volumeMult?: number | null
   }
   expectedPerformance: {
     tradesPerMonth: string
@@ -122,6 +133,14 @@ export interface StrategyConfig {
   }
   
   /** Identidad inmutable bajo la que opera hoy (v5.1 P0-1) */
+  /**
+   * Identidad real de la estrategia: el hash de su spec activa (v5.1 · P0-1).
+   *
+   * Sustituye a la antigua etiqueta `version`, escrita a mano y atada a nada:
+   * llegaron a convivir v5.0, v5.1, v2.1, v1.0, v5.3 y v5.4, con la misma
+   * estrategia mostrando una cosa en la home y otra en /config. Cambiar un
+   * umbral no movía ninguna; sí cambia el spec_id, por construcción.
+   */
   specId?: string | null
   // Metadatos de sincronización
   lastUpdated?: string
@@ -254,15 +273,15 @@ export interface IntradayConfig {
   capital: number | null
   riskPerTrade: number | null
   maxPositions: number | null
-  maxDailyLoss: number
-  maxDailyProfit: number
+  maxDailyLoss: number | null
+  maxDailyProfit: number | null
   assets: string[]
-  slAtrMult: number
-  tpAtrMult: number; trailing?: string
-  asiaStartHour: number
-  asiaEndHour: number
-  tradingEndHour: number
-  scanInterval: number
+  slAtrMult: number | null
+  tpAtrMult: number | null; trailing?: string
+  asiaStartHour: number | null
+  asiaEndHour: number | null
+  tradingEndHour: number | null
+  scanInterval: number | null
   // v4.3: Usa IRG en lugar de BTC regime
   useIRG: boolean
 }
@@ -273,19 +292,19 @@ export interface Intraday1PctConfig {
   capital: number | null
   riskPerTrade: number | null
   maxPositions: number | null
-  maxDailyLoss: number
-  maxDailyProfit: number
-  tpPercent: number
-  slPercent: number
-  bePercent: number
-  minMarketCap: number
-  minVolume24h: number
-  minVolMcRatio: number
-  minAdx: number
-  btcMinAdx: number
-  rsiMin: number
-  rsiMax: number
-  scanInterval: number
+  maxDailyLoss: number | null
+  maxDailyProfit: number | null
+  tpPercent: number | null
+  slPercent: number | null
+  bePercent: number | null
+  minMarketCap: number | null
+  minVolume24h: number | null
+  minVolMcRatio: number | null
+  minAdx: number | null
+  btcMinAdx: number | null
+  rsiMin: number | null
+  rsiMax: number | null
+  scanInterval: number | null
   // v4.3: Usa IRG en lugar de BTC regime
   useIRG: boolean
 }

@@ -1,9 +1,48 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { useTradingStore } from '@/stores/tradingStore'
+import { useRealTradingData } from '@/hooks/useRealTradingData'
 
 // Contenido educativo indexado para búsqueda
-const educationContent = {
+/**
+ * Contenido de la academia (v5.1 · P0-1/P0-7).
+ *
+ * Es una FUNCIÓN de la configuración viva, no un objeto estático. Las secciones
+ * que explican qué es el RSI o el ATR son universales y no dependen de nada,
+ * pero las que dicen "así lo usa ELEVE" son afirmaciones sobre ESTE sistema y
+ * caducan: la tabla de stops llegó a decir que el 1% Spot usa 0,5× ATR cuando
+ * usa un stop porcentual del 0,5%, y la lista de RSI anunciaba umbrales que ya
+ * no coincidían con los que operan.
+ *
+ * Un texto que describe la estrategia y no sale de ella acaba describiendo otra.
+ */
+function construirContenido(porClave: Record<string, any>) {
+  const f = (clave: string, camino: string[], sufijo = '', decimales = 1) => {
+    let v: any = porClave[clave]
+    for (const paso of camino) v = v?.[paso]
+    if (v == null) return '—'
+    return typeof v === 'number'
+      ? `${(sufijo === '%' ? v * 100 : v).toFixed(decimales).replace('.', ',')}${sufijo}`
+      : String(v)
+  }
+  const rango = (clave: string) => {
+    const e = porClave[clave]?.entryFilters
+    return e?.rsiMin != null && e?.rsiMax != null ? `RSI ${e.rsiMin}-${e.rsiMax}` : 'RSI —'
+  }
+  const stop = (clave: string) => {
+    const st = porClave[clave]?.stops || {}
+    if (st.slPercent != null) return `${(st.slPercent * 100).toFixed(2).replace('.', ',')}% fijo`
+    if (st.slAtrMult != null) return `${String(st.slAtrMult).replace('.', ',')}× ATR(${(st.atrTimeframe || '1h').toUpperCase()})`
+    return '—'
+  }
+  const objetivo = (clave: string) => {
+    const st = porClave[clave]?.stops || {}
+    if (st.tpPercent != null) return `+${(st.tpPercent * 100).toFixed(2).replace('.', ',')}% fijo`
+    if (st.tpAtrMult != null) return `${String(st.tpAtrMult).replace('.', ',')}× ATR`
+    return 'sin TP (trailing)'
+  }
+  return {
   // Indicadores Técnicos
   rsi: {
     title: "RSI (Relative Strength Index)",
@@ -15,11 +54,12 @@ const educationContent = {
 - RSI < 30: Sobreventa (posible reversión alcista)
 - RSI 40-60: Zona neutral
 
-**Cómo lo usa ELEVE:**
-- Crypto Swing: RSI 30-75 para entradas
-- VWAP Reversion: RSI 20-80 (más amplio para intraday)
-- Crypto Breakout: no usa RSI (entra por ruptura, no por momentum)
-- 1% Spot: RSI 40-55 (más restrictivo)
+**Cómo lo usa ELEVE** (leído de la spec activa de cada estrategia):
+- Crypto Swing: ${rango('crypto_swing')} para entradas
+- Large Caps: ${rango('large_caps')} · Small Caps: ${rango('small_caps')}
+- 1% Spot: ${rango('one_percent_spot')} (más restrictivo)
+- Crypto Breakout: no usa RSI — entra por ruptura, no por momentum
+- VWAP Reversion: tampoco lo lee de su configuración
 
 **Fórmula:**
 RSI = 100 - (100 / (1 + RS))
@@ -55,14 +95,14 @@ ATR = Media móvil del True Range (típicamente 14 períodos)
 
 **ATR en cada estrategia ELEVE:**
 
-| Estrategia | SL (ATR) | TP (ATR) | Por qué |
-|------------|----------|----------|---------|
-| Crypto Swing | 1.5x ATR(1D) | sin TP | Diario: el ATR horario dejaba stops del 1,1% |
-| Crypto Breakout | 1.5x ATR(1D) | sin TP | Misma gestión que Crypto Swing |
-| Large Caps | 2.0x ATR(1H) | sin TP | Aguantan 4-5 días sin saltar |
-| Small Caps | 2.0x ATR(1H) | sin TP | Momentum, busca extensiones |
-| VWAP Reversion | 1.2x | 1.5x | Intraday, movimientos cortos |
-| 1% Spot | 0.5x | 1.0x | Scalping, stops muy ajustados |
+| Estrategia | Stop | Objetivo | Por qué |
+|------------|------|----------|---------|
+| Crypto Swing | ${stop('crypto_swing')} | ${objetivo('crypto_swing')} | Diario: el ATR horario dejaba stops del 1,1% |
+| Crypto Breakout | ${stop('crypto_breakout')} | ${objetivo('crypto_breakout')} | Misma gestión que Crypto Swing |
+| Large Caps | ${stop('large_caps')} | ${objetivo('large_caps')} | Aguantan varios días sin saltar |
+| Small Caps | ${stop('small_caps')} | ${objetivo('small_caps')} | Momentum, busca extensiones |
+| VWAP Reversion | ${stop('vwap_reversion')} | ${objetivo('vwap_reversion')} | Intraday, movimientos cortos |
+| 1% Spot | ${stop('one_percent_spot')} | ${objetivo('one_percent_spot')} | No usa ATR: stop y objetivo porcentuales |
 
 **Interpretación del ATR:**
 - ATR creciente: Volatilidad aumentando (breakouts, noticias)
@@ -102,7 +142,7 @@ Un máximo de 20 sesiones quiere decir que nadie que haya comprado en el último
 Los amagos. El precio asoma la cabeza por encima del máximo, no aparece nadie detrás y vuelve al rango. Por eso ELEVE exige además volumen (ver Volumen relativo).
 
 **Uso en ELEVE:**
-- Crypto Breakout: ruptura del máximo de 20 sesiones + volumen ≥ 1,2× su media
+- Crypto Breakout: ruptura del máximo de ${f('crypto_breakout', ['entryFilters','donchianPeriod'], '', 0)} sesiones + volumen ≥ ${f('crypto_breakout', ['entryFilters','volumeMult'], '×')} su media
 - Es el disparador OPUESTO al de Crypto Swing, que compra retrocesos a la EMA20
 
 **Por qué se eligió:**
@@ -130,7 +170,7 @@ El precio dice QUÉ pasa; el volumen dice CUÁNTA gente está de acuerdo. Una ru
 Es relativo a sí mismo a propósito. BTC mueve órdenes de magnitud más que AVAX en términos absolutos, así que el volumen bruto no sirve para comparar. El ratio sí: un 2× es un 2× en los dos.
 
 **Uso en ELEVE:**
-- Crypto Breakout: exige ≥ 1,2× para aceptar una ruptura
+- Crypto Breakout: exige ≥ ${f('crypto_breakout', ['entryFilters','volumeMult'], '×')} para aceptar una ruptura
 - Se puede desactivar poniendo volumeMult a 0 en la configuración
 
 **Un apunte:**
@@ -1222,12 +1262,23 @@ Soporte roto se convierte en resistencia (y viceversa).
 **Error común:**
 Forzar líneas que no existen. Si no es obvia, no la traces.`
   }
+  }
 }
 
 // Categorías para filtrar
 const categories = ['Todos', 'Indicadores', 'Riesgo', 'Estructura', 'Psicología', 'Órdenes', 'Patrones']
 
 export default function EducationPage() {
+  // La academia se construye con la configuración VIVA: las secciones que dicen
+  // "así lo usa ELEVE" son afirmaciones sobre este sistema y caducan solas.
+  const strategies = useTradingStore((s) => s.strategies)
+  useRealTradingData(0)
+  const educationContent = useMemo(() => {
+    const porClave: Record<string, any> = {}
+    for (const e of strategies) porClave[e.key] = e
+    return construirContenido(porClave)
+  }, [strategies])
+
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('Todos')
   const [expandedItems, setExpandedItems] = useState<string[]>([])

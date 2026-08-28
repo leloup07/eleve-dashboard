@@ -555,8 +555,8 @@ export default function Intraday1PctPage() {
           <div>
             <h4 className="font-medium text-gray-700 mb-2">🎯 Filtros de Liquidez</h4>
             <ul className="text-xs space-y-1 text-gray-600">
-              <li>• MC &gt; ${(config.minMarketCap / 1e6).toFixed(0)}M</li>
-              <li>• Vol 24h &gt; ${(config.minVolume24h / 1e6).toFixed(0)}M</li>
+              <li>• MC &gt; ${((config.minMarketCap ?? 0) / 1e6).toFixed(0)}M</li>
+              <li>• Vol 24h &gt; ${((config.minVolume24h ?? 0) / 1e6).toFixed(0)}M</li>
               <li>• Vol/MC ≥ {config.minVolMcRatio}</li>
             </ul>
           </div>
@@ -571,16 +571,16 @@ export default function Intraday1PctPage() {
           <div>
             <h4 className="font-medium text-gray-700 mb-2">💰 Gestión</h4>
             <ul className="text-xs space-y-1 text-gray-600">
-              <li>• TP: +{(config.tpPercent * 100).toFixed(1)}%</li>
-              <li>• SL: -{(config.slPercent * 100).toFixed(1)}%</li>
-              <li>• BE a +{(config.bePercent * 100).toFixed(1)}%</li>
+              <li>• TP: +{((config.tpPercent ?? 0) * 100).toFixed(1)}%</li>
+              <li>• SL: -{((config.slPercent ?? 0) * 100).toFixed(1)}%</li>
+              <li>• BE a +{((config.bePercent ?? 0) * 100).toFixed(1)}%</li>
             </ul>
           </div>
           <div>
             <h4 className="font-medium text-gray-700 mb-2">🛡️ Límites</h4>
             <ul className="text-xs space-y-1 text-gray-600">
-              <li>• Max loss: -{(config.maxDailyLoss * 100).toFixed(1)}%</li>
-              <li>• Target: +{(config.maxDailyProfit * 100).toFixed(1)}%</li>
+              <li>• Max loss: -{((config.maxDailyLoss ?? 0) * 100).toFixed(1)}%</li>
+              <li>• Target: +{((config.maxDailyProfit ?? 0) * 100).toFixed(1)}%</li>
               <li>• Horario: 08:00-20:00 UTC</li>
             </ul>
           </div>

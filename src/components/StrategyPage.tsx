@@ -1,6 +1,7 @@
 'use client'
 
 import { useTradingStore } from '@/stores/tradingStore'
+import { SpecChip } from '@/components/SpecChip'
 import { formatCurrency, formatPercent, formatNumber, formatRatio, getValueColorClass } from '@/lib/formatters'
 import { clsx } from 'clsx'
 import type { Position, Trade } from '@/types'
@@ -136,7 +137,7 @@ export function StrategyPage({ strategyKey }: StrategyPageProps) {
           <span className="text-5xl">{emoji}</span>
           <div>
             <h1 className="text-3xl font-bold text-gray-900">{strategy.name}</h1>
-            <p className="text-gray-500">{strategy.version} • {strategy.description}</p>
+            <p className="text-gray-500"><SpecChip specId={strategy.specId} /> • {strategy.description}</p>
             {/* Ficha tecnica derivada de la config real que lee el worker */}
             <p className="text-sm text-gray-400 mt-1">{buildStrategySpecLine(strategy)}</p>
             {strategy.specId && (

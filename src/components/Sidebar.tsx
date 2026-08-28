@@ -6,7 +6,6 @@ import { usePathname } from 'next/navigation'
 import { clsx } from 'clsx'
 import { useTradingStore } from '@/stores/tradingStore'
 import { formatCapitalShort } from '@/lib/formatters'
-import { APP_VERSION } from '@/config/version'
 
 const navigation = [
   { name: 'Home', href: '/', icon: '🏠' },
@@ -44,12 +43,16 @@ export function Sidebar() {
   // configuración solo corre en ocho de ellas: en /backtest, /journal o
   // /indicators las cifras salían a 0 porque nadie las había traído todavía.
   // Es una hidratación local, sin POST de vuelta: la config está congelada.
+  const [commit, setCommit] = useState<string | null>(null)
+
   useEffect(() => {
     let vivo = true
     fetch('/api/config')
       .then((r) => r.json())
       .then((json) => {
-        if (!vivo || !json?.data?.strategies) return
+        if (!vivo) return
+        setCommit(json?.data?.commit ?? null)
+        if (!json?.data?.strategies) return
         useTradingStore.setState((state) => ({
           strategies: state.strategies.map((s) => {
             const cfg = json.data.strategies[s.key]
@@ -79,7 +82,14 @@ export function Sidebar() {
     <>
       {/* Logo */}
       <div className="p-4 border-b border-white/10">
-        <h1 className="text-xl font-bold">🚀 ELEVE {APP_VERSION}</h1>
+        {/* La identidad del sistema es el commit que ejecutan los workers, no una
+            etiqueta escrita a mano: "v5.0" no cambiaba al cambiar el código. */}
+        <h1 className="text-xl font-bold">🚀 ELEVE</h1>
+        {commit && (
+          <p className="text-[10px] text-white/40 font-mono" title="Commit que ejecutan los workers">
+            commit {commit}
+          </p>
+        )}
         <p className="text-xs text-white/60 mt-1">6 Estrategias Activas</p>
       </div>
       

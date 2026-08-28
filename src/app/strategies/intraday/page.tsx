@@ -215,9 +215,11 @@ export default function IntradayPage() {
             <div>
               <h4 className="font-medium text-gray-700">Gestión:</h4>
               <ul className="mt-2 space-y-1 text-sm text-gray-600">
-                <li>🛑 SL: 1.2× ATR fuera del fake break</li>
-                <li>🎯 TP: VWAP o 1.5× ATR (lo más cerca)</li>
-                <li>⏰ Time stop: 20:00 UTC (EOD)</li>
+                {/* De la config que el worker LEE. Estaban escritos a mano y son
+                    justo los que pueden cambiar sin que nadie actualice el texto. */}
+                <li>🛑 SL: {intradayConfig?.slAtrMult ?? "—"}× ATR fuera del fake break</li>
+                <li>🎯 TP: VWAP o {intradayConfig?.tpAtrMult ?? "—"}× ATR (lo más cerca)</li>
+                <li>⏰ Time stop: {intradayConfig?.tradingEndHour ?? "—"}:00 UTC (EOD)</li>
                 <li>❌ Sin trailing - cobrar y fuera</li>
               </ul>
             </div>

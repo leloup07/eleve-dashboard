@@ -24,7 +24,7 @@ import type {
   ExperimentState,
   ConfigUpdatePayload
 } from '@/types'
-import { APP_VERSION, STRATEGY_DESCRIPTIONS, TRAILING_LABEL } from '@/config/version'
+import { STRATEGY_DESCRIPTIONS, TRAILING_LABEL } from '@/config/version'
 
 // =====================================================
 // CONFIGURACIÓN INICIAL IRG (v5.0)
@@ -65,21 +65,27 @@ const INITIAL_IRG_STATE: IRGState = {
 // CONFIGURACIÓN INICIAL INTRADAY
 // =====================================================
 
+// Ningún parámetro de trading escrito a mano (v5.1 · P0-7). Todos salen de la
+// clave de Redis que su worker LEE y valen null hasta que se hidratan.
+//
+// El caso que lo motiva: aquí figuraba minAdx: 20 mientras el worker filtra con
+// 18. Un fallo de hidratación no se veía como un fallo — se veía como un umbral
+// perfectamente plausible y equivocado, que es la peor forma de fallar.
 const INITIAL_INTRADAY_CONFIG: IntradayConfig = {
   enabled: true,
   mode: 'paper',
   capital: null,
   riskPerTrade: null,
   maxPositions: null,
-  maxDailyLoss: 0.01,
-  maxDailyProfit: 0.015,
-  assets: ['BTC-USD', 'ETH-USD'],
-  slAtrMult: 1.2,
-  tpAtrMult: 1.5,
-  asiaStartHour: 0,
-  asiaEndHour: 8,
-  tradingEndHour: 20,
-  scanInterval: 300,
+  maxDailyLoss: null,
+  maxDailyProfit: null,
+  assets: [],
+  slAtrMult: null,
+  tpAtrMult: null,
+  asiaStartHour: null,
+  asiaEndHour: null,
+  tradingEndHour: null,
+  scanInterval: null,
   useIRG: true // v5.0: Usa IRG
 }
 
@@ -89,31 +95,34 @@ const INITIAL_INTRADAY_1PCT_CONFIG: Intraday1PctConfig = {
   capital: null,
   riskPerTrade: null,
   maxPositions: null,
-  maxDailyLoss: 0.015,
-  maxDailyProfit: 0.03,
-  tpPercent: 0.01,
-  slPercent: 0.005,
-  bePercent: 0.006,
-  minMarketCap: 300000000,
-  minVolume24h: 50000000,
-  minVolMcRatio: 0.15,
-  minAdx: 20,
-  btcMinAdx: 18,
-  rsiMin: 40,
-  rsiMax: 55,
-  scanInterval: 300,
+  maxDailyLoss: null,
+  maxDailyProfit: null,
+  tpPercent: null,
+  slPercent: null,
+  bePercent: null,
+  minMarketCap: null,
+  minVolume24h: null,
+  minVolMcRatio: null,
+  minAdx: null,
+  btcMinAdx: null,
+  rsiMin: null,
+  rsiMax: null,
+  scanInterval: null,
   useIRG: true // v5.0: Usa IRG
 }
 
 // =====================================================
-// ESTRATEGIAS INICIALES (v5.0)
+// ESTRATEGIAS INICIALES
+//
+// Sin etiqueta de versión: la identidad de una estrategia es su spec_id, que se
+// hidrata desde Redis. Las etiquetas sueltas (v5.0, v5.3, v2.1, v1.0...) no
+// significaban nada compartido y llegaron a contradecirse entre páginas.
 // =====================================================
 
 const INITIAL_STRATEGIES: StrategyConfig[] = [
   {
     key: 'crypto_swing',
     name: 'Crypto Swing',
-    version: APP_VERSION,
     status: 'ACTIVE',
     description: STRATEGY_DESCRIPTIONS.crypto_swing,
     capital: null,
@@ -127,15 +136,15 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
     gatekeeper: 'BTC_REGIME',
     // Los timeframes reales del motor: régimen y momentum en diario, entrada en 1H.
     timeframes: { context: '1D', trend: '1D', entry: '1H' },
-    stops: { slAtrMult: 1.5, tpAtrMult: 0, trailing: TRAILING_LABEL, atrTimeframe: '1d' },
+    stops: { slAtrMult: null, tpAtrMult: null, trailing: TRAILING_LABEL, atrTimeframe: undefined },
     entryFilters: {
-      adxMin: 15,
-      rsiMin: 30,
-      rsiMax: 75,
-      emaFast: 20,
-      emaMedium: 50,
-      emaSlow: 200,
-      pullbackAtr: 1.0
+      adxMin: null,
+      rsiMin: null,
+      rsiMax: null,
+      emaFast: null,
+      emaMedium: null,
+      emaSlow: null,
+      pullbackAtr: null
     },
     expectedPerformance: {
       // Sin evidencia todavía: se rellenarán con backtest OOS, paper y live.
@@ -149,7 +158,6 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
   {
     key: 'crypto_breakout',
     name: 'Crypto Breakout',
-    version: APP_VERSION,
     status: 'ACTIVE',
     description: STRATEGY_DESCRIPTIONS.crypto_breakout,
     capital: null,
@@ -162,17 +170,17 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
     horizon: 'SWING',
     gatekeeper: 'BTC_REGIME',
     timeframes: { context: '1D', trend: '1D', entry: '1D' },
-    stops: { slAtrMult: 1.5, tpAtrMult: 0, trailing: TRAILING_LABEL, atrTimeframe: '1d' },
+    stops: { slAtrMult: null, tpAtrMult: null, trailing: TRAILING_LABEL, atrTimeframe: undefined },
     entryFilters: {
-      adxMin: 0,
-      rsiMin: 0,
-      rsiMax: 100,
-      emaFast: 20,
-      emaMedium: 50,
-      emaSlow: 200,
-      pullbackAtr: 0,
-      donchianPeriod: 20,
-      volumeMult: 1.2
+      adxMin: null,
+      rsiMin: null,
+      rsiMax: null,
+      emaFast: null,
+      emaMedium: null,
+      emaSlow: null,
+      pullbackAtr: null,
+      donchianPeriod: null,
+      volumeMult: null
     },
     expectedPerformance: {
       // Sin evidencia todavía: se rellenarán con backtest OOS, paper y live.
@@ -186,7 +194,6 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
   {
     key: 'large_caps',
     name: 'Large Caps',
-    version: APP_VERSION,
     status: 'ACTIVE',
     description: STRATEGY_DESCRIPTIONS.large_caps,
     capital: null,
@@ -200,15 +207,15 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
     gatekeeper: 'SPY_REGIME',
     // Los que ejecuta worker.py: no hay análisis semanal ni de 4H en ninguna parte.
     timeframes: { context: '1D', trend: '1D', entry: '1H' },
-    stops: { slAtrMult: 1.5, tpAtrMult: 3.0, trailing: TRAILING_LABEL },
+    stops: { slAtrMult: null, tpAtrMult: null, trailing: TRAILING_LABEL },
     entryFilters: {
-      adxMin: 20,
-      rsiMin: 40,
-      rsiMax: 70,
-      emaFast: 20,
-      emaMedium: 50,
-      emaSlow: 200,
-      pullbackAtr: 0.5
+      adxMin: null,
+      rsiMin: null,
+      rsiMax: null,
+      emaFast: null,
+      emaMedium: null,
+      emaSlow: null,
+      pullbackAtr: null
     },
     expectedPerformance: {
       // Sin evidencia todavía: se rellenarán con backtest OOS, paper y live.
@@ -222,7 +229,6 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
   {
     key: 'small_caps',
     name: 'Small Caps',
-    version: APP_VERSION,
     status: 'ACTIVE',
     description: STRATEGY_DESCRIPTIONS.small_caps,
     capital: null,
@@ -236,15 +242,15 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
     gatekeeper: 'SPY_REGIME',
     // Los que ejecuta worker.py: no hay análisis semanal en ninguna parte.
     timeframes: { context: '1D', trend: '1D', entry: '1H' },
-    stops: { slAtrMult: 2.0, tpAtrMult: 5.0, trailing: TRAILING_LABEL },
+    stops: { slAtrMult: null, tpAtrMult: null, trailing: TRAILING_LABEL },
     entryFilters: {
-      adxMin: 25,
-      rsiMin: 40,
-      rsiMax: 65,
-      emaFast: 20,
-      emaMedium: 50,
-      emaSlow: 200,
-      pullbackAtr: 0.5
+      adxMin: null,
+      rsiMin: null,
+      rsiMax: null,
+      emaFast: null,
+      emaMedium: null,
+      emaSlow: null,
+      pullbackAtr: null
     },
     expectedPerformance: {
       // Sin evidencia todavía: se rellenarán con backtest OOS, paper y live.
@@ -258,7 +264,6 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
   {
     key: 'vwap_reversion',
     name: 'VWAP Reversion',
-    version: 'v5.0',
     status: 'ACTIVE',
     description: STRATEGY_DESCRIPTIONS.vwap_reversion,
     capital: null,
@@ -272,15 +277,15 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
     // El IRG nunca llegó a implementarse: VWAP no tiene puerta de régimen.
     gatekeeper: 'NONE',
     timeframes: { context: '15m', trend: '5m', entry: '5m' },
-    stops: { slAtrMult: 1.2, tpAtrMult: 1.5 },
+    stops: { slAtrMult: null, tpAtrMult: null },
     entryFilters: {
-      adxMin: 15,
-      rsiMin: 20,
-      rsiMax: 80,
-      emaFast: 9,
-      emaMedium: 21,
-      emaSlow: 50,
-      pullbackAtr: 0.3
+      adxMin: null,
+      rsiMin: null,
+      rsiMax: null,
+      emaFast: null,
+      emaMedium: null,
+      emaSlow: null,
+      pullbackAtr: null
     },
     expectedPerformance: {
       // Sin evidencia todavía: se rellenarán con backtest OOS, paper y live.
@@ -294,7 +299,6 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
   {
     key: 'one_percent_spot',
     name: '1% Spot',
-    version: 'v5.0',
     status: 'ACTIVE',
     description: STRATEGY_DESCRIPTIONS.intraday_1pct,
     capital: null,
@@ -308,15 +312,15 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
     // El IRG nunca llegó a implementarse: su puerta real es el ADX de BTC.
     gatekeeper: 'BTC_REGIME',
     timeframes: { context: '1H', trend: '15m', entry: '5m' },
-    stops: { slAtrMult: 0.5, tpAtrMult: 1.0 },
+    stops: { slAtrMult: null, tpAtrMult: null },
     entryFilters: {
-      adxMin: 20,
-      rsiMin: 40,
-      rsiMax: 55,
-      emaFast: 9,
-      emaMedium: 21,
-      emaSlow: 50,
-      pullbackAtr: 0.2
+      adxMin: null,
+      rsiMin: null,
+      rsiMax: null,
+      emaFast: null,
+      emaMedium: null,
+      emaSlow: null,
+      pullbackAtr: null
     },
     expectedPerformance: {
       // Sin evidencia todavía: se rellenarán con backtest OOS, paper y live.

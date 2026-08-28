@@ -1,6 +1,7 @@
 'use client'
 
 import { useRealTradingData } from '@/hooks/useRealTradingData'
+import { SpecChip } from '@/components/SpecChip'
 
 import { useState, useEffect } from 'react'
 import { useTradingStore } from '@/stores/tradingStore'
@@ -128,7 +129,7 @@ function StrategyEditor({ strategy }: { strategy: StrategyConfig }) {
           <div>
             <h3 className="text-xl font-bold">{strategy.name}</h3>
             <p className="text-sm text-gray-500">
-              {strategy.version} • {strategy.description}
+              <SpecChip specId={strategy.specId} /> • {strategy.description}
               <span className="block text-xs text-gray-400 mt-0.5">{buildStrategySpecLine(strategy)}</span>
               {syncStatus === 'success' && <span className="ml-2 text-green-600">✅ Sincronizado</span>}
               {syncStatus === 'error' && <span className="ml-2 text-red-600">❌ Error</span>}
@@ -332,7 +333,7 @@ function StrategyEditor({ strategy }: { strategy: StrategyConfig }) {
                 {editing ? (
                   <input
                     type="number"
-                    value={localConfig.stops.slAtrMult}
+                    value={localConfig.stops.slAtrMult ?? ''}
                     onChange={(e) => setLocalConfig({ 
                       ...localConfig, 
                       stops: { ...localConfig.stops, slAtrMult: Number(e.target.value) }
@@ -403,18 +404,21 @@ function StrategyEditor({ strategy }: { strategy: StrategyConfig }) {
                 {editing ? (
                   <input
                     type="number"
-                    value={localConfig.entryFilters.adxMin}
+                    value={localConfig.entryFilters.adxMin ?? ''}
                     onChange={(e) => updateFilter('adxMin', Number(e.target.value))}
                     className="w-full px-3 py-2 border rounded-lg"
                     min="10"
                     max="40"
                   />
                 ) : (
-                  <p className="font-medium text-lg">{strategy.entryFilters.adxMin}</p>
+                  <p className="font-medium text-lg">{strategy.entryFilters.adxMin ?? "—"}</p>
                 )}
                 <p className="text-xs text-gray-500 mt-1">
-                  {(editing ? localConfig : strategy).entryFilters.adxMin < 18 ? '🔥 Agresivo' : 
-                   (editing ? localConfig : strategy).entryFilters.adxMin < 25 ? '⚖️ Moderado' : '🛡️ Conservador'}
+                  {(() => {
+                    const v = (editing ? localConfig : strategy).entryFilters.adxMin
+                    if (v == null) return '—'
+                    return v < 18 ? '🔥 Agresivo' : v < 25 ? '⚖️ Moderado' : '🛡️ Conservador'
+                  })()}
                 </p>
               </div>
             </div>
@@ -427,7 +431,7 @@ function StrategyEditor({ strategy }: { strategy: StrategyConfig }) {
                 {editing ? (
                   <input
                     type="number"
-                    value={localConfig.entryFilters.rsiMin}
+                    value={localConfig.entryFilters.rsiMin ?? ''}
                     onChange={(e) => updateFilter('rsiMin', Number(e.target.value))}
                     className="w-full px-3 py-2 border rounded-lg"
                     min="20"
@@ -442,7 +446,7 @@ function StrategyEditor({ strategy }: { strategy: StrategyConfig }) {
                 {editing ? (
                   <input
                     type="number"
-                    value={localConfig.entryFilters.rsiMax}
+                    value={localConfig.entryFilters.rsiMax ?? ''}
                     onChange={(e) => updateFilter('rsiMax', Number(e.target.value))}
                     className="w-full px-3 py-2 border rounded-lg"
                     min="60"
@@ -463,7 +467,7 @@ function StrategyEditor({ strategy }: { strategy: StrategyConfig }) {
                   {editing ? (
                     <input
                       type="number"
-                      value={localConfig.entryFilters.emaFast}
+                      value={localConfig.entryFilters.emaFast ?? ''}
                       onChange={(e) => updateFilter('emaFast', Number(e.target.value))}
                       className="w-full px-2 py-1 border rounded text-sm"
                       min="5"
@@ -478,7 +482,7 @@ function StrategyEditor({ strategy }: { strategy: StrategyConfig }) {
                   {editing ? (
                     <input
                       type="number"
-                      value={localConfig.entryFilters.emaMedium}
+                      value={localConfig.entryFilters.emaMedium ?? ''}
                       onChange={(e) => updateFilter('emaMedium', Number(e.target.value))}
                       className="w-full px-2 py-1 border rounded text-sm"
                       min="30"
@@ -493,7 +497,7 @@ function StrategyEditor({ strategy }: { strategy: StrategyConfig }) {
                   {editing ? (
                     <input
                       type="number"
-                      value={localConfig.entryFilters.emaSlow}
+                      value={localConfig.entryFilters.emaSlow ?? ''}
                       onChange={(e) => updateFilter('emaSlow', Number(e.target.value))}
                       className="w-full px-2 py-1 border rounded text-sm"
                       min="100"
@@ -516,7 +520,7 @@ function StrategyEditor({ strategy }: { strategy: StrategyConfig }) {
                 {editing ? (
                   <input
                     type="number"
-                    value={localConfig.entryFilters.pullbackAtr}
+                    value={localConfig.entryFilters.pullbackAtr ?? ''}
                     onChange={(e) => updateFilter('pullbackAtr', Number(e.target.value))}
                     className="w-full px-3 py-2 border rounded-lg"
                     step="0.1"
@@ -869,12 +873,12 @@ function IntradayEditor() {
                 <input
                   type="number"
                   step="0.001"
-                  value={localConfig.maxDailyLoss}
+                  value={localConfig.maxDailyLoss ?? ''}
                   onChange={(e) => setLocalConfig({...localConfig, maxDailyLoss: Number(e.target.value)})}
                   className="w-full px-3 py-2 border rounded-lg"
                 />
               ) : (
-                <p className="font-mono text-red-600">-{(intradayConfig.maxDailyLoss * 100).toFixed(1)}%</p>
+                <p className="font-mono text-red-600">-{((intradayConfig.maxDailyLoss ?? 0) * 100).toFixed(1)}%</p>
               )}
             </div>
             <div>
@@ -883,12 +887,12 @@ function IntradayEditor() {
                 <input
                   type="number"
                   step="0.001"
-                  value={localConfig.maxDailyProfit}
+                  value={localConfig.maxDailyProfit ?? ''}
                   onChange={(e) => setLocalConfig({...localConfig, maxDailyProfit: Number(e.target.value)})}
                   className="w-full px-3 py-2 border rounded-lg"
                 />
               ) : (
-                <p className="font-mono text-green-600">+{(intradayConfig.maxDailyProfit * 100).toFixed(1)}%</p>
+                <p className="font-mono text-green-600">+{((intradayConfig.maxDailyProfit ?? 0) * 100).toFixed(1)}%</p>
               )}
             </div>
           </div>
@@ -904,7 +908,7 @@ function IntradayEditor() {
                 <input
                   type="number"
                   step="0.1"
-                  value={localConfig.slAtrMult}
+                  value={localConfig.slAtrMult ?? ''}
                   onChange={(e) => setLocalConfig({...localConfig, slAtrMult: Number(e.target.value)})}
                   className="w-full px-3 py-2 border rounded-lg"
                 />
@@ -918,17 +922,17 @@ function IntradayEditor() {
                 <input
                   type="number"
                   step="0.1"
-                  value={localConfig.tpAtrMult}
+                  value={localConfig.tpAtrMult ?? ''}
                   onChange={(e) => setLocalConfig({...localConfig, tpAtrMult: Number(e.target.value)})}
                   className="w-full px-3 py-2 border rounded-lg"
                 />
               ) : (
-                <p className="font-mono">{intradayConfig.tpAtrMult}×</p>
+                <p className="font-mono">{intradayConfig.tpAtrMult ?? '—'}×</p>
               )}
             </div>
             <div className="pt-2">
               <span className="text-xs text-gray-400">
-                R:R = {(intradayConfig.tpAtrMult / intradayConfig.slAtrMult).toFixed(1)}:1
+                R:R = {((intradayConfig.tpAtrMult ?? 0) / (intradayConfig.slAtrMult ?? 0)).toFixed(1)}:1
               </span>
             </div>
           </div>
@@ -945,7 +949,7 @@ function IntradayEditor() {
                   type="number"
                   min="0"
                   max="23"
-                  value={localConfig.asiaEndHour}
+                  value={localConfig.asiaEndHour ?? ''}
                   onChange={(e) => setLocalConfig({...localConfig, asiaEndHour: Number(e.target.value)})}
                   className="w-full px-3 py-2 border rounded-lg"
                 />
@@ -960,7 +964,7 @@ function IntradayEditor() {
                   type="number"
                   min="0"
                   max="23"
-                  value={localConfig.tradingEndHour}
+                  value={localConfig.tradingEndHour ?? ''}
                   onChange={(e) => setLocalConfig({...localConfig, tradingEndHour: Number(e.target.value)})}
                   className="w-full px-3 py-2 border rounded-lg"
                 />
@@ -980,12 +984,12 @@ function IntradayEditor() {
               <input
                 type="number"
                 step="60"
-                value={localConfig.scanInterval}
+                value={localConfig.scanInterval ?? ''}
                 onChange={(e) => setLocalConfig({...localConfig, scanInterval: Number(e.target.value)})}
                 className="w-full px-3 py-2 border rounded-lg"
               />
             ) : (
-              <p className="font-mono">{intradayConfig.scanInterval}s ({intradayConfig.scanInterval / 60} min)</p>
+              <p className="font-mono">{intradayConfig.scanInterval}s ({(intradayConfig.scanInterval ?? 0) / 60} min)</p>
             )}
           </div>
         </div>
@@ -1226,12 +1230,12 @@ function Intraday1PctEditor() {
                 <input
                   type="number"
                   step="0.001"
-                  value={localConfig.tpPercent}
+                  value={localConfig.tpPercent ?? ''}
                   onChange={(e) => setLocalConfig({...localConfig, tpPercent: Number(e.target.value)})}
                   className="w-full px-3 py-2 border rounded-lg"
                 />
               ) : (
-                <p className="font-mono text-green-600">+{(config.tpPercent * 100).toFixed(1)}%</p>
+                <p className="font-mono text-green-600">+{((config.tpPercent ?? 0) * 100).toFixed(1)}%</p>
               )}
             </div>
             <div>
@@ -1240,12 +1244,12 @@ function Intraday1PctEditor() {
                 <input
                   type="number"
                   step="0.001"
-                  value={localConfig.slPercent}
+                  value={localConfig.slPercent ?? ''}
                   onChange={(e) => setLocalConfig({...localConfig, slPercent: Number(e.target.value)})}
                   className="w-full px-3 py-2 border rounded-lg"
                 />
               ) : (
-                <p className="font-mono text-red-600">-{(config.slPercent * 100).toFixed(1)}%</p>
+                <p className="font-mono text-red-600">-{((config.slPercent ?? 0) * 100).toFixed(1)}%</p>
               )}
             </div>
             <div>
@@ -1254,12 +1258,12 @@ function Intraday1PctEditor() {
                 <input
                   type="number"
                   step="0.001"
-                  value={localConfig.bePercent}
+                  value={localConfig.bePercent ?? ''}
                   onChange={(e) => setLocalConfig({...localConfig, bePercent: Number(e.target.value)})}
                   className="w-full px-3 py-2 border rounded-lg"
                 />
               ) : (
-                <p className="font-mono">+{(config.bePercent * 100).toFixed(1)}%</p>
+                <p className="font-mono">+{((config.bePercent ?? 0) * 100).toFixed(1)}%</p>
               )}
             </div>
           </div>
@@ -1274,12 +1278,12 @@ function Intraday1PctEditor() {
               {editing ? (
                 <input
                   type="number"
-                  value={localConfig.minMarketCap}
+                  value={localConfig.minMarketCap ?? ''}
                   onChange={(e) => setLocalConfig({...localConfig, minMarketCap: Number(e.target.value)})}
                   className="w-full px-3 py-2 border rounded-lg"
                 />
               ) : (
-                <p className="font-mono">${(config.minMarketCap / 1e6).toFixed(0)}M</p>
+                <p className="font-mono">${((config.minMarketCap ?? 0) / 1e6).toFixed(0)}M</p>
               )}
             </div>
             <div>
@@ -1287,12 +1291,12 @@ function Intraday1PctEditor() {
               {editing ? (
                 <input
                   type="number"
-                  value={localConfig.minVolume24h}
+                  value={localConfig.minVolume24h ?? ''}
                   onChange={(e) => setLocalConfig({...localConfig, minVolume24h: Number(e.target.value)})}
                   className="w-full px-3 py-2 border rounded-lg"
                 />
               ) : (
-                <p className="font-mono">${(config.minVolume24h / 1e6).toFixed(0)}M</p>
+                <p className="font-mono">${((config.minVolume24h ?? 0) / 1e6).toFixed(0)}M</p>
               )}
             </div>
             <div>
@@ -1301,7 +1305,7 @@ function Intraday1PctEditor() {
                 <input
                   type="number"
                   step="0.01"
-                  value={localConfig.minVolMcRatio}
+                  value={localConfig.minVolMcRatio ?? ''}
                   onChange={(e) => setLocalConfig({...localConfig, minVolMcRatio: Number(e.target.value)})}
                   className="w-full px-3 py-2 border rounded-lg"
                 />
@@ -1321,7 +1325,7 @@ function Intraday1PctEditor() {
               {editing ? (
                 <input
                   type="number"
-                  value={localConfig.minAdx}
+                  value={localConfig.minAdx ?? ''}
                   onChange={(e) => setLocalConfig({...localConfig, minAdx: Number(e.target.value)})}
                   className="w-full px-3 py-2 border rounded-lg"
                 />
@@ -1334,7 +1338,7 @@ function Intraday1PctEditor() {
               {editing ? (
                 <input
                   type="number"
-                  value={localConfig.btcMinAdx}
+                  value={localConfig.btcMinAdx ?? ''}
                   onChange={(e) => setLocalConfig({...localConfig, btcMinAdx: Number(e.target.value)})}
                   className="w-full px-3 py-2 border rounded-lg"
                 />
@@ -1348,13 +1352,13 @@ function Intraday1PctEditor() {
                 <div className="flex gap-2">
                   <input
                     type="number"
-                    value={localConfig.rsiMin}
+                    value={localConfig.rsiMin ?? ''}
                     onChange={(e) => setLocalConfig({...localConfig, rsiMin: Number(e.target.value)})}
                     className="w-full px-3 py-2 border rounded-lg"
                   />
                   <input
                     type="number"
-                    value={localConfig.rsiMax}
+                    value={localConfig.rsiMax ?? ''}
                     onChange={(e) => setLocalConfig({...localConfig, rsiMax: Number(e.target.value)})}
                     className="w-full px-3 py-2 border rounded-lg"
                   />
@@ -1375,12 +1379,12 @@ function Intraday1PctEditor() {
             <input
               type="number"
               step="0.001"
-              value={localConfig.maxDailyLoss}
+              value={localConfig.maxDailyLoss ?? ''}
               onChange={(e) => setLocalConfig({...localConfig, maxDailyLoss: Number(e.target.value)})}
               className="w-full px-3 py-2 border rounded-lg"
             />
           ) : (
-            <p className="font-mono text-red-600">-{(config.maxDailyLoss * 100).toFixed(1)}%</p>
+            <p className="font-mono text-red-600">-{((config.maxDailyLoss ?? 0) * 100).toFixed(1)}%</p>
           )}
         </div>
         <div>
@@ -1389,12 +1393,12 @@ function Intraday1PctEditor() {
             <input
               type="number"
               step="0.001"
-              value={localConfig.maxDailyProfit}
+              value={localConfig.maxDailyProfit ?? ''}
               onChange={(e) => setLocalConfig({...localConfig, maxDailyProfit: Number(e.target.value)})}
               className="w-full px-3 py-2 border rounded-lg"
             />
           ) : (
-            <p className="font-mono text-green-600">+{(config.maxDailyProfit * 100).toFixed(1)}%</p>
+            <p className="font-mono text-green-600">+{((config.maxDailyProfit ?? 0) * 100).toFixed(1)}%</p>
           )}
         </div>
         <div>
@@ -1402,7 +1406,7 @@ function Intraday1PctEditor() {
           {editing ? (
             <input
               type="number"
-              value={localConfig.scanInterval}
+              value={localConfig.scanInterval ?? ''}
               onChange={(e) => setLocalConfig({...localConfig, scanInterval: Number(e.target.value)})}
               className="w-full px-3 py-2 border rounded-lg"
             />
@@ -1412,7 +1416,7 @@ function Intraday1PctEditor() {
         </div>
         <div>
           <label className="text-sm text-gray-500">R:R Ratio</label>
-          <p className="font-mono text-blue-600">{(config.tpPercent / config.slPercent).toFixed(1)}:1</p>
+          <p className="font-mono text-blue-600">{((config.tpPercent ?? 0) / (config.slPercent ?? 0)).toFixed(1)}:1</p>
         </div>
       </div>
       
@@ -1436,8 +1440,14 @@ export default function ConfigPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">⚙️ Configuración de Estrategias</h1>
+        {/* El subtítulo decía "Edita todos los parámetros... los cambios se
+            sincronizan automáticamente con el bot", justo encima del aviso de que
+            están congelados. Desde fuera, una página que se contradice consigo
+            misma es indistinguible de una que no ha congelado nada. */}
         <p className="text-gray-500 mt-1">
-          Edita todos los parámetros de cada estrategia. Los cambios se sincronizan automáticamente con el bot.
+          {experiment?.active
+            ? 'Parámetros de cada estrategia, en solo lectura mientras dure el experimento.'
+            : 'Parámetros de cada estrategia. Los cambios se guardan en Redis y el bot los aplica en el próximo ciclo.'}
         </p>
       </div>
       
