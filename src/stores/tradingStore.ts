@@ -374,6 +374,7 @@ interface TradingStore {
   positions: Position[]
   trades: Trade[]
   experiment: ExperimentState | null
+  configCargada: boolean
   btcRegime: MarketRegime
   spyRegime: MarketRegime
   botActive: boolean
@@ -409,6 +410,7 @@ interface TradingStore {
   setIntraday1PctConfig: (config: Intraday1PctConfig) => void
   setIntradayConfig: (config: IntradayConfig) => void
   setExperiment: (e: ExperimentState | null) => void
+  setConfigCargada: (v: boolean) => void
   setPositions: (positions: Position[]) => void
   setTrades: (trades: Trade[]) => void
   refreshData: () => void
@@ -426,6 +428,11 @@ export const useTradingStore = create<TradingStore>()(
       positions: [],
       trades: [],
       experiment: null,
+      // Si la configuración real de Redis ya ha llegado. Sin esta marca, los
+      // valores por defecto se pintan igual que los reales: «$0», «sin filtro»
+      // y «sin costes modelados» se leen como afirmaciones sobre el sistema
+      // cuando en realidad significan «todavía no lo sé».
+      configCargada: false,
       btcRegime: 'RANGE',
       spyRegime: 'BULL',
       botActive: true,
@@ -679,6 +686,7 @@ export const useTradingStore = create<TradingStore>()(
       setIntradayConfig: (config) => set({ intradayConfig: config }),
       
       setExperiment: (experiment) => set({ experiment }),
+      setConfigCargada: (configCargada) => set({ configCargada }),
 
       setPositions: (positions) => set({ positions, lastUpdate: new Date().toISOString() }),
       
@@ -707,6 +715,24 @@ export const useTradingStore = create<TradingStore>()(
         if (version < 3) delete migrated.strategies
         return migrated
       },
+      // La rehidratación desde localStorage NO ocurre durante el primer render
+      // (v5.1). Zustand la hacía de forma síncrona al cargar el módulo, así que
+      // el primer render del cliente partía de un estado distinto del que usó el
+      // servidor: el servidor pintaba los valores iniciales y el cliente los
+      // guardados. Cualquier texto derivado de ellos difería, React abortaba la
+      // hidratación de toda la raíz (#418/#423/#425) y los efectos que traen los
+      // datos de Redis no llegaban a ejecutarse — de ahí «sin spec», «sin
+      // filtro», «sin costes modelados» y capital 0 en pantalla.
+      //
+      // Antes no se notaba porque los valores escritos a mano coincidían por
+      // casualidad con los guardados. Al pasarlos a null (P0-7) dejaron de
+      // coincidir y el fallo salió a la luz.
+      //
+      // Con skipHydration, el primer render del cliente es idéntico al del
+      // servidor y la rehidratación ocurre después de montar (ver
+      // components/RehidratarStore.tsx). Es la raíz del problema, no un parche
+      // por componente.
+      skipHydration: true,
       partialize: (state) => ({
         intradayConfig: state.intradayConfig,
         intraday1PctConfig: state.intraday1PctConfig,

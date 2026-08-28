@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useHidratado } from '@/hooks/useHidratado'
 import { useTradingStore } from '@/stores/tradingStore'
 import { useRealTradingData } from '@/hooks/useRealTradingData'
 import { MetricCard } from '@/components/MetricCard'
@@ -138,6 +139,11 @@ function RecentTrades() {
 }
 
 export default function HomePage() {
+  // La hora y todo lo derivado del reloj solo se pintan tras montar: si no,
+  // el HTML del servidor y el primer render del cliente difieren y React aborta
+  // la hidratación, con lo que los efectos que traen los datos no llegan a
+  // ejecutarse y la página se queda con los valores por defecto.
+  const hidratado = useHidratado()
   const strategies = useTradingStore(state => state.strategies.map(s => s.key === 'one_percent_spot' ? { ...s, capital: state.intraday1PctConfig?.capital || s.capital, maxPositions: state.intraday1PctConfig?.maxPositions || s.maxPositions } : s.key === 'vwap_reversion' ? { ...s, capital: state.intradayConfig?.capital || s.capital, maxPositions: state.intradayConfig?.maxPositions || s.maxPositions } : s))
   const positions = useTradingStore(state => state.positions)
   const trades = useTradingStore(state => state.trades)
@@ -346,7 +352,7 @@ export default function HomePage() {
       
       {/* Footer */}
       <div className="text-center text-xs text-gray-400 py-4">
-        ELEVE | {new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+        ELEVE{hidratado && ` | ${new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`}
       </div>
     </div>
   )

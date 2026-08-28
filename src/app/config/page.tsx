@@ -12,8 +12,10 @@ import { TRAILING_LABEL } from '@/config/version'
 import { buildStrategySpecLine, describeStop } from '@/lib/strategySpec'
 
 function StrategyEditor({ strategy }: { strategy: StrategyConfig }) {
+  const configCargada = useTradingStore(state => state.configCargada)
   // v5.1 P0-1: con un experimento en curso los parámetros no se tocan
-  const congelado = useTradingStore(state => state.experiment?.active ?? false)
+  const configCargadaAqui = useTradingStore(state => state.configCargada)
+  const congelado = !configCargadaAqui || (useTradingStore.getState().experiment?.active ?? false)
   const updateStrategy = useTradingStore(state => state.updateStrategy)
   const [editing, setEditing] = useState(false)
   const [localConfig, setLocalConfig] = useState(strategy)
@@ -129,8 +131,10 @@ function StrategyEditor({ strategy }: { strategy: StrategyConfig }) {
           <div>
             <h3 className="text-xl font-bold">{strategy.name}</h3>
             <p className="text-sm text-gray-500">
-              <SpecChip specId={strategy.specId} /> • {strategy.description}
-              <span className="block text-xs text-gray-400 mt-0.5">{buildStrategySpecLine(strategy)}</span>
+              <SpecChip specId={strategy.specId} cargando={!configCargada} /> • {strategy.description}
+              <span className="block text-xs text-gray-400 mt-0.5">
+                {configCargada ? buildStrategySpecLine(strategy) : 'cargando parámetros…'}
+              </span>
               {syncStatus === 'success' && <span className="ml-2 text-green-600">✅ Sincronizado</span>}
               {syncStatus === 'error' && <span className="ml-2 text-red-600">❌ Error</span>}
             </p>
@@ -189,7 +193,7 @@ function StrategyEditor({ strategy }: { strategy: StrategyConfig }) {
               className={congelado
                 ? 'px-4 py-2 bg-gray-200 text-gray-500 rounded-lg cursor-not-allowed'
                 : 'px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600'}>
-              {congelado ? '🔒 Congelado' : '✏️ Editar'}
+              {!configCargadaAqui ? '⏳ Comprobando' : congelado ? '🔒 Congelado' : '✏️ Editar'}
             </button>
           )}
         </div>
@@ -672,7 +676,8 @@ function StrategyEditor({ strategy }: { strategy: StrategyConfig }) {
 
 function IntradayEditor() {
   // v5.1 P0-1: con un experimento en curso los parámetros no se tocan
-  const congelado = useTradingStore(state => state.experiment?.active ?? false)
+  const configCargadaAqui = useTradingStore(state => state.configCargada)
+  const congelado = !configCargadaAqui || (useTradingStore.getState().experiment?.active ?? false)
   const intradayConfig = useTradingStore(state => state.intradayConfig)
   const updateIntradayConfig = useTradingStore(state => state.updateIntradayConfig)
   const [editing, setEditing] = useState(false)
@@ -756,7 +761,7 @@ function IntradayEditor() {
           <div>
             <h3 className="text-xl font-bold">VWAP Reversion (Intraday)</h3>
             <p className="text-sm text-gray-500">
-              <SpecChip specId={useTradingStore.getState().strategies.find(e => e.key === 'vwap_reversion')?.specId} /> • Mean-reversion tras fake breaks del rango asiático
+              <SpecChip specId={useTradingStore.getState().strategies.find(e => e.key === 'vwap_reversion')?.specId} cargando={!useTradingStore.getState().configCargada} /> • Mean-reversion tras fake breaks del rango asiático
               {syncStatus === 'success' && <span className="ml-2 text-green-600">✅ Sincronizado</span>}
               {syncStatus === 'error' && <span className="ml-2 text-red-600">❌ Error</span>}
             </p>
@@ -809,7 +814,7 @@ function IntradayEditor() {
             </div>
           ) : (
             <button onClick={() => setEditing(true)} disabled={congelado} title={congelado ? "Parámetros congelados por un experimento en curso" : undefined} className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600">
-              {congelado ? "🔒 Congelado" : "✏️ Editar"}
+              {!configCargadaAqui ? "⏳ Comprobando" : congelado ? "🔒 Congelado" : "✏️ Editar"}
             </button>
           )}
         </div>
@@ -1035,7 +1040,8 @@ function IntradayEditor() {
 
 function Intraday1PctEditor() {
   // v5.1 P0-1: con un experimento en curso los parámetros no se tocan
-  const congelado = useTradingStore(state => state.experiment?.active ?? false)
+  const configCargadaAqui = useTradingStore(state => state.configCargada)
+  const congelado = !configCargadaAqui || (useTradingStore.getState().experiment?.active ?? false)
   const config = useTradingStore(state => state.intraday1PctConfig)
   const updateConfig = useTradingStore(state => state.updateIntraday1PctConfig)
   const [editing, setEditing] = useState(false)
@@ -1117,7 +1123,7 @@ function Intraday1PctEditor() {
           <div>
             <h3 className="text-xl font-bold">Estrategia 1% (Intraday)</h3>
             <p className="text-sm text-gray-500">
-              <SpecChip specId={useTradingStore.getState().strategies.find(e => e.key === 'one_percent_spot')?.specId} /> • Spot momentum con filtros estrictos de liquidez
+              <SpecChip specId={useTradingStore.getState().strategies.find(e => e.key === 'one_percent_spot')?.specId} cargando={!useTradingStore.getState().configCargada} /> • Spot momentum con filtros estrictos de liquidez
               {syncStatus === 'success' && <span className="ml-2 text-green-600">✅ Sincronizado</span>}
               {syncStatus === 'error' && <span className="ml-2 text-red-600">❌ Error</span>}
             </p>
@@ -1166,7 +1172,7 @@ function Intraday1PctEditor() {
             </div>
           ) : (
             <button onClick={() => setEditing(true)} disabled={congelado} title={congelado ? "Parámetros congelados por un experimento en curso" : undefined} className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600">
-              {congelado ? "🔒 Congelado" : "✏️ Editar"}
+              {!configCargadaAqui ? "⏳ Comprobando" : congelado ? "🔒 Congelado" : "✏️ Editar"}
             </button>
           )}
         </div>
@@ -1434,6 +1440,7 @@ function Intraday1PctEditor() {
 export default function ConfigPage() {
   const experiment = useTradingStore(state => state.experiment)
   const { worker } = useRealTradingData(0) // Carga de Redis al iniciar, sin auto-refresh
+  const configCargada = useTradingStore(state => state.configCargada)
   const strategies = useTradingStore(state => state.strategies)
   
   return (
@@ -1474,19 +1481,26 @@ export default function ConfigPage() {
             commit (el código que los interpreta). Sin las dos, un resultado no es reproducible.
           </p>
         </div>
-      ) : (
+      ) : configCargada ? (
         <div className="bg-green-50 border border-green-200 rounded-lg p-4">
           <span className="text-green-800">
             ✅ <strong>Sincronización automática:</strong> Los cambios guardados aquí se envían a Redis
             y el bot los aplica en el próximo scan (máx 5 minutos).
           </span>
         </div>
+      ) : (
+        // Mientras no se sabe si hay experimento activo NO se anuncia que los
+        // cambios llegan al bot: sería afirmar que el sistema está abierto sin
+        // saberlo. Ante la duda, se dice que se está comprobando.
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <span className="text-gray-600">⏳ Comprobando el estado del experimento…</span>
+        </div>
       )}
       
       {/* Con el experimento en curso, invitar a "ajustar ADX, RSI y EMAs" justo
           debajo del aviso de congelado es contradictorio: esos campos no se
           pueden guardar (el API devuelve 423). */}
-      {!experiment?.active && (
+      {configCargada && !experiment?.active && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <span className="text-blue-800">
             💡 <strong>Tip:</strong> Usa la pestaña <strong>Filtros de Entrada</strong> para ajustar ADX, RSI y EMAs.

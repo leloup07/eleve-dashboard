@@ -12,6 +12,7 @@ interface StrategyCardProps {
 }
 
 export function StrategyCard({ strategy }: StrategyCardProps) {
+  const configCargada = useTradingStore(state => state.configCargada)
   const positions = useTradingStore(state => state.getPositionsByStrategy(strategy.key))
   const performance = useTradingStore(state => state.getStrategyPerformance(strategy.key))
   const stats = useTradingStore(state => state.getDashboardStats())
@@ -74,7 +75,7 @@ export function StrategyCard({ strategy }: StrategyCardProps) {
           <span className="text-2xl">{emoji}</span>
           <div>
             <h3 className="font-semibold text-gray-900">{strategy.name}</h3>
-            <SpecChip specId={strategy.specId} />
+            <SpecChip specId={strategy.specId} cargando={!configCargada} />
           </div>
         </div>
         <span className={clsx('px-2 py-1 rounded text-xs font-medium', mode.bg, mode.color)}>
@@ -97,8 +98,12 @@ export function StrategyCard({ strategy }: StrategyCardProps) {
           🔒 spec {strategy.specId}
         </p>
       )}
-      <p className="text-[11px] text-gray-400 mb-3 line-clamp-2" title={buildStrategySpecLine(strategy)}>
-        {buildStrategySpecLine(strategy)}
+      {/* «sin filtro» y «sin costes modelados» son afirmaciones sobre la
+          estrategia. Mientras la config no ha llegado son mentira, así que se
+          dice que se está cargando en vez de describir lo que aún no se sabe. */}
+      <p className="text-[11px] text-gray-400 mb-3 line-clamp-2"
+         title={configCargada ? buildStrategySpecLine(strategy) : undefined}>
+        {configCargada ? buildStrategySpecLine(strategy) : 'cargando parámetros…'}
       </p>
       
       {/* Equity actual (capital + ganancias) */}

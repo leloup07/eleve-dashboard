@@ -245,6 +245,7 @@ export function useRealTradingData(autoRefreshMs = 30000) {
           }))
         }
         useTradingStore.getState().setExperiment(configJson.data?.experiment ?? null)
+        if (configJson.success) useTradingStore.getState().setConfigCargada(true)
         if (configJson.data?.intraday) {
           setIntradayConfig(configJson.data.intraday)
         }

@@ -11,7 +11,14 @@ import { clsx } from 'clsx'
  * El spec_id sí: es el hash del contenido completo de la spec, así que cambiar
  * un solo parámetro produce otro identificador, siempre.
  */
-export function SpecChip({ specId, className }: { specId?: string | null; className?: string }) {
+export function SpecChip({ specId, className, cargando = false }:
+                         { specId?: string | null; className?: string; cargando?: boolean }) {
+  // «Cargando» y «sin spec» significan cosas opuestas: la primera es que aún no
+  // se sabe, la segunda que la estrategia opera sin parámetros congelados.
+  // Mostrar la segunda mientras es la primera es una acusación falsa.
+  if (cargando && !specId) {
+    return <span className={clsx('text-xs text-gray-400 font-mono', className)}>spec …</span>
+  }
   if (!specId) {
     return (
       <span className={clsx('text-xs text-amber-600 font-mono', className)}

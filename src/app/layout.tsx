@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { Sidebar } from '@/components/Sidebar'
+import { RehidratarStore } from '@/components/RehidratarStore'
 
 export const metadata: Metadata = {
   title: 'ELEVE Trading Dashboard v5.0',
@@ -15,6 +16,7 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body>
+        <RehidratarStore />
         <Sidebar />
         <main className="md:ml-64 p-3 md:p-4 pt-16 md:pt-4 min-h-screen bg-gray-50">
           {children}

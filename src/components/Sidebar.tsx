@@ -7,6 +7,7 @@ import { clsx } from 'clsx'
 import { useTradingStore } from '@/stores/tradingStore'
 import { formatCapitalShort } from '@/lib/formatters'
 import { Checkpoint } from '@/components/Checkpoint'
+import { useHidratado } from '@/hooks/useHidratado'
 
 const navigation = [
   { name: 'Home', href: '/', icon: '🏠' },
@@ -35,6 +36,10 @@ export function Sidebar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const strategies = useTradingStore(state => state.strategies)
   const globalMode = useTradingStore(state => state.getGlobalTradingMode())
+  // El capital depende de config persistida en localStorage: pintarlo en el
+  // primer render rompe la hidratación (servidor $0 vs cliente $15K).
+  const hidratado = useHidratado()
+  const configCargada = useTradingStore(state => state.configCargada)
   
   const intradayConfig = useTradingStore(state => state.intradayConfig)
   const intraday1PctConfig = useTradingStore(state => state.intraday1PctConfig)
@@ -50,6 +55,7 @@ export function Sidebar() {
       .then((r) => r.json())
       .then((json) => {
         if (!vivo || !json?.data?.strategies) return
+        useTradingStore.getState().setConfigCargada(true)
         useTradingStore.setState((state) => ({
           strategies: state.strategies.map((s) => {
             const cfg = json.data.strategies[s.key]
@@ -128,11 +134,15 @@ export function Sidebar() {
         <div className="grid grid-cols-2 gap-2 mb-2">
           <div>
             <span className="text-[10px] text-white/50 block">Crypto</span>
-            <span className="text-sm font-bold">{formatCapitalShort(cryptoCapital)}</span>
+            <span className="text-sm font-bold">
+              {hidratado && configCargada ? formatCapitalShort(cryptoCapital) : '…'}
+            </span>
           </div>
           <div>
             <span className="text-[10px] text-white/50 block">Stocks</span>
-            <span className="text-sm font-bold">{formatCapitalShort(stocksCapital)}</span>
+            <span className="text-sm font-bold">
+              {hidratado && configCargada ? formatCapitalShort(stocksCapital) : '…'}
+            </span>
           </div>
         </div>
         

@@ -104,6 +104,7 @@ function TradeRow({ trade }: { trade: Trade }) {
 }
 
 export function StrategyPage({ strategyKey }: StrategyPageProps) {
+  const configCargada = useTradingStore(state => state.configCargada)
   const strategies = useTradingStore(state => state.strategies)
   const positions = useTradingStore(state => state.getPositionsByStrategy(strategyKey))
   const trades = useTradingStore(state => state.getTradesByStrategy(strategyKey))
@@ -137,9 +138,11 @@ export function StrategyPage({ strategyKey }: StrategyPageProps) {
           <span className="text-5xl">{emoji}</span>
           <div>
             <h1 className="text-3xl font-bold text-gray-900">{strategy.name}</h1>
-            <p className="text-gray-500"><SpecChip specId={strategy.specId} /> • {strategy.description}</p>
+            <p className="text-gray-500"><SpecChip specId={strategy.specId} cargando={!configCargada} /> • {strategy.description}</p>
             {/* Ficha tecnica derivada de la config real que lee el worker */}
-            <p className="text-sm text-gray-400 mt-1">{buildStrategySpecLine(strategy)}</p>
+            <p className="text-sm text-gray-400 mt-1">
+              {configCargada ? buildStrategySpecLine(strategy) : 'cargando parámetros…'}
+            </p>
             {strategy.specId && (
               <p className="text-xs text-gray-400 mt-1 font-mono">🔒 spec {strategy.specId}</p>
             )}
