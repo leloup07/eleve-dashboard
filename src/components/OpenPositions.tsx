@@ -54,11 +54,16 @@ export function PositionRow({ position, expanded, onToggle }: PositionRowProps) 
   
   const currentPrice = position.currentPrice || position.entry
   
-  // ATR para calcular riesgo original (2x ATR fue el SL original)
   const atr = position.entryIndicators?.atr || 0
-  
-  // Riesgo original = 2x ATR (así se puso el SL al entrar)
-  const originalRisk = atr > 0 ? atr * 2 : (position.entry * 0.03) // fallback 3%
+
+  // Riesgo original por unidad (R) = entry − SL inicial, escrito por el worker y
+  // servido por el API como risk_per_unit. No se puede reconstruir aquí desde el
+  // ATR: el múltiplo y el timeframe del ATR dependen de la spec de cada estrategia
+  // (crypto 1,5× ATR 1D, stocks 2× ATR 1H), y un 2× fijo pintaba R-multiples ~4×
+  // hinchados en las posiciones cripto.
+  const originalRisk = position.riskPerShare && position.riskPerShare > 0
+    ? position.riskPerShare
+    : atr > 0 ? atr * 2 : (position.entry * 0.03) // fallback si el worker no escribió R
   
   // R-Multiple basado en riesgo original
   const currentGain = currentPrice - position.entry
@@ -295,7 +300,7 @@ export function PositionRow({ position, expanded, onToggle }: PositionRowProps) 
                 <h5 className="font-semibold text-red-600 mb-2 text-sm">🛑 Stop Loss</h5>
                 <p className="text-2xl font-bold text-red-600">{formatCurrency(position.sl, 2)}</p>
                 <p className="text-xs text-gray-500 mt-1">
-                  {atr > 0 ? `Riesgo original: 2x ATR = ${formatCurrency(originalRisk, 2)}` : 'ATR no disponible'}
+                  {originalRisk > 0 ? `Riesgo original (R): ${formatCurrency(originalRisk, 2)}/ud` : 'Riesgo original no disponible'}
                 </p>
                 <p className="text-xs text-gray-500">
                   Riesgo actual: {formatCurrency(Math.abs(currentPrice - position.sl) * remainingUnits, 0)}
