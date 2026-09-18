@@ -61,14 +61,18 @@ function evaluar(bt, specsActivas) {
     if (pnlMitadReciente <= 0) motivos.push(`mitad reciente en negativo (${pnlMitadReciente.toFixed(2)})`)
   }
 
-  // 4. Spec vigente
+  // 4. Spec vigente — solo para la estrategia viva: una candidata (spec_status
+  //    "draft", backtesteada con --spec-file) no es la activa por definición,
+  //    y exigírselo la haría suspender siempre.
+  const esDraft = bt.spec_status === 'draft'
   const specActiva = specsActivas[bt.estrategia]
-  if (specActiva && bt.spec_id && specActiva !== bt.spec_id) {
+  if (!esDraft && specActiva && bt.spec_id && specActiva !== bt.spec_id) {
     motivos.push(`backtest de spec ${bt.spec_id}, pero la activa es ${specActiva}`)
   }
 
   return {
     estrategia: bt.estrategia,
+    esDraft,
     modelo: bt.modelo,
     spec_id: bt.spec_id,
     generado: bt.generado,
@@ -94,7 +98,8 @@ async function main() {
 
   for (const r of resultados) {
     const m = r.metricas
-    console.log(`--- ${r.estrategia} (${r.modelo || '?'}, spec ${r.spec_id || '?'}, generado ${r.generado || '?'})`)
+    console.log(`--- ${r.estrategia}${r.esDraft ? ' [candidata draft]' : ''} ` +
+      `(${r.modelo || '?'}, spec ${r.spec_id || '?'}, generado ${r.generado || '?'})`)
     console.log(`    trades=${r.trades} WR=${m.win_rate ?? '—'}% PF=${m.profit_factor ?? '—'} ` +
       `PF_sin_mejor=${r.pfSinMejor === null ? '—' : r.pfSinMejor === Infinity ? '∞' : r.pfSinMejor.toFixed(2)} ` +
       `PnL=${m.pnl_neto ?? '—'} mitad_reciente=${r.pnlMitadReciente === null ? '—' : r.pnlMitadReciente.toFixed(2)}`)
