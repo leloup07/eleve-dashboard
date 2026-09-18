@@ -1,5 +1,6 @@
 export { MetricCard, MetricRow } from './MetricCard'
 export { StrategyCard } from './StrategyCard'
+export { StrategyPerformanceTable } from './StrategyPerformanceTable'
 export { OpenPositions, PositionRow } from './OpenPositions'
 export { TradingJournal } from './TradingJournal'
 export { Sidebar } from './Sidebar'

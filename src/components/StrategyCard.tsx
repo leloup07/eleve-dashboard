@@ -174,16 +174,23 @@ export function StrategyCard({ strategy }: StrategyCardProps) {
         </div>
       </div>
       
-      {/* Performance resumido */}
-      {performance.trades > 0 && (
-        <div className="pt-3 border-t border-gray-100">
+      {/* Performance resumido — siempre visible: la ausencia de trades también
+          es información, no un motivo para ocultar la fila. */}
+      <div className="pt-3 border-t border-gray-100">
+        {performance.trades > 0 ? (
           <div className="flex justify-between text-xs">
             <span className="text-gray-500">Trades: {performance.trades}</span>
-            <span className="text-gray-500">Win Rate: {formatNumber(performance.winRate, 0)}%</span>
-            <span className="text-gray-500">Avg R: {formatNumber(performance.avgR, 2)}R</span>
+            <span className={clsx('font-medium', performance.winRate >= 50 ? 'text-green-600' : 'text-red-600')}>
+              Win Rate: {formatNumber(performance.winRate, 0)}%
+            </span>
+            <span className={clsx('font-medium', performance.avgR >= 0 ? 'text-green-600' : 'text-red-600')}>
+              Avg R: {formatNumber(performance.avgR, 2)}R
+            </span>
           </div>
-        </div>
-      )}
+        ) : (
+          <p className="text-xs text-gray-400">Sin trades cerrados todavía</p>
+        )}
+      </div>
     </div>
   )
 }

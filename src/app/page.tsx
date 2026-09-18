@@ -6,6 +6,7 @@ import { useTradingStore } from '@/stores/tradingStore'
 import { useRealTradingData } from '@/hooks/useRealTradingData'
 import { MetricCard } from '@/components/MetricCard'
 import { StrategyCard } from '@/components/StrategyCard'
+import { StrategyPerformanceTable } from '@/components/StrategyPerformanceTable'
 import { OpenPositions } from '@/components/OpenPositions'
 import { formatCurrency, formatPercent, formatNumber } from '@/lib/formatters'
 import { clsx } from 'clsx'
@@ -311,6 +312,9 @@ export default function HomePage() {
           ))}
         </div>
       </div>
+
+      {/* Win rate y métricas por estrategia */}
+      <StrategyPerformanceTable />
 
       {/* Open Positions */}
       <OpenPositions />
