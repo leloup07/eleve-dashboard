@@ -184,6 +184,11 @@ export function useRealTradingData(autoRefreshMs = 30000) {
             if (config.mode !== undefined) updates.mode = config.mode
             if (config.enabled !== undefined) updates.enabled = config.enabled
             if (config.assets !== undefined) updates.assets = config.assets
+            // Retirada de ejecución (shadow): igual que las intraday, la ficha no
+            // puede seguir diciendo «Activa» cuando el worker ya no ejecuta la
+            // estrategia. Sin esto, large/small caps retiradas salían como vivas.
+            if (config.executionEnabled !== undefined) updates.executionEnabled = config.executionEnabled
+            if (config.executionDisabledReason !== undefined) updates.executionDisabledReason = config.executionDisabledReason
             if (Object.keys(updates).length > 0) {
               // Hidratación local: NO usar updateStrategy(), que hace POST de vuelta a Redis
               // y convierte cada refresco en un ciclo lectura→escritura.

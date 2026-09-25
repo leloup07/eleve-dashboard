@@ -121,6 +121,10 @@ export function StrategyPage({ strategyKey }: StrategyPageProps) {
   const isCrypto = strategyKey.includes('crypto')
   const relevantRegime = isCrypto ? btcRegime : spyRegime
   const isBlocked = relevantRegime !== 'BULL'
+  // Retirada de ejecución (shadow): el worker ya no abre posiciones nuevas, pero
+  // sigue gestionando las abiertas hasta que cierren solas. No es «Activa» ni un
+  // bloqueo temporal por régimen.
+  const isRetired = strategy.executionEnabled === false
   const salida = describeExit(strategy)
   
   const emoji = {
@@ -157,7 +161,11 @@ export function StrategyPage({ strategyKey }: StrategyPageProps) {
             {strategy.mode === 'live' ? '🔴 LIVE' : '📝 PAPER'}
           </span>
           
-          {isBlocked ? (
+          {isRetired ? (
+            <span className="badge badge-warning text-lg py-2 px-4">
+              🗄️ RETIRADA
+            </span>
+          ) : isBlocked ? (
             <span className="badge badge-danger text-lg py-2 px-4">
               🔴 BLOQUEADA ({relevantRegime})
             </span>
@@ -168,7 +176,21 @@ export function StrategyPage({ strategyKey }: StrategyPageProps) {
           )}
         </div>
       </div>
-      
+
+      {/* Retirada: no abre posiciones nuevas; las abiertas se siguen gestionando
+          hasta cerrar solas. Mismo tratamiento que VWAP Reversion y 1% Spot. */}
+      {isRetired && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-4">
+          <p className="font-medium text-amber-800">🗄️ Estrategia retirada — no abre posiciones nuevas</p>
+          {strategy.executionDisabledReason && (
+            <p className="text-sm text-amber-700 mt-1 font-mono">{strategy.executionDisabledReason}</p>
+          )}
+          <p className="text-sm text-amber-700 mt-1">
+            Las posiciones abiertas se siguen gestionando (stops y salidas) hasta que cierren solas.
+          </p>
+        </div>
+      )}
+
       {/* Métricas principales */}
       <div className="grid grid-cols-6 gap-4">
         <div className="card">
