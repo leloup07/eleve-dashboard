@@ -9,26 +9,31 @@ import { formatCapitalShort } from '@/lib/formatters'
 import { Checkpoint } from '@/components/Checkpoint'
 import { useHidratado } from '@/hooks/useHidratado'
 
-const navigation = [
-  { name: 'Home', href: '/', icon: '🏠' },
-  { type: 'divider', label: 'Estrategias Swing' },
-  { name: 'Crypto Swing', href: '/strategies/crypto-swing', icon: '🪙' },
-  { name: 'Crypto Breakout', href: '/strategies/crypto-breakout', icon: '🚀' },
-  { name: 'Large Caps', href: '/strategies/large-caps', icon: '📈' },
-  { name: 'Small Caps', href: '/strategies/small-caps', icon: '🎯' },
-  { type: 'divider', label: 'Análisis' },
+// Enlaces por estrategia swing. La sección (activa vs retirada) se decide en
+// tiempo de render según executionEnabled, no aquí.
+const STRAT_LINKS: Record<string, { name: string; href: string; icon: string }> = {
+  crypto_breakout: { name: 'Crypto Breakout', href: '/strategies/crypto-breakout', icon: '🚀' },
+  crypto_swing: { name: 'Crypto Swing', href: '/strategies/crypto-swing', icon: '🪙' },
+  large_caps: { name: 'Large Caps', href: '/strategies/large-caps', icon: '📈' },
+  small_caps: { name: 'Small Caps', href: '/strategies/small-caps', icon: '🎯' },
+}
+const SWING_KEYS = ['crypto_breakout', 'crypto_swing', 'large_caps', 'small_caps']
+// VWAP y 1% Spot: research cerrado, siempre retiradas.
+const INTRADAY_RETIRADAS = [
+  { name: 'VWAP Reversion', href: '/strategies/intraday', icon: '⚡' },
+  { name: '1% Spot', href: '/strategies/intraday-1pct', icon: '💯' },
+]
+const ANALISIS = [
   { name: 'Indicadores', href: '/indicators', icon: '📊' },
   { name: 'Backtesting', href: '/backtest', icon: '📈' },
   { name: 'Riesgo', href: '/riesgo', icon: '🛡️' },
   { name: 'Proyecciones', href: '/projections', icon: '🔮' },
   { name: 'Noticias', href: '/news', icon: '📰' },
-  { type: 'divider', label: 'Herramientas' },
+]
+const HERRAMIENTAS = [
   { name: 'Educación', href: '/education', icon: '📚' },
   { name: 'Trading Journal', href: '/journal', icon: '📔' },
   { name: 'Configuración', href: '/config', icon: '⚙️' },
-  { type: 'divider', label: 'Research Archive' },
-  { name: 'VWAP Reversion', href: '/strategies/intraday', icon: '⚡' },
-  { name: '1% Spot', href: '/strategies/intraday-1pct', icon: '💯' },
 ]
 
 export function Sidebar() {
@@ -40,15 +45,11 @@ export function Sidebar() {
   // primer render rompe la hidratación (servidor $0 vs cliente $15K).
   const hidratado = useHidratado()
   const configCargada = useTradingStore(state => state.configCargada)
-  
-  const intradayConfig = useTradingStore(state => state.intradayConfig)
-  const intraday1PctConfig = useTradingStore(state => state.intraday1PctConfig)
-  
-  // El capital de cada estrategia vive en Redis, no en el código. La barra
-  // lateral se pinta en TODAS las páginas, pero el hook que hidrata la
-  // configuración solo corre en ocho de ellas: en /backtest, /journal o
-  // /indicators las cifras salían a 0 porque nadie las había traído todavía.
-  // Es una hidratación local, sin POST de vuelta: la config está congelada.
+
+  // El capital y el estado (executionEnabled) de cada estrategia viven en Redis.
+  // La barra lateral se pinta en TODAS las páginas, pero el hook que hidrata la
+  // configuración solo corre en algunas; sin esta hidratación local, en /backtest
+  // o /journal las cifras salían a 0 y no se sabía qué estaba retirado.
   useEffect(() => {
     let vivo = true
     fetch('/api/config')
@@ -66,6 +67,7 @@ export function Sidebar() {
               riskPerTrade: cfg.riskPerTrade ?? s.riskPerTrade,
               maxPositions: cfg.maxPositions ?? s.maxPositions,
               enabled: cfg.enabled ?? s.enabled,
+              executionEnabled: cfg.executionEnabled ?? s.executionEnabled,
             }
           }),
         }))
@@ -74,26 +76,38 @@ export function Sidebar() {
     return () => { vivo = false }
   }, [])
 
-  const cryptoCapital = (intradayConfig?.capital || 0) + (intraday1PctConfig?.capital || 0) + strategies
-    .filter(s => s.key.includes('crypto'))
-    .reduce((sum, s) => sum + (s.capital || 0), 0)
-  const stocksCapital = strategies.filter(s => s.key.includes('caps'))
-    .filter(s => !s.key.includes('crypto'))
-    .reduce((sum, s) => sum + (s.capital || 0), 0)
+  const byKey = Object.fromEntries(strategies.map(s => [s.key, s]))
+  const esRetirada = (key: string) => byKey[key]?.executionEnabled === false
+  const activas = SWING_KEYS.filter(k => STRAT_LINKS[k] && !esRetirada(k))
+  const retiradas = SWING_KEYS.filter(k => STRAT_LINKS[k] && esRetirada(k))
+  const nActivas = activas.length
+  // Solo el capital de estrategias ACTIVAS (las retiradas ya no operan).
+  const capitalActivo = activas.reduce((sum, k) => sum + (byKey[k]?.capital || 0), 0)
+
+  type NavItem = { type?: 'divider'; label?: string; name?: string; href?: string; icon?: string }
+  const navigation: NavItem[] = [
+    { name: 'Home', href: '/', icon: '🏠' },
+    { type: 'divider', label: nActivas === 1 ? 'Estrategia activa' : 'Estrategias activas' },
+    ...activas.map(k => STRAT_LINKS[k]),
+    { type: 'divider', label: 'Análisis' }, ...ANALISIS,
+    { type: 'divider', label: 'Herramientas' }, ...HERRAMIENTAS,
+    { type: 'divider', label: 'Retiradas' },
+    ...retiradas.map(k => STRAT_LINKS[k]),
+    ...INTRADAY_RETIRADAS,
+  ]
 
   const SidebarContent = () => (
     <>
       {/* Logo */}
       <div className="p-4 border-b border-white/10">
-        {/* La identidad del sistema es el commit que ejecutan los workers, no una
-            etiqueta escrita a mano: "v5.0" no cambiaba al cambiar el código. */}
         <h1 className="text-xl font-bold">🚀 ELEVE</h1>
-        {/* Cuenta solo las operativas. VWAP y 1% Spot tienen su research
-            cerrado (RESEARCH_CLOSED/NO_EDGE_EVIDENCE): no ejecutan, así que
-            no cuentan aquí — están en su propia sección más abajo. */}
-        <p className="text-xs text-white/60 mt-1">4 Estrategias</p>
+        {/* Solo las que ejecutan. Las retiradas (executionEnabled:false) no
+            cuentan: están en su propia sección más abajo. */}
+        <p className="text-xs text-white/60 mt-1">
+          {nActivas} {nActivas === 1 ? 'estrategia activa' : 'estrategias activas'}
+        </p>
       </div>
-      
+
       {/* Navegación */}
       <div className="flex-1 overflow-y-auto p-3">
         <nav className="space-y-0.5">
@@ -109,9 +123,7 @@ export function Sidebar() {
                 </div>
               )
             }
-            
             const isActive = pathname === item.href
-            
             return (
               <Link
                 key={item.href}
@@ -119,8 +131,8 @@ export function Sidebar() {
                 onClick={() => setMobileMenuOpen(false)}
                 className={clsx(
                   'flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition-colors',
-                  isActive 
-                    ? 'bg-white/20 text-white' 
+                  isActive
+                    ? 'bg-white/20 text-white'
                     : 'text-white/70 hover:text-white hover:bg-white/10'
                 )}
               >
@@ -131,24 +143,16 @@ export function Sidebar() {
           })}
         </nav>
       </div>
-      
-      {/* Footer - Capital */}
+
+      {/* Footer - Capital (solo estrategias activas) */}
       <div className="p-3 border-t border-white/10 bg-blue-900/80">
-        <div className="grid grid-cols-2 gap-2 mb-2">
-          <div>
-            <span className="text-[10px] text-white/50 block">Crypto</span>
-            <span className="text-sm font-bold">
-              {hidratado && configCargada ? formatCapitalShort(cryptoCapital) : '…'}
-            </span>
-          </div>
-          <div>
-            <span className="text-[10px] text-white/50 block">Stocks</span>
-            <span className="text-sm font-bold">
-              {hidratado && configCargada ? formatCapitalShort(stocksCapital) : '…'}
-            </span>
-          </div>
+        <div className="mb-2">
+          <span className="text-[10px] text-white/50 block">Capital activo</span>
+          <span className="text-sm font-bold">
+            {hidratado && configCargada ? formatCapitalShort(capitalActivo) : '…'}
+          </span>
         </div>
-        
+
         <div className={clsx(
           'flex items-center gap-2 px-2 py-1.5 rounded text-xs',
           globalMode === 'live' ? 'bg-red-500/20' : 'bg-blue-500/20'
@@ -168,7 +172,7 @@ export function Sidebar() {
       </div>
     </>
   )
-  
+
   return (
     <>
       {/* MOBILE: Hamburger button - always visible on mobile */}
@@ -179,17 +183,17 @@ export function Sidebar() {
       >
         {mobileMenuOpen ? '✕' : '☰'}
       </button>
-      
+
       {/* MOBILE: Overlay when menu is open */}
       {mobileMenuOpen && (
-        <div 
+        <div
           className="md:hidden fixed inset-0 bg-black/60 z-40"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
-      
+
       {/* MOBILE: Slide-out sidebar */}
-      <aside 
+      <aside
         className={clsx(
           'md:hidden fixed left-0 top-0 h-full w-64 bg-gradient-to-b from-blue-900 to-blue-700 text-white flex flex-col z-50 transition-transform duration-300 ease-in-out',
           mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
@@ -197,7 +201,7 @@ export function Sidebar() {
       >
         <SidebarContent />
       </aside>
-      
+
       {/* DESKTOP: Fixed sidebar - always visible */}
       <aside className="hidden md:flex fixed left-0 top-0 h-screen w-64 bg-gradient-to-b from-blue-900 to-blue-700 text-white flex-col z-40">
         <SidebarContent />

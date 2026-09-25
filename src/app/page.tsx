@@ -147,6 +147,7 @@ export default function HomePage() {
   const strategies = useTradingStore(state => state.strategies.map(s => s.key === 'one_percent_spot' ? { ...s, capital: state.intraday1PctConfig?.capital || s.capital, maxPositions: state.intraday1PctConfig?.maxPositions || s.maxPositions } : s.key === 'vwap_reversion' ? { ...s, capital: state.intradayConfig?.capital || s.capital, maxPositions: state.intradayConfig?.maxPositions || s.maxPositions } : s))
   const positions = useTradingStore(state => state.positions)
   const trades = useTradingStore(state => state.trades)
+  const experiment = useTradingStore(state => state.experiment)
   const redisConnected = useTradingStore(state => state.redisConnected)
   const globalMode = useTradingStore(state => state.getGlobalTradingMode())
   const getDashboardStats = useTradingStore(state => state.getDashboardStats)
@@ -155,7 +156,22 @@ export default function HomePage() {
   const { loading, error, lastFetch, refresh, worker, intraday } = useRealTradingData(30000)
   
   const stats = getDashboardStats()
-  
+
+  // Rendimiento de la ÉPOCA ACTUAL, solo crypto_breakout (la única viva): desde
+  // que arrancó el experimento vigente. El histórico total se muestra aparte.
+  const epochStart = experiment?.started_at ? new Date(experiment.started_at).getTime() : 0
+  const cbTrades = trades.filter(t => t.strategy === 'crypto_breakout' &&
+    new Date(t.closeDate).getTime() >= epochStart)
+  const cbRealized = cbTrades.reduce((s, t) => s + t.pnl, 0)
+  const cbUnrealized = positions.filter(p => p.strategy === 'crypto_breakout')
+    .reduce((s, p) => s + (p.unrealizedPnL || 0), 0)
+  const cbWinners = cbTrades.filter(t => t.pnl > 0).length
+  const cbWinRate = cbTrades.length ? (cbWinners / cbTrades.length) * 100 : 0
+  const cbGP = cbTrades.filter(t => t.pnl > 0).reduce((s, t) => s + t.pnl, 0)
+  const cbGL = Math.abs(cbTrades.filter(t => t.pnl < 0).reduce((s, t) => s + t.pnl, 0))
+  const cbPF = cbGL > 0 ? cbGP / cbGL : cbGP > 0 ? Infinity : 0
+  const cbEpoch = { pnl: cbRealized + cbUnrealized, trades: cbTrades.length, winRate: cbWinRate, pf: cbPF }
+
   const cryptoSymbols = [
     { proName: "BINANCE:BTCUSDT", title: "BTC" },
     { proName: "BINANCE:ETHUSDT", title: "ETH" },
@@ -306,7 +322,8 @@ export default function HomePage() {
       <div>
         <h2 className="text-lg font-semibold text-gray-900 mb-4">📈 Estrategias Operativas</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {strategies.filter(s => s.key !== 'vwap_reversion' && s.key !== 'one_percent_spot').map(strategy => (
+          {strategies.filter(s => s.key !== 'vwap_reversion' && s.key !== 'one_percent_spot'
+            && s.executionEnabled !== false).map(strategy => (
             <StrategyCard key={strategy.key} strategy={strategy} />
           ))}
         </div>
@@ -319,29 +336,40 @@ export default function HomePage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Performance Summary */}
         <div className="bg-white rounded-xl border p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">📊 Rendimiento</h3>
+          <div className="flex items-baseline justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">📊 Rendimiento</h3>
+            <span className="text-xs text-gray-500">🚀 crypto_breakout · época actual</span>
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <span className="text-xs text-gray-500 uppercase">PnL Total</span>
-              <p className={clsx(
-                'text-xl font-bold',
-                stats.totalPnL >= 0 ? 'text-green-600' : 'text-red-600'
-              )}>
-                {formatCurrency(stats.totalPnL)}
+              <span className="text-xs text-gray-500 uppercase">PnL (época)</span>
+              <p className={clsx('text-xl font-bold', cbEpoch.pnl >= 0 ? 'text-green-600' : 'text-red-600')}>
+                {formatCurrency(cbEpoch.pnl)}
               </p>
             </div>
             <div>
-              <span className="text-xs text-gray-500 uppercase">Total Trades</span>
-              <p className="text-xl font-bold text-gray-900">{stats.totalTrades}</p>
+              <span className="text-xs text-gray-500 uppercase">Trades (época)</span>
+              <p className="text-xl font-bold text-gray-900">{cbEpoch.trades}</p>
             </div>
             <div>
               <span className="text-xs text-gray-500 uppercase">Win Rate</span>
-              <p className="text-xl font-bold text-gray-900">{formatPercent(stats.winRate)}</p>
+              <p className="text-xl font-bold text-gray-900">{formatPercent(cbEpoch.winRate)}</p>
             </div>
             <div>
               <span className="text-xs text-gray-500 uppercase">Profit Factor</span>
-              <p className="text-xl font-bold text-gray-900">{stats.profitFactor.toFixed(2)}</p>
+              <p className="text-xl font-bold text-gray-900">
+                {cbEpoch.pf === Infinity ? '∞' : cbEpoch.pf.toFixed(2)}
+              </p>
             </div>
+          </div>
+          {/* Histórico total (todas las estrategias y épocas), como referencia. */}
+          <div className="mt-4 pt-3 border-t flex items-center justify-between text-sm">
+            <span className="text-gray-500">Histórico total</span>
+            <span className="text-gray-700">
+              PnL <span className={clsx('font-semibold', stats.totalPnL >= 0 ? 'text-green-600' : 'text-red-600')}>{formatCurrency(stats.totalPnL)}</span>
+              {' · '}{stats.totalTrades} trades{' · '}WR {formatPercent(stats.winRate)}
+              {' · '}PF {stats.profitFactor === Infinity ? '∞' : stats.profitFactor.toFixed(2)}
+            </span>
           </div>
         </div>
         
