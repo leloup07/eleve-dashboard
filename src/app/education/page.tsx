@@ -96,12 +96,14 @@ ATR = Media móvil del True Range (típicamente 14 períodos)
 
 | Estrategia | Stop | Objetivo | Por qué |
 |------------|------|----------|---------|
-| Crypto Swing | ${stop('crypto_swing')} | ${objetivo('crypto_swing')} | Diario: el ATR horario dejaba stops del 1,1% |
-| Crypto Breakout | ${stop('crypto_breakout')} | ${objetivo('crypto_breakout')} | Sin objetivo fijo: trailing desde +2R para dejar correr la tendencia |
-| Large Caps | ${stop('large_caps')} | ${objetivo('large_caps')} | Aguantan varios días sin saltar |
-| Small Caps | ${stop('small_caps')} | ${objetivo('small_caps')} | Momentum, busca extensiones |
-| VWAP Reversion | ${stop('vwap_reversion')} | ${objetivo('vwap_reversion')} | Intraday, movimientos cortos |
-| 1% Spot | ${stop('one_percent_spot')} | ${objetivo('one_percent_spot')} | No usa ATR: stop y objetivo porcentuales |
+| **Crypto Breakout** (activa) | ${stop('crypto_breakout')} | ${objetivo('crypto_breakout')} | Sin objetivo fijo: trailing desde +2R para dejar correr la tendencia |
+| Crypto Swing (retirada) | ${stop('crypto_swing')} | ${objetivo('crypto_swing')} | Diario: el ATR horario dejaba stops del 1,1% |
+| Large Caps (retirada) | ${stop('large_caps')} | ${objetivo('large_caps')} | Aguantan varios días sin saltar |
+| Small Caps (retirada) | ${stop('small_caps')} | ${objetivo('small_caps')} | Momentum, busca extensiones |
+| VWAP Reversion (retirada) | ${stop('vwap_reversion')} | ${objetivo('vwap_reversion')} | Intraday, movimientos cortos |
+| 1% Spot (retirada) | ${stop('one_percent_spot')} | ${objetivo('one_percent_spot')} | No usa ATR: stop y objetivo porcentuales |
+
+_Solo **Crypto Breakout** está operativa; el resto son estrategias retiradas, se mantienen como referencia._
 
 **Interpretación del ATR:**
 - ATR creciente: Volatilidad aumentando (breakouts, noticias)
