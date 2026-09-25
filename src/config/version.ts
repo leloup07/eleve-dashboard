@@ -22,7 +22,7 @@ export const STRATEGY_DESCRIPTIONS = {
 
   crypto_swing: `Swing sobre BTC, ETH y altcoins líquidas. Régimen y momentum en gráfico diario (EMA20/EMA50), entrada en 1H sobre pullback a la EMA20. Gatekeeper: régimen de BTC.`,
 
-  crypto_breakout: `Ruptura sobre los mismos activos que Crypto Swing, con el disparador opuesto: compra el máximo de N sesiones confirmado por volumen, es decir el activo que se va sin ofrecer retroceso. Misma gestión y mismo gatekeeper que Crypto Swing.`,
+  crypto_breakout: `Seguimiento de tendencia en cripto (BTC, ETH, SOL, XRP, AVAX, LINK). Una vez al día, tras el cierre de la vela diaria (00:05 UTC), compra si el cierre supera el máximo de los 20 días anteriores con volumen ≥ 1,2× su media y el régimen de BTC lo permite. Stop inicial a 1,5× ATR diario; sin objetivo fijo, trailing desde +2R. Validada fuera de muestra 2017–2021 con datos horarios de Binance y relleno causal.`,
 
   large_caps: `Swing sobre blue chips del S&P 500. Régimen y momentum en diario, entrada en 1H. Gatekeeper: régimen de SPY.`,
 

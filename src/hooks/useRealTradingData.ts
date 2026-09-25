@@ -178,7 +178,10 @@ export function useRealTradingData(autoRefreshMs = 30000) {
             if (config.entryFilters !== undefined) updates.entryFilters = config.entryFilters
             if (config.stops !== undefined) updates.stops = config.stops
             if (config.costs !== undefined) updates.costs = config.costs
-            if (config.description !== undefined) updates.description = config.description
+            // La descripción es la tesis cualitativa de la estrategia y vive en el
+            // código (STRATEGY_DESCRIPTIONS, config/version.ts), no en Redis: así no
+            // se desincroniza ni arrastra textos viejos (p.ej. la de crypto_breakout
+            // que se definía en función de Crypto Swing, ya retirada). NO se hidrata.
             // Editable desde /config: como la lista ya no se cachea en el navegador,
             // esto tiene que venir de Redis o se perdería al recargar.
             if (config.mode !== undefined) updates.mode = config.mode

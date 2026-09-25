@@ -166,7 +166,7 @@ const INITIAL_STRATEGIES: StrategyConfig[] = [
     mode: 'paper',
     enabled: true,
     assets: ['BTC', 'ETH', 'SOL', 'XRP', 'AVAX', 'LINK'],
-    assetDescription: 'Mismo universo que Crypto Swing',
+    assetDescription: 'BTC, ETH, SOL, XRP, AVAX, LINK',
     horizon: 'SWING',
     gatekeeper: 'BTC_REGIME',
     timeframes: { context: '1D', trend: '1D', entry: '1D' },

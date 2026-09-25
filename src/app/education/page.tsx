@@ -54,12 +54,11 @@ function construirContenido(porClave: Record<string, any>) {
 - RSI < 30: Sobreventa (posible reversión alcista)
 - RSI 40-60: Zona neutral
 
-**Cómo lo usa ELEVE** (leído de la spec activa de cada estrategia):
-- Crypto Swing: ${rango('crypto_swing')} para entradas
-- Large Caps: ${rango('large_caps')} · Small Caps: ${rango('small_caps')}
-- 1% Spot: ${rango('one_percent_spot')} (más restrictivo)
-- Crypto Breakout: no usa RSI — entra por ruptura, no por momentum
-- VWAP Reversion: tampoco lo lee de su configuración
+**Cómo lo usa ELEVE:** la única estrategia operativa hoy, Crypto Breakout, **no usa RSI** — entra por ruptura de máximos, no por momentum. Los umbrales de abajo son de estrategias ya **retiradas**, se mantienen como referencia histórica:
+- Crypto Swing (retirada): ${rango('crypto_swing')} para entradas
+- Large Caps · Small Caps (retiradas): ${rango('large_caps')} · ${rango('small_caps')}
+- 1% Spot (retirada): ${rango('one_percent_spot')} (más restrictivo)
+- VWAP Reversion (retirada): tampoco lo leía de su configuración
 
 **Fórmula:**
 RSI = 100 - (100 / (1 + RS))
@@ -98,7 +97,7 @@ ATR = Media móvil del True Range (típicamente 14 períodos)
 | Estrategia | Stop | Objetivo | Por qué |
 |------------|------|----------|---------|
 | Crypto Swing | ${stop('crypto_swing')} | ${objetivo('crypto_swing')} | Diario: el ATR horario dejaba stops del 1,1% |
-| Crypto Breakout | ${stop('crypto_breakout')} | ${objetivo('crypto_breakout')} | Misma gestión que Crypto Swing |
+| Crypto Breakout | ${stop('crypto_breakout')} | ${objetivo('crypto_breakout')} | Sin objetivo fijo: trailing desde +2R para dejar correr la tendencia |
 | Large Caps | ${stop('large_caps')} | ${objetivo('large_caps')} | Aguantan varios días sin saltar |
 | Small Caps | ${stop('small_caps')} | ${objetivo('small_caps')} | Momentum, busca extensiones |
 | VWAP Reversion | ${stop('vwap_reversion')} | ${objetivo('vwap_reversion')} | Intraday, movimientos cortos |
@@ -142,11 +141,10 @@ Un máximo de 20 sesiones quiere decir que nadie que haya comprado en el último
 Los amagos. El precio asoma la cabeza por encima del máximo, no aparece nadie detrás y vuelve al rango. Por eso ELEVE exige además volumen (ver Volumen relativo).
 
 **Uso en ELEVE:**
-- Crypto Breakout: ruptura del máximo de ${f('crypto_breakout', ['entryFilters','donchianPeriod'], '', 0)} sesiones + volumen ≥ ${f('crypto_breakout', ['entryFilters','volumeMult'], '×')} su media
-- Es el disparador OPUESTO al de Crypto Swing, que compra retrocesos a la EMA20
+- Crypto Breakout: la señal se evalúa una vez al día, tras el cierre de la vela diaria (00:05 UTC), sobre la vela ya cerrada. Compra si ese cierre supera el máximo de ${f('crypto_breakout', ['entryFilters','donchianPeriod'], '', 0)} sesiones previas con volumen ≥ ${f('crypto_breakout', ['entryFilters','volumeMult'], '×')} su media y el régimen de BTC lo permite.
 
 **Por qué se eligió:**
-Medido sobre 6 meses de los seis activos crypto: 138 días con señal de pullback y 23 con señal de ruptura, con CERO coincidencias. Una exige que el precio esté cerca de su media; la otra, que esté en máximos. Son incompatibles por construcción, que es justamente lo que se busca al combinar estrategias: que no compren lo mismo el mismo día.`
+Un máximo de N sesiones es una tesis simple y robusta: cuando nadie que compró en el último mes está en pérdidas, desaparece la oferta que frena las subidas y las rupturas tienden a extenderse. Se valida fuera de muestra en 2017–2021 con datos horarios de Binance y relleno causal (sin look-ahead).`
   },
 
   volumen_relativo: {
@@ -198,10 +196,10 @@ El volumen se calculaba y se guardaba en cada operación de ELEVE desde el princ
 - -DI > +DI + ADX > 25: Tendencia bajista fuerte
 - ADX < 20: No operar tendencia (usar mean-reversion)
 
-**Uso en ELEVE:**
-- Crypto Swing: ADX ≥ 15 para confirmar tendencia
-- Small Caps: ADX > 25 (más exigente, busca momentum)
-- 1% Spot: ADX > 20 + (+DI > -DI) para confirmar dirección`
+**Uso en ELEVE:** Crypto Breakout (la única operativa) tampoco usa ADX — confirma la ruptura con volumen. Estos umbrales son de estrategias ya **retiradas**, como referencia:
+- Crypto Swing (retirada): ADX ≥ 15 para confirmar tendencia
+- Small Caps (retirada): ADX > 25 (más exigente, busca momentum)
+- 1% Spot (retirada): ADX > 20 + (+DI > -DI) para confirmar dirección`
   },
 
   ema: {
