@@ -171,6 +171,10 @@ export default function HomePage() {
   const cbGL = Math.abs(cbTrades.filter(t => t.pnl < 0).reduce((s, t) => s + t.pnl, 0))
   const cbPF = cbGL > 0 ? cbGP / cbGL : cbGP > 0 ? Infinity : 0
   const cbEpoch = { pnl: cbRealized + cbUnrealized, trades: cbTrades.length, winRate: cbWinRate, pf: cbPF }
+  // Solo capital de estrategias ACTIVAS (las retiradas ya no operan).
+  const capitalActivo = strategies.filter(s => s.executionEnabled !== false &&
+    s.key !== 'vwap_reversion' && s.key !== 'one_percent_spot').reduce((s2, s) => s2 + (s.capital || 0), 0)
+  const cbOpen = positions.filter(p => p.strategy === 'crypto_breakout').length
 
   const cryptoSymbols = [
     { proName: "BINANCE:BTCUSDT", title: "BTC" },
@@ -292,26 +296,27 @@ export default function HomePage() {
         </div>
       </div>
       
-      {/* Main Metrics */}
+      {/* Main Metrics — capital solo de activas; KPIs solo crypto_breakout en la
+          época actual (v51_causal_paper). El histórico total va colapsado abajo. */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <MetricCard 
-          label="Capital Total" 
-          value={formatCurrency(stats.totalCapital)} 
+        <MetricCard
+          label="Capital activo"
+          value={formatCurrency(capitalActivo)}
           icon="💰"
         />
-        <MetricCard 
-          label="Posiciones Abiertas" 
-          value={stats.openPositions.toString()} 
+        <MetricCard
+          label="Posiciones Abiertas"
+          value={cbOpen.toString()}
           icon="📊"
         />
-        <MetricCard 
-          label="Win Rate" 
-          value={formatPercent(stats.winRate)} 
+        <MetricCard
+          label="Win Rate (época)"
+          value={formatPercent(cbEpoch.winRate)}
           icon="🎯"
         />
-        <MetricCard 
-          label="Profit Factor" 
-          value={stats.profitFactor.toFixed(2)} 
+        <MetricCard
+          label="Profit Factor (época)"
+          value={cbEpoch.pf === Infinity ? '∞' : cbEpoch.pf.toFixed(2)}
           icon="📈"
         />
       </div>
@@ -362,15 +367,16 @@ export default function HomePage() {
               </p>
             </div>
           </div>
-          {/* Histórico total (todas las estrategias y épocas), como referencia. */}
-          <div className="mt-4 pt-3 border-t flex items-center justify-between text-sm">
-            <span className="text-gray-500">Histórico total</span>
-            <span className="text-gray-700">
+          {/* Histórico total (todas las estrategias y épocas): aparte y colapsado,
+              como referencia. No borra ni oculta datos — solo no es lo primario. */}
+          <details className="mt-4 pt-3 border-t text-sm">
+            <summary className="text-gray-500 cursor-pointer select-none">Histórico total (todas las estrategias y épocas)</summary>
+            <p className="mt-2 text-gray-700">
               PnL <span className={clsx('font-semibold', stats.totalPnL >= 0 ? 'text-green-600' : 'text-red-600')}>{formatCurrency(stats.totalPnL)}</span>
               {' · '}{stats.totalTrades} trades{' · '}WR {formatPercent(stats.winRate)}
               {' · '}PF {stats.profitFactor === Infinity ? '∞' : stats.profitFactor.toFixed(2)}
-            </span>
-          </div>
+            </p>
+          </details>
         </div>
         
         {/* Recent Trades */}
